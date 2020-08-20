@@ -41,23 +41,3 @@ virtual void compute(MessageContainer & messages)
 
 目前只实现了单查询的功能。在目前的版本里，如果要多查询，就是多个查询同步进行（如果查询差异很大，会减少整体时间）。
 
-#### 问题
-1. 查询图和数据图的文件格式。如果点和边的信息分开存储，必须重新设计输入接口。（对应`Worker.h`中`run`的前半部分）
-2. 我本来是想让master确定query的访问顺序，再把query发送给各个worker的，需要对源代码进行改动：在`Worker`类中添加查询图。
-3. 之前提出的预处理方案没有实现。如果要实现的话，可以分为两个application。
-4. 在子图查询中，这是没有必要的。但删除synchronization barrier，是否等于要修改信息传递的逻辑？现在的设计是，所有节点同步后，进行消息传递。（用的是MPI）
-
-#### 待优化
-1. 数据图节点的分布。Pregel+只支持hash partition。要么按照某一种分区方式重新标号（大图代价是否会太大？），要么（如果不重新标号）就只能修改Pregel+的分区逻辑（也就是寻点逻辑）。
-2. 同一台机器上节点之间的信息发送可以发指针。除此之外，目前的代码里，可能会有浪费空间/时间的复制操作，可以由指针来代替。（对不起，我对C/C++不熟悉，我太菜了T_T）
-3. 在MASTER和SLAVE之间通信，了解各台机器的工作状态(statistics)，实现load balancing.
-4. 另一种求交集算法的设计和比较，以及bloom filter
-5. 多查询优化，分为以下几个部分：
-    - 匹配过程中的partial mapping可以保存下来，如果别的查询有共同前缀的话，可以直接从partial mapping开始匹配。
-    - MASTER重新设计查询顺序，以满足load balancing。
-    - 消息合并。可以利用Pregel里有Combiner。
-
-#### 阅读计划
-1. Pregel+的官网上有一些应用，我只看了比较简单的几个：Hash-min, Pagerank, SSSP. 我想再看看其它比较复杂的，或许能有新的idea。
-2. Pregel+提出的两项技术：vertex mirroring和request-respond.
-3. 现在对Pregel比较熟悉了，我打算去仔细读一读Quegel ("Query-Centric Pregel")。
