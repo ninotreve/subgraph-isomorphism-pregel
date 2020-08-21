@@ -3,6 +3,7 @@
 using namespace std;
 
 #define DEBUG_MODE 1
+//#define DEBUG_MODE_ACTIVE 1
 //#define DEBUG_MODE_MSG 1
 
 //input line format:
@@ -269,7 +270,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			 */
 			if (!id.isQuery)
 			{
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MODE_ACTIVE
 				cout << "[DEBUG] STEP NUMBER " << step_num()
 					 << " ACTIVE Vertex ID " << id.vID << endl;
 #endif
@@ -473,17 +474,15 @@ class CCCombiner_pregel:public Combiner<VertexID>
 };
 */
 
-void pregel_subgraph(string in_path, string out_path, bool use_combiner)
+void pregel_subgraph(string in_path, string out_path, bool force_write)
 {
-	WorkerParams params;
-	params.input_path = in_path;
-	params.output_path = out_path;
-
 	SIWorker worker;
 	//CCCombiner_pregel combiner;
 	//if(use_combiner) worker.setCombiner(&combiner);
 
 	SIAgg agg;
 	worker.setAggregator(&agg);
-	worker.run(params);
+	worker.run_load_graph(in_path);
+	worker.run_compute();
+	worker.run_dump_graph(out_path, force_write);
 }

@@ -300,14 +300,139 @@ public:
 
         for (VertexIter it = vertexes.begin(); it != vertexes.end(); it++) {
             writer->check();
-            toline(*it, *writer);
+            if (((*it)->results).size() != 0)
+            	toline(*it, *writer);
         }
         delete writer;
         hdfsDisconnect(fs);
     }
     //=======================================================
 
-    // run the worker
+    // run the worker, load the graph
+    void run_load_graph(const string& input_path)
+    {
+        //check path + init
+        if (_my_rank == MASTER_RANK) {
+            if (dirCheck(input_path.c_str()) == -1)
+                exit(-1);
+        }
+        init_timers();
+
+        //dispatch splits
+        ResetTimer(WORKER_TIMER);
+        vector<vector<string> >* arrangement;
+        if (_my_rank == MASTER_RANK) {
+            arrangement = dispatchRan(input_path.c_str());
+            //reportAssignment(arrangement);//DEBUG !!!!!!!!!!
+            masterScatter(*arrangement);
+            vector<string>& assignedSplits = (*arrangement)[0];
+            //reading assigned splits (map)
+            for (vector<string>::iterator it = assignedSplits.begin();
+                 it != assignedSplits.end(); it++)
+                load_graph(it->c_str());
+            delete arrangement;
+        } else {
+            vector<string> assignedSplits;
+            slaveScatter(assignedSplits);
+            //reading assigned splits (map)
+            for (vector<string>::iterator it = assignedSplits.begin();
+                 it != assignedSplits.end(); it++)
+                load_graph(it->c_str());
+        }
+
+        //send vertices according to hash_id (reduce)
+        sync_graph();
+
+        message_buffer->init(vertexes);
+        //barrier for data loading
+        worker_barrier(); //@@@@@@@@@@@@@
+        StopTimer(WORKER_TIMER);
+        PrintTimer("Load Time", WORKER_TIMER);
+    }
+
+    //=========================================================
+
+    void run_compute()
+    {
+        init_timers();
+        ResetTimer(WORKER_TIMER);
+        //supersteps
+        global_step_num = 0;
+        long long step_msg_num;
+        long long step_vadd_num;
+        long long global_msg_num = 0;
+        long long global_vadd_num = 0;
+        while (true) {
+            global_step_num++;
+            ResetTimer(4);
+            //===================
+            char bits_bor = all_bor(global_bor_bitmap);
+            if (getBit(FORCE_TERMINATE_ORBIT, bits_bor) == 1)
+                break;
+            get_vnum() = all_sum(vertexes.size());
+            int wakeAll = getBit(WAKE_ALL_ORBIT, bits_bor);
+            if (wakeAll == 0) {
+                active_vnum() = all_sum(active_count);
+                if (active_vnum() == 0 && getBit(HAS_MSG_ORBIT, bits_bor) == 0)
+                    break; //all_halt AND no_msg
+            } else
+                active_vnum() = get_vnum();
+            //===================
+            AggregatorT* agg = (AggregatorT*)get_aggregator();
+            if (agg != NULL)
+                agg->init();
+            //===================
+            clearBits();
+            if (wakeAll == 1)
+                all_compute();
+            else
+                active_compute();
+            message_buffer->combine();
+            step_msg_num = master_sum_LL(message_buffer->get_total_msg());
+            step_vadd_num = master_sum_LL(message_buffer->get_total_vadd());
+            if (_my_rank == MASTER_RANK) {
+                global_msg_num += step_msg_num;
+                global_vadd_num += step_vadd_num;
+            }
+            vector<VertexT*>& to_add = message_buffer->sync_messages();
+            agg_sync();
+            for (int i = 0; i < to_add.size(); i++)
+                add_vertex(to_add[i]);
+            to_add.clear();
+            //===================
+            worker_barrier();
+            StopTimer(4);
+            if (_my_rank == MASTER_RANK) {
+                cout << "Superstep " << global_step_num << " done. Time elapsed: " << get_timer(4) << " seconds" << endl;
+                cout << "#msgs: " << step_msg_num << ", #vadd: " << step_vadd_num << endl;
+            }
+        }
+        worker_barrier();
+        StopTimer(WORKER_TIMER);
+        PrintTimer("Communication Time", COMMUNICATION_TIMER);
+        PrintTimer("- Serialization Time", SERIALIZATION_TIMER);
+        PrintTimer("- Transfer Time", TRANSFER_TIMER);
+        PrintTimer("Total Computational Time", WORKER_TIMER);
+        if (_my_rank == MASTER_RANK)
+            cout << "Total #msgs=" << global_msg_num << ", Total #vadd=" << global_vadd_num << endl;
+    }
+
+    void run_dump_graph(const string& output_path, bool force_write)
+    {
+        //check path + init
+        if (_my_rank == MASTER_RANK) {
+            if (dirCheck(output_path.c_str(), force_write) == -1)
+                exit(-1);
+        }
+        init_timers();
+
+        ResetTimer(WORKER_TIMER);
+        dump_partition(output_path.c_str());
+        StopTimer(WORKER_TIMER);
+        PrintTimer("Dump Time", WORKER_TIMER);
+    }
+
+    // original run
     void run(const WorkerParams& params)
     {
         //check path + init
@@ -347,8 +472,6 @@ public:
         worker_barrier(); //@@@@@@@@@@@@@
         StopTimer(WORKER_TIMER);
         PrintTimer("Load Time", WORKER_TIMER);
-
-        //=========================================================
 
         init_timers();
         ResetTimer(WORKER_TIMER);
