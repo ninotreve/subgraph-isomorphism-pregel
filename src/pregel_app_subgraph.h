@@ -4,7 +4,7 @@ using namespace std;
 
 #define DEBUG_MODE 1
 //#define DEBUG_MODE_ACTIVE 1
-//#define DEBUG_MODE_MSG 1
+#define DEBUG_MODE_MSG 1
 
 //input line format:
 //  type \t vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -116,73 +116,58 @@ obinstream & operator>>(obinstream & m, SIValue & v){
 	return m;
 }
 
-//-----------SIMessage = <type, vertex, info, vector_of_vertex>--------------
-//      type = LABEL_INFOMATION, vertex = vertex, info = label
-//		type = NEXT_QUERY_VERTEX, vertex = max query vertex,
-//								  info = label, vector = its neighbors
-//		type = MESSAGE_FRAGMENT, info = number of messages, vector = mapping
+//--------SIMessage = <type, vertex, info, backward_neighbors, mapping>--------
+//  e.g. <type = LABEL_INFOMATION, vertex, label>
+//	e.g. <type = NEXT_QUERY_VERTEX, vertex = max query vertex, label, b_nbs>
+//	e.g. <type = MAPPING, label, b_nbs>
 
 struct SIMessage
 {
 	int type;
 	VertexID vertex;
-	int info;
-	vector<VertexID> vec;
+	int label;
+	vector<VertexID> b_nbs; // backward_neighbors
+	vector<VertexID> mapping;
 
 	SIMessage()
 	{
 	}
 
-	SIMessage(int type, VertexID vertex, int info)
+	SIMessage(int type, VertexID vertex, int label)
 	{ // for label information
 		this->type = type;
 		this->vertex = vertex;
-		this->info = info;
+		this->label = label;
 	}
 
-	SIMessage(int type, int info, vector<VertexID> vec)
-	{ // for message fragment
+	SIMessage(int type, vector<VertexID> b_nbs, vector<VertexID> mapping)
+	{ // for mapping
 		this->type = type;
-		this->info = info;
-		this->vec = vec;
+		this->b_nbs = b_nbs;
+		this->mapping = mapping;
 	}
 };
 
 ibinstream & operator<<(ibinstream & m, const SIMessage & v){
-	m << v.type << v.vertex << v.info << v.vec;
+	m << v.type << v.vertex << v.label << v.b_nbs << v.mapping;
 	return m;
 }
 
 obinstream & operator>>(obinstream & m, SIMessage & v){
-	m >> v.type >> v.vertex >> v.info >> v.vec;
+	m >> v.type >> v.vertex >> v.label >> v.b_nbs >> v.mapping;
 	return m;
 }
 
 enum MESSAGE_TYPES {
 	LABEL_INFOMATION = 1,
 	NEXT_QUERY_VERTEX = 2,
-	MESSAGE_FRAGMENT = 3
+	MAPPING = 3
 };
 
-//------------------Overloading hash and << of vector------------------------
-
-namespace __gnu_cxx {
-	template <>
-	struct hash<vector<int>> {
-		size_t operator()(vector<int> v) const
-		{
-			size_t seed = 0;
-			for (int i = 0; i < v.size(); i++)
-			{
-				hash_combine(seed, v[i]);
-			}
-			return seed;
-		}
-	};
-}
+// Overloading << operator of vector, print like Python, for debug purpose
 
 ostream & operator << (ostream & os, const vector<int> & v)
-{ // print like Python, for debug purpose
+{
 	os << "[";
 	for (int i = 0; i < v.size(); i++)
 	{
@@ -200,27 +185,18 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 	public:
 		vector<vector<VertexID>> results; // only used in the final step
 
-		vector<vector<VertexID>> match(MessageContainer & messages)
-		{ // Match MESSAGE_FRAGMENT
-			vector<vector<VertexID>> mappings;
-			hash_map<vector<VertexID>, int> map;
-			for (int i = 0; i < messages.size(); i++)
+		bool containsNeighbors(vector<VertexID> & backward_neighbors,
+				vector<VertexID> & mapping)
+		{ // Check if all backward edges are satisfied.
+			hash_map<VertexID, int> & nbs = value().neighbors;
+			int index;
+			for (int i = 0; i < backward_neighbors.size(); i++)
 			{
-				SIMessage & msg = messages[i];
-				if (map.find(msg.vec) == map.end())
-					map[msg.vec] = msg.info - 1;
-				else
-					map[msg.vec]--;
-
-				hash_map<vector<VertexID>, int>::iterator it;
-				for (it = map.begin(); it != map.end(); it++)
-					if (it->second == 0)
-					{
-						mappings.push_back(it->first);
-					}
-
+				index = backward_neighbors[i] - 1;
+				if (nbs.find(mapping[index]) == nbs.end())
+					return false;
 			}
-			return mappings;
+			return true;
 		}
 
 		void continue_mapping(vector<VertexID> & mapping)
@@ -232,7 +208,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 #ifdef DEBUG_MODE
 				cout << "[Result] Partial mapping:  " << mapping << endl;
 #endif
-			vector<VertexID> & req = ((SIMessage*)getAgg())->vec;
+			vector<VertexID> b_nbs = ((SIMessage*)getAgg())->b_nbs; // copy
 			int query_size = ((SIMessage*)getAgg())->vertex;
 			if (mapping.size() >= query_size)
 			{
@@ -243,19 +219,26 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 			else
 			{
-				int num = req.size();
-				int index;
-				for (int i = 0; i < num; i++)
+				int index, num = b_nbs.size();
+				if (num == 0)
 				{
-					index = req[i] - 1;
-					SIMessage msg = SIMessage(MESSAGE_FRAGMENT, num, mapping);
-					send_message(SIKey(mapping[index], false), msg);
+					cout << "Error: query graph not connected." << endl;
+					forceTerminate();
+				}
+				else
+				{
+					index = b_nbs[num-1] - 1; // the last backward neighbor
+					b_nbs.pop_back();
+
+					SIKey to_send = SIKey(mapping[index], false);
+					SIMessage msg = SIMessage(MAPPING, b_nbs, mapping);
+					send_message(to_send, msg);
 #ifdef DEBUG_MODE_MSG
 					cout << "[DEBUG] Message sent from " << id.vID << " to "
-						 << mapping[index] << ". \n\t"
-						 << "Type: MESSAGE_FRAGMENT. \n\t"
-						 << "Number: " << msg.info << ". \n\t"
-						 << "Mapping: " << msg.vec << endl;
+						 << to_send.vID << ". \n\t"
+						 << "Type: MAPPING. \n\t"
+						 << "Backward Neighbors: " << msg.b_nbs << ". \n\t"
+						 << "Mapping: " << msg.mapping << endl;
 #endif
 				}
 			}
@@ -288,15 +271,15 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					{
 						SIMessage & msg = messages[i];
 						if (msg.type == LABEL_INFOMATION)
-							nbs[msg.vertex] = msg.info;
+							nbs[msg.vertex] = msg.label;
 					}
 					// start mapping with vertices with same label
-					int query_label = ((SIMessage*)getAgg())->info;
+					int query_label = ((SIMessage*)getAgg())->label;
 					if (value().label != query_label)
 						vote_to_halt();
 				}
 				else if (step_num() % 2 == 1)
-				{ // if messages are matched, continue mapping.
+				{ // if if backward neighbors in neighbors, continue mapping.
 					if (messages.size() == 0)
 					{
 						vector<VertexID> mapping;
@@ -304,11 +287,11 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					}
 					else
 					{
-						vector<vector<VertexID>> mappings = match(messages);
-						for (int i = 0; i < mappings.size(); i++)
+						for (int i = 0; i < messages.size(); i++)
 						{
-							vector<VertexID> & mapping = mappings[i];
-							continue_mapping(mapping);
+							SIMessage & msg = messages[i];
+							if (containsNeighbors(msg.b_nbs, msg.mapping))
+								continue_mapping(msg.mapping);
 						}
 					}
 					vote_to_halt();
@@ -316,12 +299,12 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				else
 				{ /* receive messages of MESSAGE_FRAGMENT,
 				   * forward them to neighbors of specific labels. */
-					int query_label = ((SIMessage*)getAgg())->info;
+					int query_label = ((SIMessage*)getAgg())->label;
 					hash_map<VertexID, int>::iterator it;
 					for (int i = 0; i < messages.size(); i++)
 					{
 						SIMessage & msg = messages[i];
-						if (msg.type == MESSAGE_FRAGMENT)
+						if (msg.type == MAPPING)
 						{
 							for (it = nbs.begin(); it != nbs.end(); it++)
 							{
@@ -331,9 +314,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 #ifdef DEBUG_MODE_MSG
 									cout << "[DEBUG] Message sent from " << id.vID << " to "
 										 << it->first << ". \n\t"
-										 << "Type: FWD: MESSAGE_FRAGMENT. \n\t"
-										 << "Number: " << msg.info << ". \n\t"
-										 << "Mapping: " << msg.vec << endl;
+										 << "Type: FWD: MAPPING. \n\t"
+										 << "Backward Neighbors: " << msg.b_nbs << ". \n\t"
+										 << "Mapping: " << msg.mapping << endl;
 #endif
 								}
 							}
@@ -359,7 +342,7 @@ class SIAgg:public Aggregator<SIVertex, SIMessage, SIMessage>
 		virtual void init() {
 			msg.vertex = 0;
 			msg.type = 0;
-			msg.vec.clear();
+			msg.b_nbs.clear();
 		}
 
 		virtual void stepPartial(SIVertex* v)
@@ -371,7 +354,7 @@ class SIAgg:public Aggregator<SIVertex, SIMessage, SIMessage>
 				if (step_num() % 2 == 1 && v->id.vID == (step_num() + 1) / 2)
 				{
 					msg.type = NEXT_QUERY_VERTEX;
-					msg.info = v->value().label;
+					msg.label = v->value().label;
 				}
 				else if (step_num() % 2 == 0 && v->id.isQuery &&
 						v->id.vID == (step_num() / 2) + 1)
@@ -381,7 +364,7 @@ class SIAgg:public Aggregator<SIVertex, SIMessage, SIMessage>
 					hash_map<VertexID, int>::iterator it;
 					for (it = nbs.begin(); it != nbs.end(); it++)
 					{
-						msg.vec.push_back(it->first);
+						msg.b_nbs.push_back(it->first);
 					}
 				}
 			}
