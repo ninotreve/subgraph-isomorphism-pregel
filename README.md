@@ -39,5 +39,4 @@ virtual void compute(MessageContainer & messages)
 }
 ```
 
-目前只实现了单查询的功能。在目前的版本里，如果要多查询，就是多个查询同步进行（如果查询差异很大，会减少整体时间）。
 
