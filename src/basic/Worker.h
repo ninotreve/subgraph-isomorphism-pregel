@@ -300,8 +300,7 @@ public:
 
         for (VertexIter it = vertexes.begin(); it != vertexes.end(); it++) {
             writer->check();
-            if (((*it)->results).size() != 0)
-            	toline(*it, *writer);
+            toline(*it, *writer);
         }
         delete writer;
         hdfsDisconnect(fs);
@@ -414,7 +413,9 @@ public:
         PrintTimer("- Transfer Time", TRANSFER_TIMER);
         PrintTimer("Total Computational Time", WORKER_TIMER);
         if (_my_rank == MASTER_RANK)
+        {
             cout << "Total #msgs=" << global_msg_num << ", Total #vadd=" << global_vadd_num << endl;
+        }
     }
 
     void run_dump_graph(const string& output_path, bool force_write)
