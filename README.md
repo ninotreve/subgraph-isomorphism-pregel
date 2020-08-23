@@ -24,15 +24,13 @@ virtual void compute(MessageContainer & messages)
         else if (step_num() == 2)
             // receive label info from neighbors, and start matching
         else if (step_num() % 2 == 1)
-            // match message fragments
-            mappings = match(messages);
-            for each mapping
-                /* add current vertex to mapping
+            for each message
+                /* if backward neighbors in neighbors, add current vertex to mapping
                  * send messages to mapped vertices that are neighboring to
                  * the next query vertex. 
                  */
         else 
-            /* receive message fragments,
+            /* receive message (partial MAPPING),
              * and forward them to neighbors of specific labels. 
              */       
     }
