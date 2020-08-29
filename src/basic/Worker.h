@@ -9,9 +9,10 @@
 #include "../utils/ydhdfs.h"
 #include "../utils/Combiner.h"
 #include "../utils/Aggregator.h"
+#include "../utils/Query.h"
 using namespace std;
 
-template <class VertexT, class AggregatorT = DummyAgg> //user-defined VertexT
+template <class VertexT, class QueryT, class AggregatorT = DummyAgg> //user-defined VertexT
 class Worker {
     typedef vector<VertexT*> VertexContainer;
     typedef typename VertexContainer::iterator VertexIter;
@@ -55,9 +56,14 @@ public:
         global_agg = new FinalT;
     }
 
+    void setQuery(QueryT* qr)
+    {
+        global_query = qr;
+    }
+
     virtual ~Worker()
     {
-        for (int i = 0; i < vertexes.size(); i++)
+        for (size_t i = 0; i < vertexes.size(); i++)
             delete vertexes[i];
         delete message_buffer;
         if (getAgg() != NULL)
@@ -73,7 +79,7 @@ public:
         //ResetTimer(4);
         //set send buffer
         vector<VertexContainer> _loaded_parts(_num_workers);
-        for (int i = 0; i < vertexes.size(); i++) {
+        for (size_t i = 0; i < vertexes.size(); i++) {
             VertexT* v = vertexes[i];
             _loaded_parts[hash(v->id)].push_back(v);
         }
@@ -81,7 +87,7 @@ public:
         all_to_all(_loaded_parts);
 
         //delete sent vertices
-        for (int i = 0; i < vertexes.size(); i++) {
+        for (size_t i = 0; i < vertexes.size(); i++) {
             VertexT* v = vertexes[i];
             if (hash(v->id) != _my_rank)
                 delete v;
@@ -158,7 +164,7 @@ public:
         active_count = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
-        for (int i = 0; i < vertexes.size(); i++) {
+        for (size_t i = 0; i < vertexes.size(); i++) {
             if (v_msgbufs[i].size() == 0) {
                 if (vertexes[i]->is_active()) {
                     vertexes[i]->compute(v_msgbufs[i]);
@@ -186,7 +192,7 @@ public:
         active_count = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
-        for (int i = 0; i < vertexes.size(); i++) {
+        for (size_t i = 0; i < vertexes.size(); i++) {
             vertexes[i]->activate();
             vertexes[i]->compute(v_msgbufs[i]);
             v_msgbufs[i].clear(); //clear used msgs
@@ -288,6 +294,23 @@ public:
         hdfsDisconnect(fs);
         //cout<<"Worker "<<_my_rank<<": \""<<inpath<<"\" loaded"<<endl;//DEBUG !!!!!!!!!!
     }
+
+    void load_query_graph(const char* inpath)
+	{
+		hdfsFS fs = getHdfsFS();
+		hdfsFile in = getRHandle(inpath, fs);
+		LineReader reader(fs, in);
+		while (true) {
+			reader.readLine();
+			if (!reader.eof())
+				((QueryT*) global_query)->addNode(reader.getLine());
+			else
+				break;
+		}
+		hdfsCloseFile(fs, in);
+		hdfsDisconnect(fs);
+		cout<<"Worker "<<_my_rank<<": \""<<inpath<<"\" loaded"<<endl;//DEBUG !!!!!!!!!!
+	}
     //=======================================================
 
     //user-defined graphDumper ==============================
@@ -307,8 +330,8 @@ public:
     }
     //=======================================================
 
-    // run the worker, load the graph
-    void run_load_graph(const string& input_path)
+    // run the worker, load the data graph
+    void load_data(const string& input_path)
     {
         //check path + init
         if (_my_rank == MASTER_RANK) {
@@ -346,8 +369,54 @@ public:
         //barrier for data loading
         worker_barrier(); //@@@@@@@@@@@@@
         StopTimer(WORKER_TIMER);
-        PrintTimer("Load Time", WORKER_TIMER);
+        PrintTimer("Load Graph Time", WORKER_TIMER);
     }
+
+    // load the query graph by MASTER and broadcast to SLAVEs.
+    void load_query(const string& input_path)
+	{
+		//check path + init
+		if (_my_rank == MASTER_RANK) {
+			if (dirCheck(input_path.c_str()) == -1)
+				exit(-1);
+		}
+		init_timers();
+
+		if (_my_rank == MASTER_RANK)
+		{
+			// read query from HDFS
+			vector<string> files;
+			dispatchMaster(input_path.c_str(), files);
+			for (vector<string>::iterator it = files.begin();
+			                 it != files.end(); it++)
+			{
+				load_query_graph(it->c_str());
+			}
+
+			QueryT* query = (QueryT*) global_query;
+
+			if (! query->nodes.empty())
+			{
+				// pick arbitrary start vertex
+				query->root = query->nodes.begin()->first;
+				query->dfs(query->root, 0, true);
+			}
+
+			masterBcast(*((QueryT*) global_query));
+		}
+		else
+		{
+			slaveBcast(*((QueryT*) global_query));
+			//debug
+			//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
+			//((QueryT*) global_query)->printOrder();
+		}
+
+		//barrier for query loading
+		worker_barrier(); //@@@@@@@@@@@@@
+		StopTimer(WORKER_TIMER);
+		PrintTimer("Load Query Time", WORKER_TIMER);
+	}
 
     //=========================================================
 
@@ -395,7 +464,7 @@ public:
             }
             vector<VertexT*>& to_add = message_buffer->sync_messages();
             agg_sync();
-            for (int i = 0; i < to_add.size(); i++)
+            for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);
             to_add.clear();
             //===================
@@ -418,7 +487,7 @@ public:
         }
     }
 
-    void run_dump_graph(const string& output_path, bool force_write)
+    void dump_graph(const string& output_path, bool force_write)
     {
         //check path + init
         if (_my_rank == MASTER_RANK) {

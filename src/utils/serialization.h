@@ -290,7 +290,7 @@ obinstream& operator>>(obinstream& m, hash_map<KeyT, ValT>& v)
 {
     size_t size;
     m >> size;
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         KeyT key;
         m >> key;
         m >> v[key];
