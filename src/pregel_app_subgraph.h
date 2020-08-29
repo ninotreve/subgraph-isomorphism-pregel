@@ -3,7 +3,7 @@
 using namespace std;
 
 #define DEBUG_MODE 1
-//#define DEBUG_MODE_ACTIVE 1
+#define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
 
 //input line format:
@@ -116,17 +116,15 @@ obinstream & operator>>(obinstream & m, SIValue & v){
 	return m;
 }
 
-//--------SIMessage = <type, vertex, info, backward_neighbors, mapping>--------
+//--------SIMessage = <type, vertex, label, mapping>--------
 //  e.g. <type = LABEL_INFOMATION, vertex, label>
-//	e.g. <type = NEXT_QUERY_VERTEX, vertex = max query vertex, label, b_nbs>
-//	e.g. <type = MAPPING, label, b_nbs>
+//	e.g. <type = MAPPING, mapping, vertex = next_u>
 
 struct SIMessage
 {
 	int type;
 	VertexID vertex;
 	int label;
-	vector<VertexID> b_nbs; // backward_neighbors
 	vector<VertexID> mapping;
 
 	SIMessage()
@@ -140,36 +138,79 @@ struct SIMessage
 		this->label = label;
 	}
 
-	SIMessage(int type, vector<VertexID> b_nbs, vector<VertexID> mapping)
+	SIMessage(int type, vector<int> mapping, VertexID next_u)
 	{ // for mapping
 		this->type = type;
-		this->b_nbs = b_nbs;
 		this->mapping = mapping;
+		this->vertex = next_u;
 	}
 };
 
 ibinstream & operator<<(ibinstream & m, const SIMessage & v){
-	m << v.type << v.vertex << v.label << v.b_nbs << v.mapping;
+	m << v.type << v.vertex << v.label << v.mapping;
 	return m;
 }
 
 obinstream & operator>>(obinstream & m, SIMessage & v){
-	m >> v.type >> v.vertex >> v.label >> v.b_nbs >> v.mapping;
+	m >> v.type >> v.vertex >> v.label >> v.mapping;
 	return m;
 }
 
 enum MESSAGE_TYPES {
 	LABEL_INFOMATION = 1,
-	NEXT_QUERY_VERTEX = 2,
-	MAPPING = 3
+	MAPPING = 2
 };
 
+//=============================================================================
+struct SINode
+{
+	int id;
+	int label;
+	vector<int> nbs;
+
+	// for depth-first search
+	bool visited;
+	int parent;
+	int level; // root: level 0
+	vector<int> children;
+	vector<int> b_nbs; // backward neighbors
+
+	SINode() {}
+
+	SINode(int id, int label)
+	{
+		this->id = id;
+		this->label = label;
+		this->visited = false;
+	}
+
+	void add_edge(int other)
+	{
+		this->nbs.push_back(other);
+	}
+};
+
+ibinstream& operator<<(ibinstream& m, const SINode& node)
+{
+    m << node.id << node.label << node.nbs << node.visited << node.parent
+      << node.level << node.children << node.b_nbs;
+    return m;
+}
+
+obinstream& operator>>(obinstream& m, SINode& node)
+{
+    m >> node.id >> node.label >> node.nbs >> node.visited >> node.parent
+      >> node.level >> node.children >> node.b_nbs;
+    return m;
+}
+
+//==========================================================================
 // Overloading << operator of vector, print like Python, for debug purpose
 
 ostream & operator << (ostream & os, const vector<int> & v)
 {
 	os << "[";
-	for (int i = 0; i < v.size(); i++)
+	for (size_t i = 0; i < v.size(); i++)
 	{
 		os << v[i];
 		if (i != (v.size() - 1)) os << ", ";
@@ -178,40 +219,158 @@ ostream & operator << (ostream & os, const vector<int> & v)
 	return os;
 }
 
-//=============================================================================
+// Overloading << operator of SINode for debug purpose.
+ostream & operator << (ostream & os, const SINode & node)
+{
+	os << "ID: " << node.id << endl;
+	os << "Label: " << node.label << endl;
+	os << "Neighbors: " << node.nbs << endl;
+	os << "Backward neighbors: " << node.b_nbs << endl;
+	return os;
+}
+
+//===========================================================
+
+class SIQuery:public Query<SINode>
+{
+public:
+	int root;
+	hash_map<int, SINode> nodes;
+
+	virtual void addNode(char* line)
+	{
+		char * pch;
+
+		pch = strtok(line, "\t");
+		//bool isQuery = (*pch == 'Q');
+
+		pch = strtok(NULL, " ");
+		int id = atoi(pch);
+
+		pch = strtok(NULL, " ");
+		int label = atoi(pch);
+
+		this->nodes[id] = SINode(id, label);
+
+		pch = strtok(NULL, " ");
+		int num = atoi(pch);
+		for (int k = 0; k < num; k++)
+		{
+			pch=strtok(NULL, " ");
+			int neighbor = atoi(pch);
+			if (id > neighbor)
+			{
+				this->nodes[id].add_edge(neighbor);
+				this->nodes[neighbor].add_edge(id);
+			}
+		}
+		// cout << "Node " << id << " Label " << label << endl;
+	}
+
+	virtual void printOrder()
+	{
+		SINode* curr = &this->nodes[this->root];
+		while (curr)
+		{
+			cout << "Level " << curr->level << endl;
+			cout << *curr << "It has " << curr->children.size() << " children." << endl;
+			if (curr->children.empty())
+				break;
+			else
+			{
+				cout << "The first of it is: " << endl;
+				curr = &this->nodes[curr->children[0]];
+			}
+		}
+	}
+
+	void dfs(int currID, int parentID, bool isRoot)
+	{
+		// recursive function to implement depth-first search.
+		// only called when current node is not visited.
+		SINode* curr = &this->nodes[currID];
+		curr->visited = true;
+		if (isRoot)
+			curr->level = 0;
+		else
+		{
+			curr->parent = parentID;
+			SINode* parent = & this->nodes[parentID];
+			parent->children.push_back(currID);
+			curr->level = parent->level + 1;
+		}
+
+		// we must have two loops to avoid descendants being visited
+		// by other descendants.
+		for (vector<int>::iterator it = curr->nbs.begin();
+				it != curr->nbs.end(); it++)
+			if (this->nodes[*it].visited)
+				curr->b_nbs.push_back(*it);
+		for (vector<int>::iterator it = curr->nbs.begin();
+				it != curr->nbs.end(); it++)
+			if (! this->nodes[*it].visited)
+				this->dfs(*it, currID, false);
+	}
+
+	int getLabel(int id)
+	{
+		return this->nodes[id].label;
+	}
+
+	int getLevel(int id)
+	{
+		return this->nodes[id].level;
+	}
+
+	int getChildrenNumber(int id)
+	{
+		return (int) this->nodes[id].children.size();
+	}
+
+	int getChildID(int id, int index)
+	{
+		return this->nodes[id].children[index];
+	}
+
+	vector<int> getBNeighbors(int id)
+	{
+		return this->nodes[id].b_nbs;
+	}
+
+};
+
+ibinstream & operator<<(ibinstream & m, const SIQuery & q){
+	m << q.root << q.nodes;
+	return m;
+}
+
+obinstream & operator>>(obinstream & m, SIQuery & q){
+	m >> q.root >> q.nodes;
+	return m;
+}
+
+//===============================================================
 
 class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 	public:
 		vector<vector<VertexID>> results; // only used in the final step
 
-		bool containsNeighbors(vector<VertexID> & backward_neighbors,
-				vector<VertexID> & mapping)
-		{ // Check if all backward edges are satisfied.
+		void continue_mapping(vector<VertexID> &mapping, int &curr_u)
+		{ // Add current vertex to mapping;
+		  // Send messages to neighbors with label of next_u(next query vertex).
 			hash_map<VertexID, int> & nbs = value().neighbors;
-			int index;
-			for (int i = 0; i < backward_neighbors.size(); i++)
-			{
-				index = backward_neighbors[i] - 1;
-				if (nbs.find(mapping[index]) == nbs.end())
-					return false;
-			}
-			return true;
-		}
+			hash_map<VertexID, int>::iterator it;
+			SIQuery* query = (SIQuery*)getQuery();
 
-		void continue_mapping(vector<VertexID> & mapping)
-		{ /* Add current vertex to mapping;
-		   * Send messages to mapped vertices that are neighboring to
-		   * the next query vertex.
-		   */
 			mapping.push_back(id.vID);
 #ifdef DEBUG_MODE
-				cout << "[Result] Partial mapping:  " << mapping << endl;
+			cout << "[Result] Partial mapping:  " << mapping << endl;
 #endif
-			vector<VertexID> b_nbs = ((SIMessage*)getAgg())->b_nbs; // copy
-			int query_size = ((SIMessage*)getAgg())->vertex;
-			if (mapping.size() >= query_size)
-			{
+
+			int children_num = query->getChildrenNumber(curr_u);
+			if (children_num == 0)
+			{ // leaf query vertex
 				results.push_back(mapping);
 #ifdef DEBUG_MODE
 				cout << "[Result] Final mapping:  " << mapping << endl;
@@ -219,27 +378,24 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 			else
 			{
-				int index, num = b_nbs.size();
-				if (num == 0)
+				int next_u;
+				for (int i = 0; i < children_num; i++)
 				{
-					cout << "Error: query graph not connected." << endl;
-					forceTerminate();
-				}
-				else
-				{
-					index = b_nbs[num-1] - 1; // the last backward neighbor
-					b_nbs.pop_back();
-
-					SIKey to_send = SIKey(mapping[index], false);
-					SIMessage msg = SIMessage(MAPPING, b_nbs, mapping);
-					send_message(to_send, msg);
+					next_u = query->getChildID(curr_u, i);
+					SIMessage msg = SIMessage(MAPPING, mapping, next_u);
+					for (it = nbs.begin(); it != nbs.end(); it++)
+					{
+						if (it->second == query->getLabel(next_u))
+						{
+							send_message(SIKey(it->first, false), msg);
 #ifdef DEBUG_MODE_MSG
-					cout << "[DEBUG] Message sent from " << id.vID << " to "
-						 << to_send.vID << ". \n\t"
-						 << "Type: MAPPING. \n\t"
-						 << "Backward Neighbors: " << msg.b_nbs << ". \n\t"
-						 << "Mapping: " << msg.mapping << endl;
+						cout << "[DEBUG] Message sent from " << id.vID << " to "
+							 << it->first << ". \n\t"
+							 << "Type: MAPPING. \n\t"
+							 << "Mapping: " << msg.mapping << endl;
 #endif
+						}
+					}
 				}
 			}
 		}
@@ -247,88 +403,68 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 		virtual void compute(MessageContainer & messages)
 		{
 			hash_map<VertexID, int> & nbs = value().neighbors;
+			hash_map<VertexID, int>::iterator it;
+			SIQuery* query = (SIQuery*)getQuery();
 
-			/* Query vertices do nothing. Don't halt them because we will need
-			 * them in the aggregator.
-			 */
-			if (!id.isQuery)
-			{
 #ifdef DEBUG_MODE_ACTIVE
 				cout << "[DEBUG] STEP NUMBER " << step_num()
 					 << " ACTIVE Vertex ID " << id.vID << endl;
 #endif
-				if (step_num() == 1)
-				{ // send label info to neighbors
-					SIMessage msg = SIMessage(LABEL_INFOMATION, id.vID,
-							value().label);
-					hash_map<VertexID, int>::iterator it;
-					for (it = nbs.begin(); it != nbs.end(); it++)
-						send_message(SIKey(it->first, false), msg);
+			if (step_num() == 1)
+			{ // send label info to neighbors
+				SIMessage msg = SIMessage(LABEL_INFOMATION, id.vID,
+						value().label);
+				for (it = nbs.begin(); it != nbs.end(); it++)
+					send_message(SIKey(it->first, false), msg);
+			}
+			else if (step_num() == 2)
+			{   // receive label info from neighbors
+				for (size_t i = 0; i < messages.size(); i++)
+				{
+					SIMessage & msg = messages[i];
+					if (msg.type == LABEL_INFOMATION)
+						nbs[msg.vertex] = msg.label;
 				}
-				else if (step_num() == 2)
-				{ // receive label info from neighbors, and start matching
-					for (int i = 0; i < messages.size(); i++)
-					{
-						SIMessage & msg = messages[i];
-						if (msg.type == LABEL_INFOMATION)
-							nbs[msg.vertex] = msg.label;
-					}
-					// start mapping with vertices with same label
-					int query_label = ((SIMessage*)getAgg())->label;
-					if (value().label != query_label)
-						vote_to_halt();
+
+				// start mapping with vertices with same label
+				int root_u = query->root;
+				int root_label = query->getLabel(root_u);
+				if (value().label == root_label)
+				{
+					vector<VertexID> mapping;
+					continue_mapping(mapping, root_u);
 				}
-				else if (step_num() % 2 == 1)
-				{ // if if backward neighbors in neighbors, continue mapping.
-					if (messages.size() == 0)
+				vote_to_halt();
+			}
+			else
+			{   // check if backward neighbors in neighbors
+				int curr_level, nb_level;
+				bool flag;
+				vector<int> b_nbs;
+				for (size_t i = 0; i < messages.size(); i++)
+				{
+					SIMessage & msg = messages[i];
+					b_nbs = query->getBNeighbors(msg.vertex);
+					curr_level = query->getLevel(msg.vertex);
+					flag = true;
+					for (size_t i = 0; i < b_nbs.size(); i++)
 					{
-						vector<VertexID> mapping;
-						continue_mapping(mapping);
-					}
-					else
-					{
-						for (int i = 0; i < messages.size(); i++)
+						nb_level = query->getLevel(b_nbs[i]);
+						if ((nb_level != curr_level - 1) &&
+								(nbs.find(msg.mapping[nb_level]) == nbs.end()))
 						{
-							SIMessage & msg = messages[i];
-							if (containsNeighbors(msg.b_nbs, msg.mapping))
-								continue_mapping(msg.mapping);
+							flag = false;
+							break;
 						}
 					}
-					vote_to_halt();
+					if (flag) continue_mapping(msg.mapping, msg.vertex);
 				}
-				else
-				{ /* receive messages of MESSAGE_FRAGMENT,
-				   * forward them to neighbors of specific labels. */
-					int query_label = ((SIMessage*)getAgg())->label;
-					hash_map<VertexID, int>::iterator it;
-					for (int i = 0; i < messages.size(); i++)
-					{
-						SIMessage & msg = messages[i];
-						if (msg.type == MAPPING)
-						{
-							for (it = nbs.begin(); it != nbs.end(); it++)
-							{
-								if (it->second == query_label)
-								{
-									send_message(SIKey(it->first, false), msg);
-#ifdef DEBUG_MODE_MSG
-									cout << "[DEBUG] Message sent from " << id.vID << " to "
-										 << it->first << ". \n\t"
-										 << "Type: FWD: MAPPING. \n\t"
-										 << "Backward Neighbors: " << msg.b_nbs << ". \n\t"
-										 << "Mapping: " << msg.mapping << endl;
-#endif
-								}
-							}
-						}
-					} // end of for loop
-					vote_to_halt();
-				} // end of if step_num % 2 == 0
-			} // end of if !id.isQuery
+				vote_to_halt();
+			}
 		}
 };
 
-//====================================
+/*====================================
 // Use aggregator to notify data vertices of next query vertex.
 // At round (2*i-2), stores the neighbors of query vertex i.
 // At round (2*i-1), stores the label of query vertex i.
@@ -389,10 +525,11 @@ class SIAgg:public Aggregator<SIVertex, SIMessage, SIMessage>
 			return &msg;
 		}
 };
+*/
 
 //=============================================================================
 
-class SIWorker:public Worker<SIVertex, SIAgg>
+class SIWorker:public Worker<SIVertex, SIQuery>
 {
 	char buf[100];
 
@@ -431,15 +568,15 @@ class SIWorker:public Worker<SIVertex, SIAgg>
 		virtual void toline(SIVertex* v, BufferedWriter & writer)
 		{
 			vector<vector<VertexID>> & results = v->results;
-			for (int i = 0; i < results.size(); i++)
+			for (size_t i = 0; i < results.size(); i++)
 			{
 				vector<VertexID> & mapping = results[i];
 				sprintf(buf, "# Match\n");
 				writer.write(buf);
 
-				for (int j = 0; j < mapping.size(); j++)
+				for (size_t j = 0; j < mapping.size(); j++)
 				{
-					sprintf(buf, "%d %d\n", (j+1), mapping[j]);
+					sprintf(buf, "%d %d\n", (int)(j+1), mapping[j]);
 					writer.write(buf);
 				}
 			}
@@ -457,15 +594,21 @@ class CCCombiner_pregel:public Combiner<VertexID>
 };
 */
 
-void pregel_subgraph(string in_path, string out_path, bool force_write)
+void pregel_subgraph(string data_path, string query_path, string out_path,
+		bool force_write)
 {
 	SIWorker worker;
 	//CCCombiner_pregel combiner;
 	//if(use_combiner) worker.setCombiner(&combiner);
 
-	SIAgg agg;
-	worker.setAggregator(&agg);
-	worker.run_load_graph(in_path);
+	//SIAgg agg;
+	//worker.setAggregator(&agg);
+
+	SIQuery query;
+	worker.setQuery(&query);
+
+	worker.load_data(data_path);
+	worker.load_query(query_path);
 	worker.run_compute();
-	worker.run_dump_graph(out_path, force_write);
+	worker.dump_graph(out_path, force_write);
 }

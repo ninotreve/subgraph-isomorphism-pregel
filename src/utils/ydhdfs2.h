@@ -304,7 +304,7 @@ int dirCheck(const char* indir, const char* outdir, bool print, bool force) //re
 int dirCheck(vector<string> indirs, const char* outdir, bool print, bool force) //returns -1 if fail, 0 if succeed
 {
     hdfsFS fs = getHdfsFS();
-    for (int i = 0; i < indirs.size(); i++) {
+    for (size_t i = 0; i < indirs.size(); i++) {
         const char* indir = indirs[i].c_str();
         if (hdfsExists(fs, indir) != 0) {
             if (print)
@@ -353,7 +353,7 @@ int dirCheck(const char* indir, vector<string> outdirs, bool print, bool force) 
 		hdfsDisconnect(fs);
 		return -1;
 	}
-    for(int i = 0; i < outdirs.size(); i++)
+    for(size_t i = 0; i < outdirs.size(); i++)
     {
     	const char * outdir = outdirs[i].c_str();
     	if (hdfsExists(fs, outdir) == 0) {
@@ -990,7 +990,7 @@ vector<vector<string> >* dispatchRan(vector<string> inDirs) //remember to delete
     vector<vector<string> >& assignment = *assignmentPointer;
     hdfsFS fs = getHdfsFS();
     vector<sizedFString> sizedfile;
-    for (int pos = 0; pos < inDirs.size(); pos++) {
+    for (size_t pos = 0; pos < inDirs.size(); pos++) {
         const char* inDir = inDirs[pos].c_str();
         int numFiles;
         hdfsFileInfo* fileinfo = hdfsListDirectory(fs, inDir, &numFiles);
@@ -1103,7 +1103,7 @@ vector<vector<string> >* dispatchLocality(vector<string> inDirs) //remember to d
     hdfsFS fs = getHdfsFS();
     vector<sizedFString> sizedfile;
     int avg = 0;
-    for (int pos = 0; pos < inDirs.size(); pos++) {
+    for (size_t pos = 0; pos < inDirs.size(); pos++) {
         const char* inDir = inDirs[pos].c_str();
         int numFiles;
         hdfsFileInfo* fileinfo = hdfsListDirectory(fs, inDir, &numFiles);
@@ -1192,6 +1192,26 @@ void hdfsFullyRead(hdfsFS & fs, hdfsFile & rhdl, char* buffer, tSize length)
 		}
 		lenRead += numRead;
 	}
+}
+
+void dispatchMaster(const char* inDir, vector<string>& files)
+{ // Only Master read the files
+    hdfsFS fs = getHdfsFS();
+    int numFiles;
+    hdfsFileInfo* fileinfo = hdfsListDirectory(fs, inDir, &numFiles);
+    if (fileinfo == NULL) {
+        fprintf(stderr, "Failed to list directory %s!\n", inDir);
+        exit(-1);
+    }
+
+    for (int i = 0; i < numFiles; i++) {
+        if (fileinfo[i].mKind == kObjectKindFile) {
+            files.push_back(fileinfo[i].mName);
+        }
+    }
+
+    hdfsFreeFileInfo(fileinfo, numFiles);
+    hdfsDisconnect(fs);
 }
 
 #endif

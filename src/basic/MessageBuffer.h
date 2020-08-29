@@ -30,7 +30,7 @@ public:
     void init(vector<VertexT*> vertexes)
     {
         v_msg_bufs.resize(vertexes.size());
-        for (int i = 0; i < vertexes.size(); i++) {
+        for (size_t i = 0; i < vertexes.size(); i++) {
             VertexT* v = vertexes[i];
             in_messages[v->id] = i; //CHANGED FOR VADD
         }
@@ -66,13 +66,12 @@ public:
     vector<VertexT*>& sync_messages()
     {
         int np = get_num_workers();
-        int me = get_worker_id();
 
         //------------------------------------------------
         // get messages from remote
         vector<vector<VertexT*> > add_buf(_num_workers);
         //set send buffer
-        for (int i = 0; i < to_add.size(); i++) {
+        for (size_t i = 0; i < to_add.size(); i++) {
             VertexT* v = to_add[i];
             add_buf[hash(v->id)].push_back(v);
         }
@@ -83,7 +82,7 @@ public:
 
         //------------------------------------------------
         //delete sent vertices
-        for (int i = 0; i < to_add.size(); i++) {
+        for (size_t i = 0; i < to_add.size(); i++) {
             VertexT* v = to_add[i];
             if (hash(v->id) != _my_rank)
                 delete v;
@@ -98,7 +97,7 @@ public:
         //Change of G33
         int oldsize = v_msg_bufs.size();
         v_msg_bufs.resize(oldsize + to_add.size());
-        for (int i = 0; i < to_add.size(); i++) {
+        for (size_t i = 0; i < to_add.size(); i++) {
             int pos = oldsize + i;
             in_messages[to_add[i]->id] = pos; //CHANGED FOR VADD
         }
@@ -107,7 +106,7 @@ public:
         // gather all messages
         for (int i = 0; i < np; i++) {
             Vec& msgBuf = out_messages.getBuf(i);
-            for (int i = 0; i < msgBuf.size(); i++) {
+            for (size_t i = 0; i < msgBuf.size(); i++) {
                 MapIter it = in_messages.find(msgBuf[i].key);
                 if (it != in_messages.end()) //filter out msgs to non-existent vertices
                     v_msg_bufs[it->second].push_back(msgBuf[i].msg); //CHANGED FOR VADD

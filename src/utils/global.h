@@ -83,7 +83,7 @@ struct MultiInputParams {
 typedef int VertexID;
 
 //============================
-//global variables
+//global variables (original)
 int global_step_num;
 inline int step_num()
 {
@@ -179,6 +179,17 @@ void wakeAll()
 void forceTerminate()
 {
     setBit(FORCE_TERMINATE_ORBIT);
+}
+
+//====================================================
+//Set up a pointer to query in global.h
+//so that it can be used anywhere in the program
+
+void* global_query = NULL;
+
+inline void* getQuery()
+{
+    return global_query;
 }
 
 //====================================================
