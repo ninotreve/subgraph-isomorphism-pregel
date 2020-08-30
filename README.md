@@ -38,7 +38,9 @@ virtual void compute(MessageContainer & messages)
 
 ### Implementation v2.0 (0830) 
 
-首先，计算过程被分为了五步：
+查询图和数据图的格式都是"VertexID Label NumOfNeighbors Neighbor1 Neighbor2 ..."]
+
+计算过程被分为了五步：
 ```c++
 	worker.load_data(data_path);
 	worker.run_preprocess();
@@ -55,40 +57,39 @@ virtual void compute(MessageContainer & messages)
 
 ```c++
 virtual void preprocess(MessageContainer & messages)
-		{
-			if (step_num() == 1)
-			{ // send label info to neighbors }
-			else // if (step_num() == 2)
-			{ // receive label info from neighbors }
-		}
+{
+	if (step_num() == 1)
+	{ // send label info to neighbors }
+	else // if (step_num() == 2)
+	{ // receive label info from neighbors }
+}
 ```
 
 ```c++
-		virtual void compute(MessageContainer & messages)
+virtual void compute(MessageContainer & messages)
+{
+	if (step_num() == 1)
+	{   // start mapping with vertices with same label
+		int root_u = query->root;
+		int root_label = query->getLabel(root_u);
+		if (value().label == root_label)
 		{
-			if (step_num() == 1)
-			{   // start mapping with vertices with same label
-				int root_u = query->root;
-				int root_label = query->getLabel(root_u);
-				if (value().label == root_label)
-				{
-					vector<VertexID> mapping;
-					continue_mapping(mapping, root_u);
-				}
-				vote_to_halt();
-			}
-			else
-			{
-				for (size_t i = 0; i < messages.size(); i++)
-				{
-					SIMessage & msg = messages[i];
-					//check if backward neighbors in neighbors
-					if (flag) continue_mapping(msg.mapping, msg.vertex);
-				}
-				vote_to_halt();
-			}
+			vector<VertexID> mapping;
+			continue_mapping(mapping, root_u);
 		}
-};
+		vote_to_halt();
+	}
+	else
+	{
+		for (size_t i = 0; i < messages.size(); i++)
+		{
+			SIMessage & msg = messages[i];
+			//check if backward neighbors in neighbors
+			if (flag) continue_mapping(msg.mapping, msg.vertex);
+		}
+		vote_to_halt();
+	}
+}
 ```
 
 
