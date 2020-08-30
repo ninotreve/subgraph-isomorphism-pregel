@@ -2,103 +2,19 @@
 #include "utils/type.h"
 using namespace std;
 
-#define DEBUG_MODE 1
-#define DEBUG_MODE_ACTIVE 1
-#define DEBUG_MODE_MSG 1
+//#define DEBUG_MODE_ACTIVE 1
+//#define DEBUG_MODE_MSG 1
+//#define DEBUG_MODE_PARTIAL_RESULT 1
+#define DEBUG_MODE_RESULT 1
 
 //input line format:
-//  type \t vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
+//  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
 //output line format:
 //  # MATCH
 //  query_vertexID \t data_vertexID
 
-//--------------------SIKey = <VertexID, isQuery>--------------------
-
-struct SIKey {
-    VertexID vID;
-    bool isQuery;
-
-    SIKey()
-    {
-    }
-
-    SIKey(int v1, bool v2)
-    {
-        this->vID = v1;
-        this->isQuery = v2;
-    }
-
-    void set(int v1, bool v2)
-    {
-        this->vID = v1;
-        this->isQuery = v2;
-    }
-
-    inline bool operator<(const SIKey& rhs) const
-    {
-        return (vID < rhs.vID);
-    }
-
-    inline bool operator>(const SIKey& rhs) const
-    {
-        return (vID > rhs.vID);
-    }
-
-    inline bool operator==(const SIKey& rhs) const
-    {
-        return (vID == rhs.vID) && (isQuery == rhs.isQuery);
-    }
-
-    inline bool operator!=(const SIKey& rhs) const
-    {
-        return (vID != rhs.vID) || (isQuery != rhs.isQuery);
-    }
-
-    int hash()
-    {
-        size_t seed = 0;
-        hash_combine(seed, vID);
-        hash_combine(seed, (int) isQuery);
-        return seed % ((unsigned int)_num_workers);
-    }
-};
-
-ibinstream& operator<<(ibinstream& m, const SIKey& v)
-{
-    m << v.vID;
-    m << v.isQuery;
-    return m;
-}
-
-obinstream& operator>>(obinstream& m, SIKey& v)
-{
-    m >> v.vID;
-    m >> v.isQuery;
-    return m;
-}
-
-class SIKeyHash {
-public:
-    inline int operator()(SIKey key)
-    {
-        return key.hash();
-    }
-};
-
-namespace __gnu_cxx {
-	template <>
-	struct hash<SIKey> {
-		size_t operator()(SIKey key) const
-		{
-			size_t seed = 0;
-			hash_combine(seed, key.vID);
-			hash_combine(seed, (int) key.isQuery);
-			return seed;
-		}
-	};
-}
-
-//------------SIValue = <label, hash_map<neighbors, labels>>-------------------
+//------------SIKey = VertexID-------------------------------------------------
+//------------SIValue = <label, hash_map<neighbors, labels> >------------------
 
 struct SIValue
 {
@@ -240,11 +156,7 @@ public:
 	virtual void addNode(char* line)
 	{
 		char * pch;
-
-		pch = strtok(line, "\t");
-		//bool isQuery = (*pch == 'Q');
-
-		pch = strtok(NULL, " ");
+		pch = strtok(line, " ");
 		int id = atoi(pch);
 
 		pch = strtok(NULL, " ");
@@ -351,7 +263,7 @@ obinstream & operator>>(obinstream & m, SIQuery & q){
 
 //===============================================================
 
-class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
+class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 {
 	public:
 		vector<vector<VertexID>> results; // only used in the final step
@@ -363,8 +275,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			hash_map<VertexID, int>::iterator it;
 			SIQuery* query = (SIQuery*)getQuery();
 
-			mapping.push_back(id.vID);
-#ifdef DEBUG_MODE
+			mapping.push_back(id);
+#ifdef DEBUG_MODE_PARTIAL_RESULT
 			cout << "[Result] Partial mapping:  " << mapping << endl;
 #endif
 
@@ -372,7 +284,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			if (children_num == 0)
 			{ // leaf query vertex
 				results.push_back(mapping);
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MODE_RESULT
 				cout << "[Result] Final mapping:  " << mapping << endl;
 #endif
 			}
@@ -387,9 +299,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					{
 						if (it->second == query->getLabel(next_u))
 						{
-							send_message(SIKey(it->first, false), msg);
+							send_message(it->first, msg);
 #ifdef DEBUG_MODE_MSG
-						cout << "[DEBUG] Message sent from " << id.vID << " to "
+						cout << "[DEBUG] Message sent from " << id << " to "
 							 << it->first << ". \n\t"
 							 << "Type: MAPPING. \n\t"
 							 << "Mapping: " << msg.mapping << endl;
@@ -400,24 +312,24 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 		}
 
-		virtual void compute(MessageContainer & messages)
+		virtual void preprocess(MessageContainer & messages)
 		{
 			hash_map<VertexID, int> & nbs = value().neighbors;
 			hash_map<VertexID, int>::iterator it;
-			SIQuery* query = (SIQuery*)getQuery();
 
 #ifdef DEBUG_MODE_ACTIVE
 				cout << "[DEBUG] STEP NUMBER " << step_num()
-					 << " ACTIVE Vertex ID " << id.vID << endl;
+					 << " ACTIVE Vertex ID " << id << endl;
 #endif
+
 			if (step_num() == 1)
 			{ // send label info to neighbors
-				SIMessage msg = SIMessage(LABEL_INFOMATION, id.vID,
-						value().label);
+				SIMessage msg = SIMessage(LABEL_INFOMATION, id, value().label);
 				for (it = nbs.begin(); it != nbs.end(); it++)
-					send_message(SIKey(it->first, false), msg);
+					send_message(it->first, msg);
+				vote_to_halt();
 			}
-			else if (step_num() == 2)
+			else // if (step_num() == 2)
 			{   // receive label info from neighbors
 				for (size_t i = 0; i < messages.size(); i++)
 				{
@@ -425,8 +337,22 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					if (msg.type == LABEL_INFOMATION)
 						nbs[msg.vertex] = msg.label;
 				}
+				vote_to_halt();
+			}
+		}
 
-				// start mapping with vertices with same label
+		virtual void compute(MessageContainer & messages)
+		{
+			hash_map<VertexID, int> & nbs = value().neighbors;
+			SIQuery* query = (SIQuery*)getQuery();
+
+#ifdef DEBUG_MODE_ACTIVE
+				cout << "[DEBUG] STEP NUMBER " << step_num()
+					 << " ACTIVE Vertex ID " << id << endl;
+#endif
+
+			if (step_num() == 1)
+			{   // start mapping with vertices with same label
 				int root_u = query->root;
 				int root_label = query->getLabel(root_u);
 				if (value().label == root_label)
@@ -464,69 +390,6 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 		}
 };
 
-/*====================================
-// Use aggregator to notify data vertices of next query vertex.
-// At round (2*i-2), stores the neighbors of query vertex i.
-// At round (2*i-1), stores the label of query vertex i.
-// Also stores the maximum query vertex in msg.vertex.
-
-class SIAgg:public Aggregator<SIVertex, SIMessage, SIMessage>
-{
-	private:
-		SIMessage msg;
-	public:
-		virtual void init() {
-			msg.vertex = 0;
-			msg.type = 0;
-			msg.b_nbs.clear();
-		}
-
-		virtual void stepPartial(SIVertex* v)
-		{
-			if (v->id.isQuery)
-			{
-				msg.vertex = v->id.vID;
-
-				if (step_num() % 2 == 1 && v->id.vID == (step_num() + 1) / 2)
-				{
-					msg.type = NEXT_QUERY_VERTEX;
-					msg.label = v->value().label;
-				}
-				else if (step_num() % 2 == 0 && v->id.isQuery &&
-						v->id.vID == (step_num() / 2) + 1)
-				{
-					msg.type = NEXT_QUERY_VERTEX;
-					hash_map<VertexID, int> & nbs = v->value().neighbors;
-					hash_map<VertexID, int>::iterator it;
-					for (it = nbs.begin(); it != nbs.end(); it++)
-					{
-						msg.b_nbs.push_back(it->first);
-					}
-				}
-			}
-		}
-
-		virtual void stepFinal(SIMessage* received_msg)
-		{
-			int max_qv = (received_msg->vertex > msg.vertex) ?
-						  received_msg->vertex : msg.vertex;
-
-			if (received_msg->type == NEXT_QUERY_VERTEX)
-				msg = *received_msg;
-
-			msg.vertex = max_qv;
-		}
-
-		virtual SIMessage* finishPartial(){ return &msg; }
-		virtual SIMessage* finishFinal()
-		{
-			if (step_num() > 2 * msg.vertex)
-				forceTerminate();
-			return &msg;
-		}
-};
-*/
-
 //=============================================================================
 
 class SIWorker:public Worker<SIVertex, SIQuery>
@@ -536,18 +399,14 @@ class SIWorker:public Worker<SIVertex, SIQuery>
 	public:
 		// C version
 		// input line format:
-		// type \t vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
+		// vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
 		virtual SIVertex* toVertex(char* line)
 		{
 			char * pch;
 			SIVertex* v = new SIVertex;
 
-			pch = strtok(line, "\t");
-			bool isQuery = (*pch == 'Q');
-
-			pch = strtok(NULL, " ");
-			VertexID vID = atoi(pch);
-			v->id = SIKey(vID, isQuery);
+			pch = strtok(line, " ");
+			v->id = atoi(pch);
 
 			pch = strtok(NULL, " ");
 			v->value().label = atoi(pch);
@@ -558,9 +417,7 @@ class SIWorker:public Worker<SIVertex, SIQuery>
 			{
 				pch=strtok(NULL, " ");
 				int neighbor = atoi(pch);
-				// for queries, we only push back neighbors with smaller IDs
-				if (!(isQuery && vID < neighbor))
-					v->value().neighbors[neighbor] = 0;
+				v->value().neighbors[neighbor] = 0;
 			}
 			return v;
 		}
@@ -608,6 +465,9 @@ void pregel_subgraph(string data_path, string query_path, string out_path,
 	worker.setQuery(&query);
 
 	worker.load_data(data_path);
+	worker.run_preprocess();
+
+	wakeAll();
 	worker.load_query(query_path);
 	worker.run_compute();
 	worker.dump_graph(out_path, force_write);
