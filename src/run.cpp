@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[]){
 	init_workers();
-	pregel_subgraph("/toyGraph", "/toyQuery", "/toyOutput", true);
+	pregel_subgraph("/toyGraph/toy1", "/toyQuery/query1", "/toyOutput", true);
 	worker_finalize();
 	return 0;
 }
