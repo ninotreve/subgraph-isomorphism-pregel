@@ -143,6 +143,12 @@ inline int& active_vnum()
     return global_active_vnum;
 }
 
+enum COMPUTE_TYPES {
+    PREPROCESS = 0,
+    MATCH = 1,
+    ENUMERATE = 2
+};
+
 enum BITS {
     HAS_MSG_ORBIT = 0,
     FORCE_TERMINATE_ORBIT = 1,
@@ -190,6 +196,46 @@ void* global_query = NULL;
 inline void* getQuery()
 {
     return global_query;
+}
+
+//====================================================
+// Self-defined function
+
+bool notContains(vector<int> & v, int x)
+{
+	for (vector<int>::iterator it = v.begin(); it != v.end(); it++)
+	{
+		if (*it == x) return false;
+	}
+	return true;
+}
+
+bool notContainsDuplicate(vector<int> & v)
+{
+	hash_set<int> s = hash_set<int>(v.begin(), v.end());
+	return (s.size() == v.size());
+}
+
+vector<vector<VertexID>> joinVectors(vector<VertexID> & head_v,
+		vector<vector<VertexID> > & v1,
+		vector<vector<VertexID> > & v2)
+{
+	// recursive function to join vectors
+	vector<vector<VertexID>> results;
+	vector<VertexID> v;
+	for (size_t i = 0; i < v1.size(); i++)
+	{
+		for (size_t j = 0; j < v2.size(); j++)
+		{
+			v = head_v;
+			v.insert(v.end(), v1[i].begin(), v1[i].end());
+			v.insert(v.end(), v2[j].begin(), v2[j].end());
+			if (notContainsDuplicate(v))
+				results.push_back(v);
+		}
+	}
+
+	return results;
 }
 
 //====================================================

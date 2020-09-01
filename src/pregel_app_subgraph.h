@@ -5,7 +5,6 @@ using namespace std;
 //#define DEBUG_MODE_ACTIVE 1
 //#define DEBUG_MODE_MSG 1
 //#define DEBUG_MODE_PARTIAL_RESULT 1
-#define DEBUG_MODE_RESULT 1
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -32,9 +31,10 @@ obinstream & operator>>(obinstream & m, SIValue & v){
 	return m;
 }
 
-//--------SIMessage = <type, vertex, label, mapping>--------
+//--------SIMessage = <type, vertex, label, mapping, branch_result,>--------
 //  e.g. <type = LABEL_INFOMATION, vertex, label>
-//	e.g. <type = MAPPING, mapping, vertex = next_u>
+//	     <type = MAPPING, mapping, vertex = next_u>
+//		 <type = BRANCH_RESULT, branch_result, vertex = curr_u>
 
 struct SIMessage
 {
@@ -42,6 +42,7 @@ struct SIMessage
 	VertexID vertex;
 	int label;
 	vector<VertexID> mapping;
+	vector<vector<VertexID>> branch_result;
 
 	SIMessage()
 	{
@@ -54,27 +55,35 @@ struct SIMessage
 		this->label = label;
 	}
 
-	SIMessage(int type, vector<int> mapping, VertexID next_u)
+	SIMessage(int type, vector<VertexID> mapping, VertexID next_u)
 	{ // for mapping
 		this->type = type;
 		this->mapping = mapping;
 		this->vertex = next_u;
 	}
+
+	SIMessage(int type, vector<vector<VertexID>> res, VertexID curr_u)
+	{ // for branch result
+		this->type = type;
+		this->branch_result = res;
+		this->vertex = curr_u;
+	}
 };
 
 ibinstream & operator<<(ibinstream & m, const SIMessage & v){
-	m << v.type << v.vertex << v.label << v.mapping;
+	m << v.type << v.vertex << v.label << v.mapping << v.branch_result;
 	return m;
 }
 
 obinstream & operator>>(obinstream & m, SIMessage & v){
-	m >> v.type >> v.vertex >> v.label >> v.mapping;
+	m >> v.type >> v.vertex >> v.label >> v.mapping >> v.branch_result;
 	return m;
 }
 
 enum MESSAGE_TYPES {
-	LABEL_INFOMATION = 1,
-	MAPPING = 2
+	LABEL_INFOMATION = 0,
+	MAPPING = 1,
+	BRANCH_RESULT = 2
 };
 
 //=============================================================================
@@ -86,8 +95,10 @@ struct SINode
 
 	// for depth-first search
 	bool visited;
+	int branch_number;
+	int dfs_number; // 0-based
 	int parent;
-	int level; // root: level 0
+	int level; // root: level 0. Used as an index in mapping.
 	vector<int> children;
 	vector<int> b_nbs; // backward neighbors
 
@@ -108,15 +119,15 @@ struct SINode
 
 ibinstream& operator<<(ibinstream& m, const SINode& node)
 {
-    m << node.id << node.label << node.nbs << node.visited << node.parent
-      << node.level << node.children << node.b_nbs;
+    m << node.id << node.label << node.nbs << node.branch_number << node.parent
+      << node.dfs_number << node.level << node.children << node.b_nbs;
     return m;
 }
 
 obinstream& operator>>(obinstream& m, SINode& node)
 {
-    m >> node.id >> node.label >> node.nbs >> node.visited >> node.parent
-      >> node.level >> node.children >> node.b_nbs;
+    m >> node.id >> node.label >> node.nbs >> node.branch_number >> node.parent
+      >> node.dfs_number >> node.level >> node.children >> node.b_nbs;
     return m;
 }
 
@@ -140,18 +151,69 @@ ostream & operator << (ostream & os, const SINode & node)
 {
 	os << "ID: " << node.id << endl;
 	os << "Label: " << node.label << endl;
+	os << "Branch number: " << node.branch_number << endl;
 	os << "Neighbors: " << node.nbs << endl;
 	os << "Backward neighbors: " << node.b_nbs << endl;
 	return os;
 }
 
+// Define hash of vector
+namespace __gnu_cxx {
+	template <>
+	struct hash<vector<int>> {
+		size_t operator()(vector<int> v) const
+		{
+			size_t seed = 0;
+			for (size_t i = 0; i < v.size(); i++)
+			{
+				hash_combine(seed, v[i]);
+			}
+			return seed;
+		}
+	};
+}
+
 //===========================================================
+
+bool sortByValDesc(const pair<int, int> &a, const pair<int, int> &b)
+{
+	return (a.second > b.second);
+}
 
 class SIQuery:public Query<SINode>
 {
 public:
 	int root;
 	hash_map<int, SINode> nodes;
+
+	int max_branch_number;
+	vector<int> dfs_order;
+
+	virtual void init()
+	{
+		if (! this->nodes.empty())
+		{
+			/*
+			// pick arbitrary start vertex
+			this->root = this->nodes.begin()->first;
+			*/
+
+			// pick vertex with largest degree
+			hash_map<int, SINode>::iterator it;
+			size_t degree, max_degree = 0;
+			for (it = this->nodes.begin(); it != this->nodes.end(); it++)
+			{
+				degree = it->second.nbs.size();
+				if (degree > max_degree)
+				{
+					max_degree = degree;
+					this->root = it->first;
+				}
+			}
+			this->dfs(this->root, 0, true);
+			this->addBranchNumber(this->root, 0);
+		}
+	}
 
 	virtual void addNode(char* line)
 	{
@@ -181,18 +243,11 @@ public:
 
 	virtual void printOrder()
 	{
-		SINode* curr = &this->nodes[this->root];
-		while (curr)
+		for (size_t i = 0; i < this->dfs_order.size(); i++)
 		{
-			cout << "Level " << curr->level << endl;
+			SINode* curr = &this->nodes[this->dfs_order[i]];
+			cout << "Node " << i << endl;
 			cout << *curr << "It has " << curr->children.size() << " children." << endl;
-			if (curr->children.empty())
-				break;
-			else
-			{
-				cout << "The first of it is: " << endl;
-				curr = &this->nodes[curr->children[0]];
-			}
 		}
 	}
 
@@ -202,6 +257,9 @@ public:
 		// only called when current node is not visited.
 		SINode* curr = &this->nodes[currID];
 		curr->visited = true;
+		curr->dfs_number = this->dfs_order.size();
+		dfs_order.push_back(currID);
+
 		if (isRoot)
 			curr->level = 0;
 		else
@@ -214,50 +272,84 @@ public:
 
 		// we must have two loops to avoid descendants being visited
 		// by other descendants.
+		// the first loop also stores unvisited neighbor's degree.
+		vector<pair<int, int> > unv_nbs_degree;
+
 		for (vector<int>::iterator it = curr->nbs.begin();
 				it != curr->nbs.end(); it++)
+		{
 			if (this->nodes[*it].visited)
 				curr->b_nbs.push_back(*it);
-		for (vector<int>::iterator it = curr->nbs.begin();
-				it != curr->nbs.end(); it++)
-			if (! this->nodes[*it].visited)
-				this->dfs(*it, currID, false);
+			else
+				unv_nbs_degree.push_back(
+						make_pair(*it, this->nodes[*it].nbs.size()));
+		}
+
+		sort(unv_nbs_degree.begin(), unv_nbs_degree.end(), sortByValDesc);
+
+		for (vector<pair<int, int> >::iterator it = unv_nbs_degree.begin();
+				it != unv_nbs_degree.end(); it++)
+		{
+			if (! this->nodes[it->first].visited)
+			{
+				this->dfs(it->first, currID, false);
+			}
+		}
 	}
 
-	int getLabel(int id)
+	void addBranchNumber(int currID, int num)
 	{
-		return this->nodes[id].label;
+		// recursive function to add branch number.
+		SINode* curr = &this->nodes[currID];
+		if (curr->children.size() > 1)
+			num ++;
+
+		curr->branch_number = num;
+		if (num > this->max_branch_number)
+			this->max_branch_number = num;
+		for (size_t i = 0; i < curr->children.size(); i++)
+			this->addBranchNumber(curr->children[i], num);
 	}
 
-	int getLevel(int id)
-	{
-		return this->nodes[id].level;
-	}
-
+	// a lot of get functions
+	int getLabel(int id) { return this->nodes[id].label; }
+	int getLevel(int id) { return this->nodes[id].level; }
+	int getBranchNumber(int id) { return this->nodes[id].branch_number;	}
+	int getDFSNumber(int id) { return this->nodes[id].dfs_number; }
+	int getParent(int id) { return this->nodes[id].parent; }
 	int getChildrenNumber(int id)
-	{
-		return (int) this->nodes[id].children.size();
-	}
-
+	{ return (int) this->nodes[id].children.size(); }
 	int getChildID(int id, int index)
-	{
-		return this->nodes[id].children[index];
-	}
-
+	{ return this->nodes[id].children[index]; }
 	vector<int> getBNeighbors(int id)
+	{ return this->nodes[id].b_nbs; }
+	int getNearestBranchingAncestor(int id)
 	{
-		return this->nodes[id].b_nbs;
+		// returns the nearest branching vertex of its ancestors,
+		// only called when getBranchNumber(id) != 0.
+		int b = this->getBranchNumber(id);
+		int parent = this->getParent(id);
+		while (b == this->getBranchNumber(parent))
+		{
+			id = parent;
+			parent = this->getParent(id);
+		}
+		return id;
 	}
 
+	void decrementBranchNumber(int id)
+	{ // only change locally, but doesn't matter.
+		this->nodes[id].branch_number --;
+	}
 };
 
 ibinstream & operator<<(ibinstream & m, const SIQuery & q){
-	m << q.root << q.nodes;
+	m << q.root << q.nodes << q.max_branch_number << q.dfs_order;
 	return m;
 }
 
 obinstream & operator>>(obinstream & m, SIQuery & q){
-	m >> q.root >> q.nodes;
+	m >> q.root >> q.nodes >> q.max_branch_number >> q.dfs_order;
 	return m;
 }
 
@@ -266,7 +358,10 @@ obinstream & operator>>(obinstream & m, SIQuery & q){
 class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 {
 	public:
-		vector<vector<VertexID>> results; // only used in the final step
+		// used in the final step:
+		// key = query_vertex, value = vector of path mapping
+		int root_query_vertex;
+		hash_map<int, vector<vector<VertexID>>> results;
 
 		void continue_mapping(vector<VertexID> &mapping, int &curr_u)
 		{ // Add current vertex to mapping;
@@ -277,28 +372,26 @@ class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 
 			mapping.push_back(id);
 #ifdef DEBUG_MODE_PARTIAL_RESULT
-			cout << "[Result] Partial mapping:  " << mapping << endl;
+			cout << "[Result] Current query vertex: " << curr_u << " Partial mapping: " << mapping << endl;
 #endif
 
 			int children_num = query->getChildrenNumber(curr_u);
 			if (children_num == 0)
 			{ // leaf query vertex
-				results.push_back(mapping);
-#ifdef DEBUG_MODE_RESULT
-				cout << "[Result] Final mapping:  " << mapping << endl;
-#endif
+				this->results[curr_u].push_back(mapping);
 			}
 			else
 			{
 				int next_u;
 				for (int i = 0; i < children_num; i++)
-				{
+				{ // for every child in query graph
 					next_u = query->getChildID(curr_u, i);
 					SIMessage msg = SIMessage(MAPPING, mapping, next_u);
 					for (it = nbs.begin(); it != nbs.end(); it++)
 					{
-						if (it->second == query->getLabel(next_u))
-						{
+						if (it->second == query->getLabel(next_u) &&
+							notContains(mapping, it->first))
+						{ // check for label and uniqueness
 							send_message(it->first, msg);
 #ifdef DEBUG_MODE_MSG
 						cout << "[DEBUG] Message sent from " << id << " to "
@@ -388,6 +481,104 @@ class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 				vote_to_halt();
 			}
 		}
+
+		virtual void enumerate(MessageContainer & messages)
+		{
+			SIQuery* query = (SIQuery*)getQuery();
+			hash_map<vector<VertexID>,
+			hash_map<int, vector<vector<VertexID> > > > join_results;
+			hash_map<vector<VertexID>,
+			hash_map<int, vector<vector<VertexID> > > >::iterator join_it;
+			hash_map<int, vector<vector<VertexID>>>::iterator it;
+			vector<pair<int, vector<vector<VertexID> > > > tails;
+			vector<VertexID> prefix, tail;
+			vector<vector<VertexID> > temp_results;
+			int num, curr_u, anc_u, to_send;
+
+			if (step_num() < query->max_branch_number + 2)
+			{
+				for (size_t i = 0; i < messages.size(); i++)
+				{
+					SIMessage & msg = messages[i];
+					curr_u = msg.vertex;
+					anc_u = query->getNearestBranchingAncestor(curr_u);
+					for (size_t i = 0; i < msg.branch_result.size(); i++)
+					{
+						vector<VertexID> & mapping = msg.branch_result[i];
+						for (int j = 0; j <= query->getLevel(anc_u); j++)
+							prefix.push_back(mapping[j]);
+						for (int j = query->getLevel(anc_u) + 1;
+							 j <= query->getLevel(curr_u); j++)
+							tail.push_back(mapping[j]);
+						//cout << "4. prefix should be [1]: " << prefix << endl;
+						//cout << "5. tail should be [5] or [6] or [7]: " << tail << endl;
+						join_results[prefix][curr_u].push_back(tail);
+						prefix.clear();
+						tail.clear();
+					}
+				}
+
+				for (join_it = join_results.begin(); join_it != join_results.end();
+						join_it ++)
+				{
+					prefix = join_it->first;
+					it = join_it->second.begin();
+					anc_u = query->getNearestBranchingAncestor(it->first);
+					//cout << "6. it->first should be 2 or 3: " << it->first << endl;
+					//cout << "7. anc_u should be 1: " << anc_u << endl;
+
+					for (; it != join_it->second.end(); it++)
+					{
+						num = query->getDFSNumber(it->first);
+						tails.push_back(make_pair(num, it->second));
+					}
+
+					sort(tails.begin(), tails.end());
+					//cout << "8. tails[0].first should be 1: " << tails[0].first << endl;
+					//cout << "9. tails[0].second[0] should be [5] or [9]: " << (tails[0].second)[0] << endl;
+
+					if (tails.size() > 1)
+					{
+						temp_results = joinVectors(prefix, tails[0].second,
+								tails[1].second);
+						for (size_t i = 2; i < tails.size(); i++)
+						{
+							vector<VertexID> head_v;
+							temp_results = joinVectors(head_v,
+									temp_results, tails[i].second);
+						}
+						// cout << "10. temp_results[0]: " << temp_results[0] << endl;
+						this->results[anc_u] = temp_results;
+						query->decrementBranchNumber(anc_u);
+					}
+					tails.clear();
+				}
+
+				for (it = this->results.begin(); it != this->results.end(); it++)
+				{ // results non-empty guarantee that query vertex is a leaf vertex
+					curr_u = it->first;
+					// cout << "1. curr_u should be 2 or 3: " << curr_u << endl;
+					num = query->getBranchNumber(curr_u);
+					if (num != 0 && num == query->max_branch_number - step_num() + 1)
+					{
+						anc_u = query->getNearestBranchingAncestor(curr_u);
+						//cout << "2. anc_u should be 1: " << anc_u << endl;
+						to_send = it->second[0][query->getLevel(anc_u)];
+						//cout << "3. to_send should be 1 or 2: " << to_send << endl;
+						send_message(to_send,
+								SIMessage(BRANCH_RESULT, it->second, curr_u));
+#ifdef DEBUG_MODE_MSG
+						cout << "[DEBUG] Message sent from " << id << " to "
+							 << to_send << ". \n\t"
+							 << "Type: BRANCH RESULT. \n\t"
+							 << "The first of it " << it->second[0] << endl;
+#endif
+						this->results[curr_u].clear();
+					}
+				}
+			}
+			vote_to_halt();
+		}
 };
 
 //=============================================================================
@@ -424,17 +615,22 @@ class SIWorker:public Worker<SIVertex, SIQuery>
 
 		virtual void toline(SIVertex* v, BufferedWriter & writer)
 		{
-			vector<vector<VertexID>> & results = v->results;
-			for (size_t i = 0; i < results.size(); i++)
+			hash_map<int, vector<vector<VertexID>>>::iterator it;
+			SIQuery* query = (SIQuery*)getQuery();
+			for (it = v->results.begin(); it != v->results.end(); it++)
 			{
-				vector<VertexID> & mapping = results[i];
-				sprintf(buf, "# Match\n");
-				writer.write(buf);
-
-				for (size_t j = 0; j < mapping.size(); j++)
+				vector<vector<VertexID>> & results = it->second;
+				for (size_t i = 0; i < results.size(); i++)
 				{
-					sprintf(buf, "%d %d\n", (int)(j+1), mapping[j]);
+					vector<VertexID> & mapping = results[i];
+					sprintf(buf, "# Match\n");
 					writer.write(buf);
+
+					for (size_t j = 0; j < mapping.size(); j++)
+					{
+						sprintf(buf, "%d %d\n", query->dfs_order[j], mapping[j]);
+						writer.write(buf);
+					}
 				}
 			}
 		}
@@ -465,10 +661,12 @@ void pregel_subgraph(string data_path, string query_path, string out_path,
 	worker.setQuery(&query);
 
 	worker.load_data(data_path);
-	worker.run_preprocess();
+	worker.run_type(PREPROCESS);
 
-	wakeAll();
 	worker.load_query(query_path);
-	worker.run_compute();
+	wakeAll();
+	worker.run_type(MATCH);
+	wakeAll();
+	worker.run_type(ENUMERATE);
 	worker.dump_graph(out_path, force_write);
 }

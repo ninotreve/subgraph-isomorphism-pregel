@@ -159,7 +159,7 @@ public:
 		}
 		*/
 
-    void active_compute()
+    void active_compute(int type)
     {
         active_count = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
@@ -167,7 +167,19 @@ public:
         for (size_t i = 0; i < vertexes.size(); i++) {
             if (v_msgbufs[i].size() == 0) {
                 if (vertexes[i]->is_active()) {
-                    vertexes[i]->compute(v_msgbufs[i]);
+            		switch (type)
+            		{
+            		case PREPROCESS:
+                        vertexes[i]->preprocess(v_msgbufs[i]);
+            			break;
+            		case MATCH:
+                        vertexes[i]->compute(v_msgbufs[i]);
+            			break;
+            		case ENUMERATE:
+                        vertexes[i]->enumerate(v_msgbufs[i]);
+            			break;
+            		}
+
                     v_msgbufs[i].clear(); //clear used msgs
                     AggregatorT* agg = (AggregatorT*)get_aggregator();
                     if (agg != NULL)
@@ -177,7 +189,18 @@ public:
                 }
             } else {
                 vertexes[i]->activate();
-                vertexes[i]->compute(v_msgbufs[i]);
+        		switch (type)
+        		{
+        		case PREPROCESS:
+                    vertexes[i]->preprocess(v_msgbufs[i]);
+        			break;
+        		case MATCH:
+                    vertexes[i]->compute(v_msgbufs[i]);
+        			break;
+        		case ENUMERATE:
+                    vertexes[i]->enumerate(v_msgbufs[i]);
+        			break;
+        		}
                 v_msgbufs[i].clear(); //clear used msgs
                 AggregatorT* agg = (AggregatorT*)get_aggregator();
                 if (agg != NULL)
@@ -188,14 +211,25 @@ public:
         }
     }
 
-    void all_compute()
+    void all_compute(int type)
     {
         active_count = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
         for (size_t i = 0; i < vertexes.size(); i++) {
             vertexes[i]->activate();
-            vertexes[i]->compute(v_msgbufs[i]);
+    		switch (type)
+    		{
+    		case PREPROCESS:
+                vertexes[i]->preprocess(v_msgbufs[i]);
+    			break;
+    		case MATCH:
+                vertexes[i]->compute(v_msgbufs[i]);
+    			break;
+    		case ENUMERATE:
+                vertexes[i]->enumerate(v_msgbufs[i]);
+    			break;
+    		}
             v_msgbufs[i].clear(); //clear used msgs
             AggregatorT* agg = (AggregatorT*)get_aggregator();
             if (agg != NULL)
@@ -204,44 +238,6 @@ public:
                 active_count++;
         }
     }
-
-    void active_preprocess()
-    {
-        active_count = 0;
-        MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
-        vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
-        for (size_t i = 0; i < vertexes.size(); i++) {
-            if (v_msgbufs[i].size() == 0) {
-                if (vertexes[i]->is_active()) {
-                    vertexes[i]->preprocess(v_msgbufs[i]);
-                    v_msgbufs[i].clear(); //clear used msgs
-                    if (vertexes[i]->is_active())
-                        active_count++;
-                }
-            } else {
-                vertexes[i]->activate();
-                vertexes[i]->preprocess(v_msgbufs[i]);
-                v_msgbufs[i].clear(); //clear used msgs
-                if (vertexes[i]->is_active())
-                    active_count++;
-            }
-        }
-    }
-
-    void all_preprocess()
-    {
-        active_count = 0;
-        MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
-        vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
-        for (size_t i = 0; i < vertexes.size(); i++) {
-            vertexes[i]->activate();
-            vertexes[i]->preprocess(v_msgbufs[i]);
-            v_msgbufs[i].clear(); //clear used msgs
-            if (vertexes[i]->is_active())
-                active_count++;
-        }
-    }
-
 
     inline void add_vertex(VertexT* vertex)
     {
@@ -373,7 +369,7 @@ public:
     void load_data(const string& input_path)
     {
     	if (_my_rank == MASTER_RANK)
-    		cout << "Start loading data graph ..." << endl;
+    		cout << "=================Start loading data graph ...=====================" << endl;
         //check path + init
         if (_my_rank == MASTER_RANK) {
             if (dirCheck(input_path.c_str()) == -1)
@@ -413,75 +409,13 @@ public:
         PrintTimer("Load Graph Time", WORKER_TIMER);
     }
 
-    //=========================================================================
-
-    void run_preprocess()
-    {
-    	if (_my_rank == MASTER_RANK)
-    		cout << "Start preprocessing ..." << endl;
-
-        init_timers();
-        ResetTimer(WORKER_TIMER);
-        //supersteps
-        global_step_num = 0;
-        long long step_msg_num;
-        long long global_msg_num = 0;
-        while (true) {
-            global_step_num++;
-            ResetTimer(4);
-            //===================
-            char bits_bor = all_bor(global_bor_bitmap);
-            if (getBit(FORCE_TERMINATE_ORBIT, bits_bor) == 1)
-                break;
-            get_vnum() = all_sum(vertexes.size());
-            int wakeAll = getBit(WAKE_ALL_ORBIT, bits_bor);
-            if (wakeAll == 0) {
-                active_vnum() = all_sum(active_count);
-                if (active_vnum() == 0 && getBit(HAS_MSG_ORBIT, bits_bor) == 0)
-                    break; //all_halt AND no_msg
-            } else
-                active_vnum() = get_vnum();
-            //===================
-            clearBits();
-            if (wakeAll == 1)
-                all_preprocess();
-            else
-                active_preprocess();
-            message_buffer->combine();
-            step_msg_num = master_sum_LL(message_buffer->get_total_msg());
-            if (_my_rank == MASTER_RANK) {
-                global_msg_num += step_msg_num;
-            }
-            vector<VertexT*>& to_add = message_buffer->sync_messages();
-            worker_barrier();
-            StopTimer(4);
-            if (_my_rank == MASTER_RANK) {
-                cout << "Superstep " << global_step_num << " done. Time elapsed: " << get_timer(4) << " seconds" << endl;
-                cout << "#msgs: " << step_msg_num << endl;
-            }
-        }
-        worker_barrier();
-        StopTimer(WORKER_TIMER);
-        if (_my_rank == MASTER_RANK)
-        	cout << "Preprocessing done." << endl;
-
-        PrintTimer("Communication Time", COMMUNICATION_TIMER);
-        PrintTimer("- Serialization Time", SERIALIZATION_TIMER);
-        PrintTimer("- Transfer Time", TRANSFER_TIMER);
-        PrintTimer("Total Computational Time", WORKER_TIMER);
-        if (_my_rank == MASTER_RANK)
-        {
-            cout << "Total #msgs=" << global_msg_num << endl;
-        }
-    }
-
     //====================================================================
 
     // load the query graph by MASTER and broadcast to SLAVEs.
     void load_query(const string& input_path)
 	{
     	if (_my_rank == MASTER_RANK)
-    		cout << "Start loading query..." << endl;
+    		cout << "=================Start loading query...===================" << endl;
 
 		//check path + init
 		if (_my_rank == MASTER_RANK) {
@@ -502,23 +436,17 @@ public:
 			}
 
 			QueryT* query = (QueryT*) global_query;
-
-			if (! query->nodes.empty())
-			{
-				// pick arbitrary start vertex
-				query->root = query->nodes.begin()->first;
-				query->dfs(query->root, 0, true);
-			}
-
+			query->init();
 			masterBcast(*((QueryT*) global_query));
 		}
 		else
 		{
 			slaveBcast(*((QueryT*) global_query));
-			//debug
-			//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
-			//((QueryT*) global_query)->printOrder();
 		}
+
+		//debug
+		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
+		//((QueryT*) global_query)->printOrder();
 
 		//barrier for query loading
 		worker_barrier(); //@@@@@@@@@@@@@
@@ -528,10 +456,23 @@ public:
 
     //=========================================================
 
-    void run_compute()
+    void run_type(int type)
     {
     	if (_my_rank == MASTER_RANK)
-    		cout << "Start computing..." << endl;
+    	{
+    		switch (type)
+    		{
+    		case PREPROCESS:
+    			cout << "================Start preprocessing...=================" << endl;
+    			break;
+    		case MATCH:
+    			cout << "================Start matching...======================" << endl;
+    			break;
+    		case ENUMERATE:
+    			cout << "================Start enumerating...===================" << endl;
+    			break;
+    		}
+    	}
 
         init_timers();
         ResetTimer(WORKER_TIMER);
@@ -563,9 +504,9 @@ public:
             //===================
             clearBits();
             if (wakeAll == 1)
-                all_compute();
+                all_compute(type);
             else
-                active_compute();
+                active_compute(type);
             message_buffer->combine();
             step_msg_num = master_sum_LL(message_buffer->get_total_msg());
             step_vadd_num = master_sum_LL(message_buffer->get_total_vadd());
@@ -590,7 +531,20 @@ public:
         worker_barrier();
         StopTimer(WORKER_TIMER);
         if (_my_rank == MASTER_RANK)
-        	cout << "Supergraph matching done. " << endl;
+    	{
+    		switch (type)
+    		{
+    		case PREPROCESS:
+    			cout << "Subgraph preprocessing done. " << endl;
+    			break;
+    		case MATCH:
+    			cout << "Subgraph matching done. " << endl;
+    			break;
+    		case ENUMERATE:
+    			cout << "Subgraph enumeration done. " << endl;
+    			break;
+    		}
+    	}
 
         PrintTimer("Communication Time", COMMUNICATION_TIMER);
         PrintTimer("- Serialization Time", SERIALIZATION_TIMER);
@@ -604,6 +558,9 @@ public:
 
     void dump_graph(const string& output_path, bool force_write)
     {
+    	if (_my_rank == MASTER_RANK)
+    	    cout << "=================Start dumping graph...===================" << endl;
+
         //check path + init
         if (_my_rank == MASTER_RANK) {
             if (dirCheck(output_path.c_str(), force_write) == -1)
