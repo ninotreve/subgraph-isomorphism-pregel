@@ -4,7 +4,8 @@ using namespace std;
 
 //#define DEBUG_MODE_ACTIVE 1
 //#define DEBUG_MODE_MSG 1
-//#define DEBUG_MODE_PARTIAL_RESULT 1
+#define DEBUG_MODE_PARTIAL_RESULT 1
+#define DEBUG_MODE_RESULT 1
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -132,20 +133,6 @@ obinstream& operator>>(obinstream& m, SINode& node)
 }
 
 //==========================================================================
-// Overloading << operator of vector, print like Python, for debug purpose
-
-ostream & operator << (ostream & os, const vector<int> & v)
-{
-	os << "[";
-	for (size_t i = 0; i < v.size(); i++)
-	{
-		os << v[i];
-		if (i != (v.size() - 1)) os << ", ";
-	}
-	os << "]";
-	return os;
-}
-
 // Overloading << operator of SINode for debug purpose.
 ostream & operator << (ostream & os, const SINode & node)
 {
@@ -157,6 +144,7 @@ ostream & operator << (ostream & os, const SINode & node)
 	return os;
 }
 
+//==========================================================================
 // Define hash of vector
 namespace __gnu_cxx {
 	template <>
@@ -173,6 +161,7 @@ namespace __gnu_cxx {
 	};
 }
 
+
 //===========================================================
 
 bool sortByValDesc(const pair<int, int> &a, const pair<int, int> &b)
@@ -186,8 +175,10 @@ public:
 	int root;
 	hash_map<int, SINode> nodes;
 
-	int max_branch_number;
+	int max_branch_number = 0;
 	vector<int> dfs_order;
+	// <vertex, nearest branch ancestor or root if it doesn't have one>
+	hash_map<int, int> nbancestors;
 
 	virtual void init()
 	{
@@ -211,7 +202,7 @@ public:
 				}
 			}
 			this->dfs(this->root, 0, true);
-			this->addBranchNumber(this->root, 0);
+			this->addBranchNumber(this->root, 0, this->root);
 		}
 	}
 
@@ -297,21 +288,27 @@ public:
 		}
 	}
 
-	void addBranchNumber(int currID, int num)
+	void addBranchNumber(int currID, int num, int ancID)
 	{
 		// recursive function to add branch number.
+		this->nbancestors[currID] = ancID;
+
 		SINode* curr = &this->nodes[currID];
 		if (curr->children.size() > 1)
+		{
 			num ++;
+			ancID = currID;
+		}
 
 		curr->branch_number = num;
+
 		if (num > this->max_branch_number)
 			this->max_branch_number = num;
 		for (size_t i = 0; i < curr->children.size(); i++)
-			this->addBranchNumber(curr->children[i], num);
+			this->addBranchNumber(curr->children[i], num, ancID);
 	}
 
-	// a lot of get functions
+	// Query is read-only, so a lot of get functions
 	int getLabel(int id) { return this->nodes[id].label; }
 	int getLevel(int id) { return this->nodes[id].level; }
 	int getBranchNumber(int id) { return this->nodes[id].branch_number;	}
@@ -324,32 +321,18 @@ public:
 	vector<int> getBNeighbors(int id)
 	{ return this->nodes[id].b_nbs; }
 	int getNearestBranchingAncestor(int id)
-	{
-		// returns the nearest branching vertex of its ancestors,
-		// only called when getBranchNumber(id) != 0.
-		int b = this->getBranchNumber(id);
-		int parent = this->getParent(id);
-		while (b == this->getBranchNumber(parent))
-		{
-			id = parent;
-			parent = this->getParent(id);
-		}
-		return id;
-	}
-
-	void decrementBranchNumber(int id)
-	{ // only change locally, but doesn't matter.
-		this->nodes[id].branch_number --;
-	}
+	{ return this->nbancestors[id]; }
 };
 
 ibinstream & operator<<(ibinstream & m, const SIQuery & q){
-	m << q.root << q.nodes << q.max_branch_number << q.dfs_order;
+	m << q.root << q.nodes << q.max_branch_number << q.dfs_order
+	  << q.nbancestors;
 	return m;
 }
 
 obinstream & operator>>(obinstream & m, SIQuery & q){
-	m >> q.root >> q.nodes >> q.max_branch_number >> q.dfs_order;
+	m >> q.root >> q.nodes >> q.max_branch_number >> q.dfs_order
+	  >> q.nbancestors;
 	return m;
 }
 
@@ -495,8 +478,10 @@ class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 			vector<vector<VertexID> > temp_results;
 			int num, curr_u, anc_u, to_send;
 
-			if (step_num() < query->max_branch_number + 2)
+			// join operations for supersteps [2, max_branch_number + 1]
+			if (step_num() > 1 && step_num() < query->max_branch_number + 2)
 			{
+				//cout << "0. step_num = " << step_num() << endl;
 				for (size_t i = 0; i < messages.size(); i++)
 				{
 					SIMessage & msg = messages[i];
@@ -508,7 +493,7 @@ class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 						for (int j = 0; j <= query->getLevel(anc_u); j++)
 							prefix.push_back(mapping[j]);
 						for (int j = query->getLevel(anc_u) + 1;
-							 j <= query->getLevel(curr_u); j++)
+							 j < mapping.size(); j++)
 							tail.push_back(mapping[j]);
 						//cout << "4. prefix should be [1]: " << prefix << endl;
 						//cout << "5. tail should be [5] or [6] or [7]: " << tail << endl;
@@ -524,8 +509,8 @@ class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 					prefix = join_it->first;
 					it = join_it->second.begin();
 					anc_u = query->getNearestBranchingAncestor(it->first);
-					//cout << "6. it->first should be 2 or 3: " << it->first << endl;
-					//cout << "7. anc_u should be 1: " << anc_u << endl;
+					//cout << "6. it->first (curr_u): " << it->first << endl;
+					//cout << "7. anc_u: " << anc_u << endl;
 
 					for (; it != join_it->second.end(); it++)
 					{
@@ -537,7 +522,9 @@ class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 					//cout << "8. tails[0].first should be 1: " << tails[0].first << endl;
 					//cout << "9. tails[0].second[0] should be [5] or [9]: " << (tails[0].second)[0] << endl;
 
-					if (tails.size() > 1)
+					// make sure every child sends you result!
+					if (tails.size() == query->getChildrenNumber(anc_u)
+							&& tails.size() > 1)
 					{
 						temp_results = joinVectors(prefix, tails[0].second,
 								tails[1].second);
@@ -547,20 +534,30 @@ class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 							temp_results = joinVectors(head_v,
 									temp_results, tails[i].second);
 						}
-						// cout << "10. temp_results[0]: " << temp_results[0] << endl;
-						this->results[anc_u] = temp_results;
-						query->decrementBranchNumber(anc_u);
+						if (temp_results.size() != 0)
+						//cout << "10. temp_results[0]: " << temp_results[0] << endl;
+						this->results[anc_u].insert(this->results[anc_u].end(),
+								temp_results.begin(), temp_results.end());
 					}
 					tails.clear();
 				}
+			}
 
+			// send messages for supersteps [1, max_branch_number]
+			if (step_num() > (query->max_branch_number))
+			{
+				vote_to_halt();
+			}
+			else
+			{
 				for (it = this->results.begin(); it != this->results.end(); it++)
-				{ // results non-empty guarantee that query vertex is a leaf vertex
+				{
 					curr_u = it->first;
-					// cout << "1. curr_u should be 2 or 3: " << curr_u << endl;
 					num = query->getBranchNumber(curr_u);
-					if (num != 0 && num == query->max_branch_number - step_num() + 1)
-					{
+					//cout << "1. curr_u: " << curr_u << " branch_num: " << num << endl;
+					if (num != 0 && num > query->max_branch_number - step_num()
+							&& !it->second.empty())
+					{ // non-empty to guarantee that query vertex is a leaf vertex
 						anc_u = query->getNearestBranchingAncestor(curr_u);
 						//cout << "2. anc_u should be 1: " << anc_u << endl;
 						to_send = it->second[0][query->getLevel(anc_u)];
@@ -577,7 +574,6 @@ class SIVertex:public Vertex<VertexID, SIValue, SIMessage>
 					}
 				}
 			}
-			vote_to_halt();
 		}
 };
 
@@ -626,6 +622,10 @@ class SIWorker:public Worker<SIVertex, SIQuery>
 					sprintf(buf, "# Match\n");
 					writer.write(buf);
 
+#ifdef DEBUG_MODE_RESULT
+					cout << "[DEBUG] Vertex ID: " << v->id << endl;
+					cout << "[DEBUG] Result: " << mapping << endl;
+#endif
 					for (size_t j = 0; j < mapping.size(); j++)
 					{
 						sprintf(buf, "%d %d\n", query->dfs_order[j], mapping[j]);
