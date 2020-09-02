@@ -38,7 +38,8 @@ virtual void compute(MessageContainer & messages)
 
 ### Implementation v2.0 (0830) 
 
-查询图和数据图的格式都是"VertexID Label NumOfNeighbors Neighbor1 Neighbor2 ..."]
+Usage: `run data_graph_folder query_graph_folder output_folder`
+查询图和数据图的格式都是"VertexID Label NumOfNeighbors Neighbor1 Neighbor2 ..."
 
 计算过程被分为了六步。其中前两步`load_data(data_path)`和`run_type(PREPROCESS)`是离线阶段完成的，而后四步是在线完成的。
 ```c++
