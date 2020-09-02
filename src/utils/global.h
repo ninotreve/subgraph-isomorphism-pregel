@@ -187,6 +187,21 @@ void forceTerminate()
     setBit(FORCE_TERMINATE_ORBIT);
 }
 
+//==========================================================================
+// Overloading << operator of vector, print like Python, for debug purpose
+
+ostream & operator << (ostream & os, const vector<int> & v)
+{
+	os << "[";
+	for (size_t i = 0; i < v.size(); i++)
+	{
+		os << v[i];
+		if (i != (v.size() - 1)) os << ", ";
+	}
+	os << "]";
+	return os;
+}
+
 //====================================================
 //Set up a pointer to query in global.h
 //so that it can be used anywhere in the program
@@ -223,6 +238,7 @@ vector<vector<VertexID>> joinVectors(vector<VertexID> & head_v,
 	// recursive function to join vectors
 	vector<vector<VertexID>> results;
 	vector<VertexID> v;
+
 	for (size_t i = 0; i < v1.size(); i++)
 	{
 		for (size_t j = 0; j < v2.size(); j++)
