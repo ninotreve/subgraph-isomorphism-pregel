@@ -38,7 +38,7 @@ virtual void compute(MessageContainer & messages)
 
 ### Implementation v2.0 (0830) 
 
-查询图和数据图的格式都是"VertexID Label NumOfNeighbors Neighbor1 Neighbor2 ..."]
+查询图和数据图的格式都是"VertexID Label NumOfNeighbors Neighbor1 Neighbor2 ..."
 
 计算过程被分为了五步：
 ```c++
