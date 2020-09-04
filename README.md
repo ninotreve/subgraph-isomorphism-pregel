@@ -36,9 +36,9 @@ virtual void compute(MessageContainer & messages)
 }
 ```
 
-### Implementation v2.0 (0830) 
+### Implementation v2.0 (0830) (baseline)
 
-Usage: `run data_graph_folder query_graph_folder output_folder` （如果是在eclipse里跑，需要设置run configurations）
+Usage: `run -d data_graph_folder -q query_graph_folder -out output_folder` （如果是在eclipse里跑，需要设置run configurations）
 
 查询图和数据图的格式都是"VertexID Label NumOfNeighbors Neighbor1 Neighbor2 ..."
 

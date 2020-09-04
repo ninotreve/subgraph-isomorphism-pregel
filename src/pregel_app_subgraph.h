@@ -647,8 +647,8 @@ class CCCombiner_pregel:public Combiner<VertexID>
 };
 */
 
-void pregel_subgraph(string data_path, string query_path, string out_path,
-		bool force_write)
+void pregel_subgraph(const string & data_path, const string  & query_path,
+		const string & out_path, bool force_write)
 {
 	SIWorker worker;
 	//CCCombiner_pregel combiner;
