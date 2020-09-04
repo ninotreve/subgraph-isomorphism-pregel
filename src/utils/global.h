@@ -254,6 +254,57 @@ vector<vector<VertexID>> joinVectors(vector<VertexID> & head_v,
 	return results;
 }
 
+//========================================================================
+
+/* OptionKeyword:
+    DataPath = 0,           // -d, the data file path (folder)
+    QueryPath = 1,     		// -q, the query file path (folder)
+    OutputPath = 2,      	// -out, output path (folder)
+    Partition = 3,        	// -partition, the strategy of partitioning
+    Preprocess = 4,     	// -preprocess, the strategy of preprocessing
+    Filter = 5,             // -filter, the strategy of filtering
+    Strategy = 6,           // -strategy, matching by path or by tree
+    Order = 7,             	// -order, the priority in deciding match order
+    Enumeration = 8, 		// -enumeration, the strategy of enumeration
+*/
+
+#define OPTIONS 9
+
+class MatchingCommand{
+    vector<string> tokens;
+    vector<string> options_key;
+    vector<string> options_value;
+
+    const string getCommandOption(const string &option) const
+    {
+        vector<string>::const_iterator itr;
+        itr = find(tokens.begin(), tokens.end(), option);
+        if (itr != tokens.end() && ++itr != tokens.end())
+            return *itr;
+        return "";
+    }
+
+    void processOptions()
+    {
+        for (int i = 0; i < OPTIONS; i++)
+        	options_value.push_back(getCommandOption(options_key[i]));
+    }
+
+public:
+    MatchingCommand(const int argc, char **argv)
+    {
+    	options_key = {"-d", "-q", "-out", "-partition", "-preprocess",
+    			"-filter", "-strategy", "-order", "-enumeration"};
+    	for (int i = 1; i < argc; ++i)
+            tokens.push_back(std::string(argv[i]));
+        processOptions();
+    }
+
+    string getDataPath() { return options_value[0]; }
+    string getQueryPath() { return options_value[1]; }
+    string getOutputPath() { return options_value[2]; }
+};
+
 //====================================================
 //Ghost threshold
 int global_ghost_threshold;
@@ -267,3 +318,5 @@ void set_ghost_threshold(int tau)
 #define ROUND 11 //for PageRank
 
 #endif
+
+
