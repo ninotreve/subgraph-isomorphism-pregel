@@ -10,6 +10,9 @@ using namespace std;
 typedef vector<VertexID> Mapping;
 typedef hash_map<int, vector<Mapping> > Result;
 
+// the first int for anc_u, the second int for curr_u's branch_num.
+typedef hash_map<int, map<int, vector<Mapping> > > mResult;
+
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
 //output line format:
@@ -794,12 +797,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 		{
 			SIQuery* query = (SIQuery*)getQuery();
 
-			typedef pair<int, vector<Mapping> > curr_u_tails;
-
-			hash_map<Mapping, Result> join_results;
-			hash_map<Mapping, Result>::iterator join_it;
-			Result::iterator it;
-			vector<curr_u_tails> tails;
+			hash_map<Mapping, mResult> join_results;
+			hash_map<Mapping, mResult>::iterator join_it;
 			Mapping prefix, tail;
 			vector<Mapping> temp_results;
 			int num, curr_u, anc_u, to_send;
@@ -821,7 +820,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					for (size_t j = query->getLevel(anc_u) + 1;
 						 j < mapping.size(); j++)
 						tail.push_back(mapping[j]);
-					join_results[prefix][curr_u].push_back(tail);
+
+					num = query->getDFSNumber(curr_u);
+					join_results[prefix][anc_u][num].push_back(tail);
 					prefix.clear();
 					tail.clear();
 				}
@@ -832,35 +833,28 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						join_it ++)
 				{
 					prefix = join_it->first;
-					it = join_it->second.begin();
-					anc_u = query->getNearestBranchingAncestor(it->first);
-
-					for (; it != join_it->second.end(); it++)
+					for (mResult::iterator it = join_it->second.begin();
+							it != join_it->second.end(); it++)
 					{
-						num = query->getDFSNumber(it->first);
-						tails.push_back(make_pair(num, it->second));
-					}
-
-					// sort according to curr_u
-					sort(tails.begin(), tails.end());
-
-					// make sure every child sends you result!
-					if ((int) tails.size() == query->getChildrenNumber(anc_u)
-							&& tails.size() > 1)
-					{
-						temp_results = joinVectors(prefix, tails[0].second,
-								tails[1].second);
-						for (size_t i = 2; i < tails.size(); i++)
+						anc_u = it->first;
+						// make sure every child sends you result!
+						if ((int) it->second.size() ==
+								query->getChildrenNumber(anc_u))
 						{
-							vector<VertexID> head_v;
-							temp_results = joinVectors(head_v,
-									temp_results, tails[i].second);
+							temp_results.push_back(prefix);
+							for (map<int, vector<Mapping> >::iterator
+									i = it->second.begin();
+									i != it->second.end(); i++)
+							{
+								temp_results = joinVectors(
+										temp_results, i->second);
+							}
+							this->results[anc_u].insert(
+									this->results[anc_u].end(),
+									temp_results.begin(), temp_results.end());
+							temp_results.clear();
 						}
-						if (temp_results.size() != 0)
-						this->results[anc_u].insert(this->results[anc_u].end(),
-								temp_results.begin(), temp_results.end());
 					}
-					tails.clear();
 				}
 			}
 
@@ -871,11 +865,11 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 			else
 			{
-				for (it = this->results.begin(); it != this->results.end(); it++)
+				for (Result::iterator it = this->results.begin();
+						it != this->results.end(); it++)
 				{
 					curr_u = it->first;
 					num = query->getBranchNumber(curr_u);
-					//cout << "1. curr_u: " << curr_u << " branch_num: " << num << endl;
 					if (num != 0 && num > query->max_branch_number - step_num()
 							&& !it->second.empty())
 					{ // non-empty to guarantee that query vertex is a leaf
@@ -887,9 +881,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 								SIMessage(BRANCH_RESULT, it->second[i], curr_u));
 #ifdef DEBUG_MODE_MSG
 						cout << "[DEBUG] Message sent from " << id.vID << " to "
-							 << to_send << ". \n\t"
+							 << to_send << ".\n\t"
 							 << "Type: BRANCH RESULT. \n\t"
-							 << "Mapping: " << it->second[i] << endl;
+							 << "curr_u: " << curr_u << endl;
 #endif
 						}
 						this->results[curr_u].clear();

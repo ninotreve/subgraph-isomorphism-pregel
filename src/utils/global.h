@@ -234,7 +234,7 @@ bool notContainsDuplicate(vector<int> & v)
 
 typedef vector<VertexID> Mapping;
 
-vector<Mapping> joinVectors(Mapping & head_v, vector<Mapping> & v1,
+vector<Mapping> joinVectors(vector<Mapping> & v1,
 		vector<Mapping> & v2)
 {
 	// recursive function to join vectors
@@ -245,8 +245,7 @@ vector<Mapping> joinVectors(Mapping & head_v, vector<Mapping> & v1,
 	{
 		for (size_t j = 0; j < v2.size(); j++)
 		{
-			v = head_v;
-			v.insert(v.end(), v1[i].begin(), v1[i].end());
+			v = v1[i];
 			v.insert(v.end(), v2[j].begin(), v2[j].end());
 			if (notContainsDuplicate(v))
 				results.push_back(v);
