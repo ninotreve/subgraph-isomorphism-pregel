@@ -3,12 +3,15 @@
 int main(int argc, char* argv[]){
 
     MatchingCommand command(argc, argv);
-    string data_path = command.getDataPath();
-    string query_path = command.getQueryPath();
-    string output_path = command.getOutputPath();
+    WorkerParams params;
+    params.data_path = command.getDataPath();
+    params.query_path = command.getQueryPath();
+    params.output_path = command.getOutputPath();
+
+    params.enumerate = command.getEnumerateMethod();
 
 	init_workers();
-	pregel_subgraph(data_path, query_path, output_path, true);
+	pregel_subgraph(params);
 	worker_finalize();
 	return 0;
 }
