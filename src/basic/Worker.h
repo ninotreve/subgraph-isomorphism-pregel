@@ -159,83 +159,43 @@ public:
 		}
 		*/
 
-    void active_compute(int type)
+    void active_compute(int type, WorkerParams params, int wakeAll)
     {
         active_count = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
         for (size_t i = 0; i < vertexes.size(); i++) {
-            if (v_msgbufs[i].size() == 0) {
-                if (vertexes[i]->is_active()) {
-            		switch (type)
-            		{
-            		case PREPROCESS:
-                        vertexes[i]->preprocess(v_msgbufs[i]);
-            			break;
-            		case MATCH:
-                        vertexes[i]->compute(v_msgbufs[i]);
-            			break;
-            		case ENUMERATE:
-                        vertexes[i]->enumerate(v_msgbufs[i]);
-            			break;
-            		}
+        	if (wakeAll == 1) vertexes[i]->activate();
 
-                    v_msgbufs[i].clear(); //clear used msgs
-                    AggregatorT* agg = (AggregatorT*)get_aggregator();
-                    if (agg != NULL)
-                        agg->stepPartial(vertexes[i]);
-                    if (vertexes[i]->is_active())
-                        active_count++;
-                }
-            } else {
-                vertexes[i]->activate();
-        		switch (type)
-        		{
-        		case PREPROCESS:
-                    vertexes[i]->preprocess(v_msgbufs[i]);
-        			break;
-        		case MATCH:
-                    vertexes[i]->compute(v_msgbufs[i]);
-        			break;
-        		case ENUMERATE:
-                    vertexes[i]->enumerate(v_msgbufs[i]);
-        			break;
-        		}
-                v_msgbufs[i].clear(); //clear used msgs
-                AggregatorT* agg = (AggregatorT*)get_aggregator();
-                if (agg != NULL)
-                    agg->stepPartial(vertexes[i]);
-                if (vertexes[i]->is_active())
-                    active_count++;
+            if  (
+            	(v_msgbufs[i].size() == 0 && vertexes[i]->is_active())
+            	||
+            	(v_msgbufs[i].size() != 0)
+            	)
+            {
+				switch (type)
+				{
+				case PREPROCESS:
+					vertexes[i]->preprocess(v_msgbufs[i]);
+					break;
+				case MATCH:
+					vertexes[i]->compute(v_msgbufs[i], params);
+					break;
+				case ENUMERATE:
+					if (params.enumerate)
+						vertexes[i]->enumerate_new(v_msgbufs[i]);
+					else
+						vertexes[i]->enumerate_old(v_msgbufs[i]);
+					break;
+				}
+
+				v_msgbufs[i].clear(); //clear used msgs
+				AggregatorT* agg = (AggregatorT*)get_aggregator();
+				if (agg != NULL)
+					agg->stepPartial(vertexes[i]);
+				if (vertexes[i]->is_active())
+					active_count++;
             }
-        }
-    }
-
-    void all_compute(int type)
-    {
-        active_count = 0;
-        MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
-        vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
-        for (size_t i = 0; i < vertexes.size(); i++) {
-            vertexes[i]->activate();
-    		switch (type)
-    		{
-    		case PREPROCESS:
-                vertexes[i]->preprocess(v_msgbufs[i]);
-    			break;
-    		case MATCH:
-                vertexes[i]->compute(v_msgbufs[i]);
-    			break;
-    		case ENUMERATE:
-                vertexes[i]->enumerate(v_msgbufs[i]);
-    			break;
-    		}
-            v_msgbufs[i].clear(); //clear used msgs
-            AggregatorT* agg = (AggregatorT*)get_aggregator();
-            if (agg != NULL)
-                agg->stepPartial(vertexes[i]);
-            if (vertexes[i]->is_active())
-                active_count++;
         }
     }
 
@@ -456,7 +416,7 @@ public:
 
     //=========================================================
 
-    void run_type(int type)
+    void run_type(int type, const WorkerParams & params)
     {
     	if (_my_rank == MASTER_RANK)
     	{
@@ -503,10 +463,7 @@ public:
                 agg->init();
             //===================
             clearBits();
-            if (wakeAll == 1)
-                all_compute(type);
-            else
-                active_compute(type);
+            active_compute(type, params, wakeAll);
             message_buffer->combine();
             step_msg_num = master_sum_LL(message_buffer->get_total_msg());
             step_vadd_num = master_sum_LL(message_buffer->get_total_vadd());

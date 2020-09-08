@@ -49,9 +49,8 @@ public:
         return m;
     }
 
-    virtual void compute(MessageContainer& messages) = 0;
+    virtual void compute(MessageContainer& messages, WorkerParams& params) = 0;
     virtual void preprocess(MessageContainer& messages) = 0;
-    virtual void enumerate(MessageContainer& messages) = 0;
 
     inline ValueT& value()
     {

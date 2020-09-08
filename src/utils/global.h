@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <limits.h>
 #include <string>
+#include <map>
 #include <ext/hash_set>
 #include <ext/hash_map>
 #define hash_map __gnu_cxx::hash_map
@@ -48,15 +49,15 @@ void worker_barrier()
 // worker parameters
 
 struct WorkerParams {
-    string input_path;
+    string data_path;
+    string query_path;
     string output_path;
     bool force_write;
-    bool native_dispatcher; //true if input is the output of a previous blogel job
+    bool enumerate;
 
     WorkerParams()
     {
         force_write = true;
-        native_dispatcher = false;
     }
 };
 
@@ -231,13 +232,14 @@ bool notContainsDuplicate(vector<int> & v)
 	return (s.size() == v.size());
 }
 
-vector<vector<VertexID>> joinVectors(vector<VertexID> & head_v,
-		vector<vector<VertexID> > & v1,
-		vector<vector<VertexID> > & v2)
+typedef vector<VertexID> Mapping;
+
+vector<Mapping> joinVectors(Mapping & head_v, vector<Mapping> & v1,
+		vector<Mapping> & v2)
 {
 	// recursive function to join vectors
-	vector<vector<VertexID>> results;
-	vector<VertexID> v;
+	vector<Mapping> results;
+	Mapping v;
 
 	for (size_t i = 0; i < v1.size(); i++)
 	{
@@ -303,6 +305,10 @@ public:
     string getDataPath() { return options_value[0]; }
     string getQueryPath() { return options_value[1]; }
     string getOutputPath() { return options_value[2]; }
+
+    bool getEnumerateMethod() {
+    	return (options_value[8] != "old");
+    }
 };
 
 //====================================================
