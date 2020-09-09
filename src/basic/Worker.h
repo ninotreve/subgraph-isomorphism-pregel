@@ -325,8 +325,8 @@ public:
     }
     //=======================================================
 
-    // run the worker, load the data graph
-    void load_data(const string& input_path)
+    // run the worker, load the data graph, return loading time
+    double load_data(const string& input_path)
     {
     	if (_my_rank == MASTER_RANK)
     		cout << "=================Start loading data graph ...=====================" << endl;
@@ -367,12 +367,13 @@ public:
         worker_barrier(); //@@@@@@@@@@@@@
         StopTimer(WORKER_TIMER);
         PrintTimer("Load Graph Time", WORKER_TIMER);
+        return get_timer(WORKER_TIMER);
     }
 
     //====================================================================
 
-    // load the query graph by MASTER and broadcast to SLAVEs.
-    void load_query(const string& input_path)
+    // load the query graph by MASTER and broadcast to SLAVEs, return load time
+    double load_query(const string& input_path)
 	{
     	if (_my_rank == MASTER_RANK)
     		cout << "=================Start loading query...===================" << endl;
@@ -412,11 +413,13 @@ public:
 		worker_barrier(); //@@@@@@@@@@@@@
 		StopTimer(WORKER_TIMER);
 		PrintTimer("Load Query Time", WORKER_TIMER);
+		return get_timer(WORKER_TIMER);
 	}
 
     //=========================================================
 
-    void run_type(int type, const WorkerParams & params)
+    // run preprocess, match or enumerate, return compute time
+    double run_type(int type, const WorkerParams & params)
     {
     	if (_my_rank == MASTER_RANK)
     	{
@@ -472,7 +475,6 @@ public:
                 global_vadd_num += step_vadd_num;
             }
             vector<VertexT*>& to_add = message_buffer->sync_messages();
-            cout << "***: finish sync." << endl;
             agg_sync();
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);
@@ -512,9 +514,11 @@ public:
         {
             cout << "Total #msgs=" << global_msg_num << ", Total #vadd=" << global_vadd_num << endl;
         }
+        return get_timer(WORKER_TIMER);
     }
 
-    void dump_graph(const string& output_path, bool force_write)
+    // dump result and return dump time
+    double dump_graph(const string& output_path, bool force_write)
     {
     	if (_my_rank == MASTER_RANK)
     	    cout << "=================Start dumping graph...===================" << endl;
@@ -530,6 +534,7 @@ public:
         dump_partition(output_path.c_str());
         StopTimer(WORKER_TIMER);
         PrintTimer("Dump Time", WORKER_TIMER);
+        return get_timer(WORKER_TIMER);
     }
 
     /* original run

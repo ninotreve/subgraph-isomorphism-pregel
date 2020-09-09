@@ -77,14 +77,8 @@ template <class T>
 ibinstream& operator<<(ibinstream& m, const vector<T>& v)
 {
     m << v.size();
-    if (v.size() > 3)
-    	cout << "---- size: " << v.size() << endl;
-    int count = 0;
     for (typename vector<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
-        if (v.size() > 3)
-    	cout << "---- Vector index: " << count << endl;
-    	m << *it;
-    	count ++;
+        m << *it;
     }
     return m;
 }
@@ -229,14 +223,8 @@ obinstream& operator>>(obinstream& m, vector<T>& v)
     size_t size;
     m >> size;
     v.resize(size);
-    if (size > 3)
-    cout << "---- size: " << size << endl;
-    int count = 0;
     for (typename vector<T>::iterator it = v.begin(); it != v.end(); ++it) {
-        if (size > 3)
-    	cout << "---- Vector index: " << count << endl;
-    	m >> *it;
-    	count ++;
+        m >> *it;
     }
     return m;
 }

@@ -3,9 +3,9 @@
 using namespace std;
 
 //#define DEBUG_MODE_ACTIVE 1
-#define DEBUG_MODE_MSG 1
-#define DEBUG_MODE_PARTIAL_RESULT 1
-#define DEBUG_MODE_RESULT 1
+//#define DEBUG_MODE_MSG 1
+//#define DEBUG_MODE_PARTIAL_RESULT 1
+//#define DEBUG_MODE_RESULT 1
 
 typedef vector<VertexID> Mapping;
 typedef hash_map<int, vector<Mapping> > Result;
@@ -72,18 +72,14 @@ struct SIKey {
 ibinstream& operator<<(ibinstream& m, const SIKey& v)
 {
     m << v.vID;
-    cout << "Successful: v.vID: " << v.vID << endl;
     m << v.partial_mapping;
-    cout << "Successful: v.mapping: " << v.partial_mapping << endl;
     return m;
 }
 
 obinstream& operator>>(obinstream& m, SIKey& v)
 {
     m >> v.vID;
-    cout << "Successful: v.vID: " << v.vID << endl;
     m >> v.partial_mapping;
-    cout << "Successful: v.mapping: " << v.partial_mapping << endl;
     return m;
 }
 
@@ -183,14 +179,10 @@ vector<Mapping> crossJoin(vector<Mapping> v1, vector<SIBranch> b)
 ibinstream& operator<<(ibinstream& m, const SIBranch& branch)
 {
     m << branch.p;
-    cout << "Successful: branch: " << branch.p << endl;
-
     m << branch.branches.size();
-
     for (size_t i = 0; i < branch.branches.size(); i++)
     {
     	m << branch.branches[i].size();
-
     	for (size_t j = 0; j < branch.branches[i].size(); j++)
 		{
     		m << branch.branches[i][j];
@@ -203,17 +195,13 @@ ibinstream& operator<<(ibinstream& m, const SIBranch& branch)
 obinstream& operator>>(obinstream& m, SIBranch& branch)
 {
     m >> branch.p;
-    cout << "Successful: branch: " << branch.p << endl;
-
     size_t size;
     m >> size;
     branch.branches.resize(size);
-
     for (size_t i = 0; i < branch.branches.size(); i++)
     {
     	m >> size;
     	branch.branches[i].resize(size);
-
     	for (size_t j = 0; j < branch.branches[i].size(); j++)
 		{
     		m >> branch.branches[i][j];
@@ -228,6 +216,7 @@ obinstream& operator>>(obinstream& m, SIBranch& branch)
 //	     <type = MAPPING, mapping, vertex = next_u>
 //		 <type = BRANCH_RESULT, mapping, vertex = curr_u>
 // 		 <type = BRANCH, branch, vertex = curr_u>
+//		 <type = MAPPING_COUNT, label = count>
 
 struct SIMessage
 {
@@ -261,13 +250,20 @@ struct SIMessage
 		this->branch = branch;
 		this->vertex = curr_u;
 	}
+
+	SIMessage(int type, int label)
+	{ // for mapping count
+		this->type = type;
+		this->label = label;
+	}
 };
 
 enum MESSAGE_TYPES {
 	LABEL_INFOMATION = 0,
 	MAPPING = 1,
 	BRANCH_RESULT = 2,
-	BRANCH = 3
+	BRANCH = 3,
+	MAPPING_COUNT = 4
 };
 
 ibinstream & operator<<(ibinstream & m, const SIMessage & v)
@@ -280,7 +276,8 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 		m << v.mapping << v.vertex;
 	else if (v.type == MESSAGE_TYPES::BRANCH)
 		m << v.branch << v.vertex;
-
+	else if (v.type == MESSAGE_TYPES::MAPPING_COUNT)
+		m << v.label;
 	return m;
 }
 
@@ -294,7 +291,8 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 		m >> v.mapping >> v.vertex;
 	else if (v.type == MESSAGE_TYPES::BRANCH)
 		m >> v.branch >> v.vertex;
-
+	else if (v.type == MESSAGE_TYPES::MAPPING_COUNT)
+		m >> v.label;
 	return m;
 }
 
@@ -750,12 +748,12 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						it != delete_set.end(); ++it)
 				{
 					this->results.erase(*it);
-					cout << "curr_u: " << *it << " erased." << endl;
 				}
 			}
 
 			// receive msg and join for supersteps [2, max_branch_number + 1]
 			// send msg to ancestor for supersteps [2, max_branch_number]
+			// send mapping_count to v1 for supersteps max_branch_number + 1
 			if (step_num() > 1 && step_num() < query->max_branch_number + 2)
 			{
 				for (size_t i = 0; i < messages.size(); i++)
@@ -785,6 +783,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 								it2 != it1->second.end(); it2++)
 							b.addBranch(it2->second);
 						this->results[curr_u] = b.expand();
+						send_message(SIKey(1),
+								SIMessage(MAPPING_COUNT,
+										this->results[curr_u].size()));
 					}
 					else
 					{
@@ -811,8 +812,18 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				}
 			}
 
-			if (this->results.empty() ||
-					step_num() > (query->max_branch_number))
+			if (step_num() == query->max_branch_number + 2)
+			{
+				int total = 0;
+				for (size_t i = 0; i < messages.size(); i++)
+				{
+					total += messages[i].label;
+				}
+				cout << "Mapping count: " << total << endl;
+				vote_to_halt();
+			}
+
+			if (this->results.empty())
 			{
 				vote_to_halt();
 			}
@@ -883,12 +894,32 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				}
 			}
 
-			// send messages for supersteps [1, max_branch_number]
-			if (step_num() > (query->max_branch_number))
+			// send mapping count to vertex1 for the last but one superstep
+			if (step_num() == query->max_branch_number + 1)
 			{
+				for (Result::iterator it = this->results.begin();
+						it != this->results.end(); it++)
+				{
+					send_message(SIKey(1),
+								SIMessage(MAPPING_COUNT,
+										it->second.size()));
+				}
+			}
+
+			// accumulate mapping count for the final superstep
+			if (step_num() == query->max_branch_number + 2)
+			{
+				int total = 0;
+				for (size_t i = 0; i < messages.size(); i++)
+				{
+					total += messages[i].label;
+				}
+				cout << "Mapping count: " << total << endl;
 				vote_to_halt();
 			}
-			else
+
+			// send messages for supersteps [1, max_branch_number]
+			if (step_num() < query->max_branch_number + 1)
 			{
 				for (Result::iterator it = this->results.begin();
 						it != this->results.end(); it++)
@@ -915,6 +946,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					}
 				}
 			}
+			else
+				vote_to_halt();
 		}
 };
 
@@ -1000,13 +1033,41 @@ void pregel_subgraph(const WorkerParams & params)
 	SIQuery query;
 	worker.setQuery(&query);
 
-	worker.load_data(params.data_path);
-	worker.run_type(PREPROCESS, params);
+	double time, load_time = 0.0, compute_time = 0.0,
+			offline_time = 0.0, online_time = 0.0;
 
-	worker.load_query(params.query_path);
+	time = worker.load_data(params.data_path);
+	load_time += time;
+	offline_time += time;
+
+	time = worker.run_type(PREPROCESS, params);
+	compute_time += time;
+	offline_time += time;
+
+	time = worker.load_query(params.query_path);
+	load_time += time;
+	online_time += time;
+
 	wakeAll();
-	worker.run_type(MATCH, params);
+	time = worker.run_type(MATCH, params);
+	compute_time += time;
+	online_time += time;
+
 	wakeAll();
 	worker.run_type(ENUMERATE, params);
+	compute_time += time;
+	online_time += time;
+
 	worker.dump_graph(params.output_path, params.force_write);
+	load_time += time;
+	online_time += time;
+
+	if (_my_rank == MASTER_RANK)
+	{
+		cout << "================ Final Report ===============" << endl;
+		cout << "Load time (related to HDFS): " << load_time << endl;
+		cout << "Compute time (not related to HDFS): " << compute_time << endl;
+		cout << "Offline time: " << offline_time << endl;
+		cout << "Online time: " << online_time << endl;
+	}
 }
