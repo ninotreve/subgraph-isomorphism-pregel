@@ -72,14 +72,18 @@ struct SIKey {
 ibinstream& operator<<(ibinstream& m, const SIKey& v)
 {
     m << v.vID;
+    cout << "Successful: v.vID: " << v.vID << endl;
     m << v.partial_mapping;
+    cout << "Successful: v.mapping: " << v.partial_mapping << endl;
     return m;
 }
 
 obinstream& operator>>(obinstream& m, SIKey& v)
 {
     m >> v.vID;
+    cout << "Successful: v.vID: " << v.vID << endl;
     m >> v.partial_mapping;
+    cout << "Successful: v.mapping: " << v.partial_mapping << endl;
     return m;
 }
 
@@ -179,8 +183,14 @@ vector<Mapping> crossJoin(vector<Mapping> v1, vector<SIBranch> b)
 ibinstream& operator<<(ibinstream& m, const SIBranch& branch)
 {
     m << branch.p;
+    cout << "Successful: branch: " << branch.p << endl;
+
+    m << branch.branches.size();
+
     for (size_t i = 0; i < branch.branches.size(); i++)
     {
+    	m << branch.branches[i].size();
+
     	for (size_t j = 0; j < branch.branches[i].size(); j++)
 		{
     		m << branch.branches[i][j];
@@ -193,8 +203,17 @@ ibinstream& operator<<(ibinstream& m, const SIBranch& branch)
 obinstream& operator>>(obinstream& m, SIBranch& branch)
 {
     m >> branch.p;
+    cout << "Successful: branch: " << branch.p << endl;
+
+    size_t size;
+    m >> size;
+    branch.branches.resize(size);
+
     for (size_t i = 0; i < branch.branches.size(); i++)
     {
+    	m >> size;
+    	branch.branches[i].resize(size);
+
     	for (size_t j = 0; j < branch.branches[i].size(); j++)
 		{
     		m >> branch.branches[i][j];
@@ -684,7 +703,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			SIQuery* query = (SIQuery*)getQuery();
 			hash_map<int, vector<vector<VertexID> > >::iterator it;
 			int num, curr_u, anc_u, to_v, j;
-			// hash_map<curr_u, map<chd_u, vector<SIBranch> > >
+			// hash_map<curr_u, map<chd_u's DFS number, vector<SIBranch> > >
 			hash_map<int, map<int, vector<SIBranch> > > u_children;
 			hash_map<int, map<int, vector<SIBranch> > >::iterator it1;
 			map<int, vector<SIBranch> >::iterator it2;
@@ -743,7 +762,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				{
 					SIMessage & msg = messages[i];
 					curr_u = query->getNearestBranchingAncestor(msg.vertex);
-					u_children[curr_u][msg.vertex].push_back(msg.branch);
+					num = query->getDFSNumber(msg.vertex);
+					u_children[curr_u][num].push_back(msg.branch);
 				}
 
 				for (it1 = u_children.begin(); it1 != u_children.end();
@@ -752,6 +772,11 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					Mapping m1, m2;
 					Mapping &m = id.partial_mapping;
 					curr_u = it1->first;
+
+					// make sure every child sends you result!
+					if ((int) it1->second.size() !=
+							query->getChildrenNumber(curr_u))
+						return;
 
 					if (step_num() == query->max_branch_number + 1)
 					{

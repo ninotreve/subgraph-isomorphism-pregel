@@ -472,6 +472,7 @@ public:
                 global_vadd_num += step_vadd_num;
             }
             vector<VertexT*>& to_add = message_buffer->sync_messages();
+            cout << "***: finish sync." << endl;
             agg_sync();
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);
