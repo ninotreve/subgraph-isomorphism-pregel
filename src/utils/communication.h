@@ -136,11 +136,7 @@ void all_to_all(std::vector<T>& to_exchange)
             } else {
                 StartTimer(TRANSFER_TIMER);
                 //receive
-                cout << "$$ Me: " << me << "receive from Partner: " << partner
-                		<< " ready $$ " << endl;
                 obinstream um = recv_obinstream(partner);
-                cout << "$$ Me: " << me << "receive from Partner: " << partner
-                		<< " OK :) " << endl;
                 StopTimer(TRANSFER_TIMER);
                 StartTimer(SERIALIZATION_TIMER);
                 T received;
@@ -150,11 +146,7 @@ void all_to_all(std::vector<T>& to_exchange)
                 m << to_exchange[partner];
                 StopTimer(SERIALIZATION_TIMER);
                 StartTimer(TRANSFER_TIMER);
-                cout << "$$ Me: " << me << "send to Partner: " << partner
-                		<< " ready $$ " << endl;
                 send_ibinstream(m, partner);
-                cout << "$$ Me: " << me << "send to Partner: " << partner
-                		<< " OK :) " << endl;
                 StopTimer(TRANSFER_TIMER);
                 to_exchange[partner] = received;
             }
@@ -175,9 +167,7 @@ void all_to_all_cat(std::vector<T>& to_exchange1, std::vector<T1>& to_exchange2)
     for (int i = 0; i < np; i++) {
         int partner = (i - me + np) % np;
         if (me != partner) {
-        	if (me == 2)
-        		cout << "$$ Me: " << me << " Partner: " << partner << endl;
-            if (me < partner) {
+        	if (me < partner) {
                 StartTimer(SERIALIZATION_TIMER);
                 //send
                 ibinstream m;
@@ -185,44 +175,20 @@ void all_to_all_cat(std::vector<T>& to_exchange1, std::vector<T1>& to_exchange2)
                 m << to_exchange2[partner];
                 StopTimer(SERIALIZATION_TIMER);
                 StartTimer(TRANSFER_TIMER);
-                if (me == 2)
-                	cout << "$$ Me: " << me << "send to Partner: " << partner
-                                		<< " ready $$ " << endl;
                 send_ibinstream(m, partner);
-                if (me == 2)
-                	cout << "$$ Me: " << me << "send to Partner: " << partner
-                                		<< " OK :) " << endl;
-
                 StopTimer(TRANSFER_TIMER);
                 //receive
                 StartTimer(TRANSFER_TIMER);
-                if (me == 2)
-                	cout << "$$ Me: " << me << "receive from Partner: " << partner
-                                		<< " ready $$ " << endl;
                 obinstream um = recv_obinstream(partner);
-                if (me == 2)
-                	cout << "$$ Me: " << me << "receive from Partner: " << partner
-                		<< " OK :) " << endl;
                 StopTimer(TRANSFER_TIMER);
                 StartTimer(SERIALIZATION_TIMER);
                 um >> to_exchange1[partner];
-                if (me == 2)
-                	cout << "$$$ >> ok 1" << endl;
                 um >> to_exchange2[partner];
-                if (me == 2)
-                	cout << "$$$ >> ok 2" << endl;
                 StopTimer(SERIALIZATION_TIMER);
             } else {
                 StartTimer(TRANSFER_TIMER);
                 //receive
-                if (me == 2)
-                	cout << "$$ Me: " << me << "receive from Partner: " << partner
-                                		<< " ready $$ " << endl;
-
                 obinstream um = recv_obinstream(partner);
-                if (me == 2)
-                	cout << "$$ Me: " << me << "receive from Partner: " << partner
-                		<< " OK :) " << endl;
                 StopTimer(TRANSFER_TIMER);
                 StartTimer(SERIALIZATION_TIMER);
                 T received1;
@@ -235,14 +201,7 @@ void all_to_all_cat(std::vector<T>& to_exchange1, std::vector<T1>& to_exchange2)
                 m << to_exchange2[partner];
                 StopTimer(SERIALIZATION_TIMER);
                 StartTimer(TRANSFER_TIMER);
-                if (me == 2)
-                	cout << "$$ Me: " << me << "send to Partner: " << partner
-                                		<< " ready $$ " << endl;
                 send_ibinstream(m, partner);
-                if (me == 2)
-                	cout << "$$ Me: " << me << "send to Partner: " << partner
-                                		<< " OK :) " << endl;
-
                 StopTimer(TRANSFER_TIMER);
                 to_exchange1[partner] = received1;
                 to_exchange2[partner] = received2;
