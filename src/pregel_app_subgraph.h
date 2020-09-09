@@ -87,6 +87,7 @@ class SIKeyHash {
 public:
     inline int operator()(SIKey key)
     {
+    	// this hash for assigning vertices
         return key.hash();
     }
 };
@@ -96,11 +97,12 @@ namespace __gnu_cxx {
 	struct hash<SIKey> {
 		size_t operator()(SIKey key) const
 		{
+			// this is general hash
 	        size_t seed = 0;
 	        hash_combine(seed, key.vID);
 	        for (size_t i = 0; i < key.partial_mapping.size(); i++)
 	        	hash_combine(seed, key.partial_mapping[i]);
-	        return seed % ((unsigned int)_num_workers);
+	        return seed;
 		}
 	};
 }
@@ -961,24 +963,44 @@ class SIWorker:public Worker<SIVertex, SIQuery>
 		// C version
 		// input line format:
 		// vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
-		virtual SIVertex* toVertex(char* line)
+		virtual SIVertex* toVertex(char* line, bool default_format)
 		{
 			char * pch;
 			SIVertex* v = new SIVertex;
 
-			pch = strtok(line, " ");
-			v->id = SIKey(atoi(pch));
-
-			pch = strtok(NULL, " ");
-			v->value().label = atoi(pch);
-
-			pch = strtok(NULL, " ");
-			int num = atoi(pch);
-			for (int k = 0; k < num; k++)
+			if (default_format)
 			{
-				pch=strtok(NULL, " ");
-				int neighbor = atoi(pch);
-				v->value().neighbors[neighbor] = 0;
+				pch = strtok(line, " ");
+				v->id = SIKey(atoi(pch));
+
+				pch = strtok(NULL, " ");
+				v->value().label = atoi(pch);
+
+				pch = strtok(NULL, " ");
+				int num = atoi(pch);
+				for (int k = 0; k < num; k++)
+				{
+					pch=strtok(NULL, " ");
+					int neighbor = atoi(pch);
+					v->value().neighbors[neighbor] = 0;
+				}
+			}
+			else
+			{
+				pch = strtok(line, " \t");
+				v->id = SIKey(atoi(pch));
+
+				pch = strtok(NULL, " \t");
+				v->value().label = (int) *pch;
+
+				int key, value;
+				while((pch = strtok(NULL, " ")) != NULL)
+				{
+					key = atoi(pch);
+					pch = strtok(NULL, " ");
+					v->value().neighbors[key] = (int) *pch;
+				}
+
 			}
 			return v;
 		}
@@ -1033,16 +1055,19 @@ void pregel_subgraph(const WorkerParams & params)
 	SIQuery query;
 	worker.setQuery(&query);
 
-	double time, load_time = 0.0, compute_time = 0.0,
+	double time, load_time = 0.0, compute_time = 0.0, dump_time = 0.0,
 			offline_time = 0.0, online_time = 0.0;
 
-	time = worker.load_data(params.data_path);
+	time = worker.load_data(params.data_path, params.input);
 	load_time += time;
 	offline_time += time;
 
-	time = worker.run_type(PREPROCESS, params);
-	compute_time += time;
-	offline_time += time;
+	if (params.input)
+	{
+		time = worker.run_type(PREPROCESS, params);
+		compute_time += time;
+		offline_time += time;
+	}
 
 	time = worker.load_query(params.query_path);
 	load_time += time;
@@ -1054,20 +1079,21 @@ void pregel_subgraph(const WorkerParams & params)
 	online_time += time;
 
 	wakeAll();
-	worker.run_type(ENUMERATE, params);
+	time = worker.run_type(ENUMERATE, params);
 	compute_time += time;
 	online_time += time;
 
-	worker.dump_graph(params.output_path, params.force_write);
-	load_time += time;
+	time = worker.dump_graph(params.output_path, params.force_write);
+	dump_time += time;
 	online_time += time;
 
 	if (_my_rank == MASTER_RANK)
 	{
 		cout << "================ Final Report ===============" << endl;
-		cout << "Load time (related to HDFS): " << load_time << endl;
-		cout << "Compute time (not related to HDFS): " << compute_time << endl;
-		cout << "Offline time: " << offline_time << endl;
-		cout << "Online time: " << online_time << endl;
+		cout << "Load time: " << load_time << " s." << endl;
+		cout << "Dump time: " << dump_time << " s." << endl;
+		cout << "Compute time: " << compute_time << " s." << endl;
+		cout << "Offline time: " << offline_time << " s." << endl;
+		cout << "Online time: " << online_time << " s." << endl;
 	}
 }

@@ -9,6 +9,8 @@ int main(int argc, char* argv[]){
     params.output_path = command.getOutputPath();
 
     params.enumerate = command.getEnumerateMethod();
+    params.report = command.getReport();
+    params.input = command.getInputFormat();
 
 	init_workers();
 	pregel_subgraph(params);

@@ -266,14 +266,14 @@ public:
     }
 
     //user-defined graphLoader ==============================
-    virtual VertexT* toVertex(char* line) = 0; //this is what user specifies!!!!!!
+    virtual VertexT* toVertex(char* line, bool default_format) = 0;
 
     void load_vertex(VertexT* v)
     { //called by load_graph
         add_vertex(v);
     }
 
-    void load_graph(const char* inpath)
+    void load_graph(const char* inpath, bool default_format)
     {
         hdfsFS fs = getHdfsFS();
         hdfsFile in = getRHandle(inpath, fs);
@@ -281,7 +281,7 @@ public:
         while (true) {
             reader.readLine();
             if (!reader.eof())
-                load_vertex(toVertex(reader.getLine()));
+                load_vertex(toVertex(reader.getLine(), default_format));
             else
                 break;
         }
@@ -326,7 +326,7 @@ public:
     //=======================================================
 
     // run the worker, load the data graph, return loading time
-    double load_data(const string& input_path)
+    double load_data(const string& input_path, bool default_format)
     {
     	if (_my_rank == MASTER_RANK)
     		cout << "=================Start loading data graph ...=====================" << endl;
@@ -348,7 +348,7 @@ public:
             //reading assigned splits (map)
             for (vector<string>::iterator it = assignedSplits.begin();
                  it != assignedSplits.end(); it++)
-                load_graph(it->c_str());
+                load_graph(it->c_str(), default_format);
             delete arrangement;
         } else {
             vector<string> assignedSplits;
@@ -356,7 +356,7 @@ public:
             //reading assigned splits (map)
             for (vector<string>::iterator it = assignedSplits.begin();
                  it != assignedSplits.end(); it++)
-                load_graph(it->c_str());
+                load_graph(it->c_str(), default_format);
         }
 
         //send vertices according to hash_id (reduce)
@@ -384,6 +384,7 @@ public:
 				exit(-1);
 		}
 		init_timers();
+		ResetTimer(WORKER_TIMER);
 
 		if (_my_rank == MASTER_RANK)
 		{
@@ -412,6 +413,9 @@ public:
 		//barrier for query loading
 		worker_barrier(); //@@@@@@@@@@@@@
 		StopTimer(WORKER_TIMER);
+        PrintTimer("Communication Time", COMMUNICATION_TIMER);
+        PrintTimer("- Serialization Time", SERIALIZATION_TIMER);
+        PrintTimer("- Transfer Time", TRANSFER_TIMER);
 		PrintTimer("Load Query Time", WORKER_TIMER);
 		return get_timer(WORKER_TIMER);
 	}
@@ -482,7 +486,7 @@ public:
             //===================
             worker_barrier();
             StopTimer(4);
-            if (_my_rank == MASTER_RANK) {
+            if (_my_rank == MASTER_RANK && !params.report) {
                 cout << "Superstep " << global_step_num << " done."
                 	 << "Time elapsed: " << get_timer(4) << " seconds" << endl;
                 cout << "#msgs: " << step_msg_num << endl;
@@ -490,7 +494,7 @@ public:
         }
         worker_barrier();
         StopTimer(WORKER_TIMER);
-        if (_my_rank == MASTER_RANK)
+        if (_my_rank == MASTER_RANK && !params.report)
     	{
     		switch (type)
     		{
