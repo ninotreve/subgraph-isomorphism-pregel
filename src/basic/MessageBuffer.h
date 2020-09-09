@@ -79,6 +79,7 @@ public:
         //exchange msgs
         //exchange vertices to add
         all_to_all_cat(out_messages.getBufs(), add_buf);
+        cout << "** all_to_all_cat complete. " << endl;
 
         //------------------------------------------------
         //delete sent vertices
