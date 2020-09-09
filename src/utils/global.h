@@ -54,6 +54,8 @@ struct WorkerParams {
     string output_path;
     bool force_write;
     bool enumerate;
+    bool report;
+    bool input;
 
     WorkerParams()
     {
@@ -267,9 +269,11 @@ vector<Mapping> joinVectors(vector<Mapping> & v1,
     Strategy = 6,           // -strategy, matching by path or by tree
     Order = 7,             	// -order, the priority in deciding match order
     Enumeration = 8, 		// -enumeration, the strategy of enumeration
+    Report = 9,				// -report, detailed report or concise report
+    Input = 10				// -input, default or g-thinker
 */
 
-#define OPTIONS 9
+#define OPTIONS 11
 
 class MatchingCommand{
     vector<string> tokens;
@@ -295,7 +299,8 @@ public:
     MatchingCommand(const int argc, char **argv)
     {
     	options_key = {"-d", "-q", "-out", "-partition", "-preprocess",
-    			"-filter", "-strategy", "-order", "-enumeration"};
+    			"-filter", "-strategy", "-order", "-enumeration",
+    			"-report", "-input"};
     	for (int i = 1; i < argc; ++i)
             tokens.push_back(std::string(argv[i]));
         processOptions();
@@ -307,6 +312,12 @@ public:
 
     bool getEnumerateMethod() {
     	return (options_value[8] != "old");
+    }
+    bool getReport() {
+    	return (options_value[9] != "long");
+    }
+    bool getInputFormat() {
+    	return (options_value[10] != "g-thinker");
     }
 };
 
