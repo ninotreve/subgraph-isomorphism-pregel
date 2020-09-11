@@ -20,7 +20,7 @@ double get_current_time()
     return (double)t.tv_sec + (double)t.tv_usec / 1000000;
 }
 
-const int N_Timers = 5; //currently, 5 timers are available
+const int N_Timers = 7;
 static double _timers[N_Timers]; // timers
 static double _acc_time[N_Timers]; // accumulated time
 
@@ -35,9 +35,11 @@ enum TIMERS {
     WORKER_TIMER = 0,
     SERIALIZATION_TIMER = 1,
     TRANSFER_TIMER = 2,
-    COMMUNICATION_TIMER = 3
+    COMMUNICATION_TIMER = 3,
+    TMP_TIMER = 4,
+    TOTAL_TIMER = 5,
+    COMPUTE_TIMER = 6
 };
-//currently, only 4 timers are used, others can be defined by users
 
 void start_timer(int i)
 {
