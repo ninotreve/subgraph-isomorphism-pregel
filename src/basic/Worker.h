@@ -159,9 +159,10 @@ public:
 		}
 		*/
 
-    void active_compute(int type, WorkerParams params, int wakeAll)
+    int active_compute(int type, WorkerParams params, int wakeAll)
     {
         active_count = 0;
+        int total = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
         for (size_t i = 0; i < vertexes.size(); i++) {
@@ -183,9 +184,9 @@ public:
 					break;
 				case ENUMERATE:
 					if (params.enumerate)
-						vertexes[i]->enumerate_new(v_msgbufs[i]);
+						total += vertexes[i]->enumerate_new(v_msgbufs[i]);
 					else
-						vertexes[i]->enumerate_old(v_msgbufs[i]);
+						total += vertexes[i]->enumerate_old(v_msgbufs[i]);
 					break;
 				}
 
@@ -197,6 +198,8 @@ public:
 					active_count++;
             }
         }
+
+        return total;
     }
 
     inline void add_vertex(VertexT* vertex)
@@ -326,8 +329,11 @@ public:
     //=======================================================
 
     // run the worker, load the data graph, return loading time
-    double load_data(const string& input_path, bool default_format)
+    double load_data(const WorkerParams & params)
     {
+    	const string& input_path = params.data_path;
+    	bool default_format = params.input;
+
     	if (_my_rank == MASTER_RANK)
     		cout << "=================Start loading data graph ...=====================" << endl;
         //check path + init
@@ -357,6 +363,12 @@ public:
             for (vector<string>::iterator it = assignedSplits.begin();
                  it != assignedSplits.end(); it++)
                 load_graph(it->c_str(), default_format);
+        }
+
+        // reassigning id
+        if (params.partition == "complete")
+        {
+        	// insert code here
         }
 
         //send vertices according to hash_id (reduce)
@@ -449,6 +461,7 @@ public:
         long long step_vadd_num;
         long long global_msg_num = 0;
         long long global_vadd_num = 0;
+        int n = 0;
         while (true) {
             global_step_num++;
             ResetTimer(4);
@@ -470,7 +483,7 @@ public:
                 agg->init();
             //===================
             clearBits();
-            active_compute(type, params, wakeAll);
+            n = active_compute(type, params, wakeAll);
             message_buffer->combine();
             step_msg_num = master_sum_LL(message_buffer->get_total_msg());
             step_vadd_num = master_sum_LL(message_buffer->get_total_vadd());
@@ -516,8 +529,16 @@ public:
         PrintTimer("Total Computational Time", WORKER_TIMER);
         if (_my_rank == MASTER_RANK)
         {
-            cout << "Total #msgs=" << global_msg_num << ", Total #vadd=" << global_vadd_num << endl;
+            cout << "Total #msgs=" << global_msg_num << ", "
+            		"Total #vadd=" << global_vadd_num << endl;
         }
+
+        if (type == ENUMERATE)
+        {
+        	cout << "Worker " << get_worker_id() << ": " << n
+        		<< " mappings." << endl;
+        }
+
         return get_timer(WORKER_TIMER);
     }
 
