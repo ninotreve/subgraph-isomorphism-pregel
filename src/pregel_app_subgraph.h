@@ -1052,6 +1052,9 @@ void pregel_subgraph(const WorkerParams & params)
 	//SIAgg agg;
 	//worker.setAggregator(&agg);
 
+	init_timers();
+	start_timer(TOTAL_TIMER);
+
 	SIQuery query;
 	worker.setQuery(&query);
 
@@ -1060,32 +1063,35 @@ void pregel_subgraph(const WorkerParams & params)
 
 	time = worker.load_data(params.data_path, params.input);
 	load_time += time;
-	offline_time += time;
 
 	if (params.input)
 	{
 		time = worker.run_type(PREPROCESS, params);
 		compute_time += time;
-		offline_time += time;
 	}
+
+	stop_timer(TOTAL_TIMER);
+	offline_time = get_timer(TOTAL_TIMER);
+	reset_timer(TOTAL_TIMER);
 
 	time = worker.load_query(params.query_path);
 	load_time += time;
-	online_time += time;
 
+	start_timer(COMPUTE_TIMER);
 	wakeAll();
 	time = worker.run_type(MATCH, params);
-	compute_time += time;
-	online_time += time;
 
 	wakeAll();
 	time = worker.run_type(ENUMERATE, params);
-	compute_time += time;
-	online_time += time;
+	stop_timer(COMPUTE_TIMER);
+	compute_time = get_timer(COMPUTE_TIMER);
 
 	time = worker.dump_graph(params.output_path, params.force_write);
 	dump_time += time;
-	online_time += time;
+
+	stop_timer(TOTAL_TIMER);
+	online_time = get_timer(TOTAL_TIMER);
+	reset_timer(TOTAL_TIMER);
 
 	if (_my_rank == MASTER_RANK)
 	{
