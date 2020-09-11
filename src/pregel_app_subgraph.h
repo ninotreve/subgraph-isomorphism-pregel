@@ -5,13 +5,7 @@ using namespace std;
 //#define DEBUG_MODE_ACTIVE 1
 //#define DEBUG_MODE_MSG 1
 //#define DEBUG_MODE_PARTIAL_RESULT 1
-//#define DEBUG_MODE_RESULT 1
-
-typedef vector<VertexID> Mapping;
-typedef hash_map<int, vector<Mapping> > Result;
-
-// the first int for anc_u, the second int for curr_u's branch_num.
-typedef hash_map<int, map<int, vector<Mapping> > > mResult;
+#define DEBUG_MODE_RESULT 1
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -19,24 +13,34 @@ typedef hash_map<int, map<int, vector<Mapping> > > mResult;
 //  # MATCH
 //  query_vertexID \t data_vertexID
 
-//--------------------SIKey = <VertexID, partial_mapping>--------------------
+//----------------SIKey = <VertexID, WorkerID, partial_mapping>----------
+
+struct SIKey;
+typedef vector<SIKey> Mapping;
+typedef hash_map<int, vector<Mapping> > Result;
+
+// the first int for anc_u, the second int for curr_u's branch_num.
+typedef hash_map<int, map<int, vector<Mapping> > > mResult;
 
 struct SIKey {
     VertexID vID;
-    vector<int> partial_mapping;
+    int wID;
+    Mapping partial_mapping;
 
     SIKey()
     {
     }
 
-    SIKey(int v)
+    SIKey(int v, int w)
     {
     	this->vID = v;
+    	this->wID = w;
     }
 
-    SIKey(int v, vector<int> & partial_mapping)
+    SIKey(int v, int w, Mapping & partial_mapping)
     {
         this->vID = v;
+        this->wID = w;
         this->partial_mapping = partial_mapping;
     }
 
@@ -62,16 +66,14 @@ struct SIKey {
 
     int hash()
     {
-    	int seed = vID;
-    	for (size_t i = 0; i < partial_mapping.size(); i++)
-    		seed += partial_mapping[i];
-    	return seed % ((unsigned int)_num_workers);
+    	return wID;
     }
 };
 
 ibinstream& operator<<(ibinstream& m, const SIKey& v)
 {
     m << v.vID;
+    m << v.wID;
     m << v.partial_mapping;
     return m;
 }
@@ -79,6 +81,7 @@ ibinstream& operator<<(ibinstream& m, const SIKey& v)
 obinstream& operator>>(obinstream& m, SIKey& v)
 {
     m >> v.vID;
+    m >> v.wID;
     m >> v.partial_mapping;
     return m;
 }
@@ -87,7 +90,7 @@ class SIKeyHash {
 public:
     inline int operator()(SIKey key)
     {
-    	// this hash for assigning vertices
+    	// this hash for partitioning vertices
         return key.hash();
     }
 };
@@ -101,8 +104,26 @@ namespace __gnu_cxx {
 	        size_t seed = 0;
 	        hash_combine(seed, key.vID);
 	        for (size_t i = 0; i < key.partial_mapping.size(); i++)
-	        	hash_combine(seed, key.partial_mapping[i]);
+	        	hash_combine(seed, key.partial_mapping[i].vID);
 	        return seed;
+		}
+	};
+}
+
+//==========================================================================
+// Define hash of Mapping
+
+namespace __gnu_cxx {
+	template <>
+	struct hash<Mapping> {
+		size_t operator()(Mapping m) const
+		{
+			size_t seed = 0;
+			for (size_t i = 0; i < m.size(); i++)
+			{
+				hash_combine(seed, m[i].vID);
+			}
+			return seed;
 		}
 	};
 }
@@ -112,7 +133,7 @@ namespace __gnu_cxx {
 struct SIValue
 {
 	int label;
-	hash_map<VertexID, int> neighbors;
+	hash_map<SIKey, int> neighbors;
 };
 
 ibinstream & operator<<(ibinstream & m, const SIValue & v){
@@ -213,50 +234,50 @@ obinstream& operator>>(obinstream& m, SIBranch& branch)
     return m;
 }
 
-//--------SIMessage = <type, vertex, label, mapping, branch>--------
-//  e.g. <type = LABEL_INFOMATION, vertex, label>
+//--------SIMessage = <type, key, value, mapping, branch>--------
+//  e.g. <type = LABEL_INFOMATION, key = vertex, value = label>
 //	     <type = MAPPING, mapping, vertex = next_u>
-//		 <type = BRANCH_RESULT, mapping, vertex = curr_u>
-// 		 <type = BRANCH, branch, vertex = curr_u>
-//		 <type = MAPPING_COUNT, label = count>
+//		 <type = BRANCH_RESULT, mapping, value = curr_u>
+// 		 <type = BRANCH, branch, value = curr_u>
+//		 <type = MAPPING_COUNT, value = count>
 
 struct SIMessage
 {
 	int type;
-	VertexID vertex;
-	int label;
-	vector<VertexID> mapping;
+	SIKey key;
+	int value;
+	vector<SIKey> mapping;
 	SIBranch branch;
 
 	SIMessage()
 	{
 	}
 
-	SIMessage(int type, VertexID vertex, int label)
+	SIMessage(int type, SIKey vertex, int label)
 	{ // for label information
 		this->type = type;
-		this->vertex = vertex;
-		this->label = label;
+		this->key = vertex;
+		this->value = label;
 	}
 
-	SIMessage(int type, vector<VertexID> mapping, VertexID next_u)
+	SIMessage(int type, Mapping mapping, uID next_u)
 	{ // for mapping or branch result
 		this->type = type;
 		this->mapping = mapping;
-		this->vertex = next_u; // or curr_u
+		this->value = next_u; // or curr_u
 	}
 
-	SIMessage(int type, SIBranch branch, VertexID curr_u)
+	SIMessage(int type, SIBranch branch, uID curr_u)
 	{ // for new enumeration
 		this->type = type;
 		this->branch = branch;
-		this->vertex = curr_u;
+		this->value = curr_u;
 	}
 
 	SIMessage(int type, int label)
 	{ // for mapping count
 		this->type = type;
-		this->label = label;
+		this->value = label;
 	}
 };
 
@@ -272,14 +293,14 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 {
 	m << v.type;
 	if (v.type == MESSAGE_TYPES::LABEL_INFOMATION)
-		m << v.vertex << v.label;
+		m << v.key << v.value;
 	else if (v.type == MESSAGE_TYPES::MAPPING
 			|| v.type == MESSAGE_TYPES::BRANCH_RESULT)
-		m << v.mapping << v.vertex;
+		m << v.mapping << v.value;
 	else if (v.type == MESSAGE_TYPES::BRANCH)
-		m << v.branch << v.vertex;
+		m << v.branch << v.value;
 	else if (v.type == MESSAGE_TYPES::MAPPING_COUNT)
-		m << v.label;
+		m << v.value;
 	return m;
 }
 
@@ -287,14 +308,14 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 {
 	m >> v.type;
 	if (v.type == MESSAGE_TYPES::LABEL_INFOMATION)
-		m >> v.vertex >> v.label;
+		m >> v.key >> v.value;
 	else if (v.type == MESSAGE_TYPES::MAPPING
 			|| v.type == MESSAGE_TYPES::BRANCH_RESULT)
-		m >> v.mapping >> v.vertex;
+		m >> v.mapping >> v.value;
 	else if (v.type == MESSAGE_TYPES::BRANCH)
-		m >> v.branch >> v.vertex;
+		m >> v.branch >> v.value;
 	else if (v.type == MESSAGE_TYPES::MAPPING_COUNT)
-		m >> v.label;
+		m >> v.value;
 	return m;
 }
 
@@ -353,27 +374,25 @@ ostream & operator << (ostream & os, const SINode & node)
 	os << "ID: " << node.id << endl;
 	os << "Label: " << node.label << endl;
 	os << "Branch number: " << node.branch_number << endl;
-	os << "Neighbors: " << node.nbs << endl;
-	os << "Backward neighbors: " << node.b_nbs << endl;
 	return os;
 }
 
+
 //==========================================================================
-// Define hash of vector
-namespace __gnu_cxx {
-	template <>
-	struct hash<vector<int>> {
-		size_t operator()(vector<int> v) const
-		{
-			size_t seed = 0;
-			for (size_t i = 0; i < v.size(); i++)
-			{
-				hash_combine(seed, v[i]);
-			}
-			return seed;
-		}
-	};
+// Overloading << operator of mapping, print like Python, for debug purpose
+
+ostream & operator << (ostream & os, const Mapping & v)
+{
+	os << "[";
+	for (size_t i = 0; i < v.size(); i++)
+	{
+		os << v[i].vID;
+		if (i != (v.size() - 1)) os << ", ";
+	}
+	os << "]";
+	return os;
 }
+
 
 
 //===========================================================
@@ -555,6 +574,29 @@ obinstream & operator>>(obinstream & m, SIQuery & q){
 
 //===============================================================
 
+vector<Mapping> joinVectors(vector<Mapping> & v1,
+		vector<Mapping> & v2)
+{
+	// recursive function to join vectors
+	vector<Mapping> results;
+	Mapping v;
+
+	for (size_t i = 0; i < v1.size(); i++)
+	{
+		for (size_t j = 0; j < v2.size(); j++)
+		{
+			v = v1[i];
+			v.insert(v.end(), v2[j].begin(), v2[j].end());
+			if (notContainsDuplicate(v))
+				results.push_back(v);
+		}
+	}
+
+	return results;
+}
+
+//===============================================================
+
 class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 	public:
@@ -563,23 +605,23 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 		int root_query_vertex;
 		Result results;
 
-		void continue_mapping(vector<VertexID> &mapping, int &curr_u,
+		void continue_mapping(vector<SIKey> &mapping, int &curr_u,
 				bool add_flag)
 		{ // Add current vertex to mapping;
 		  // Send messages to neighbors with label of next_u(next query vertex)
 		  // if add_flag, add a dummy vertex for each mapping.
-			hash_map<VertexID, int> & nbs = value().neighbors;
-			hash_map<VertexID, int>::iterator it;
+			hash_map<SIKey, int> & nbs = value().neighbors;
+			hash_map<SIKey, int>::iterator it;
 			SIQuery* query = (SIQuery*)getQuery();
 
-			mapping.push_back(id.vID);
+			mapping.push_back(id);
 #ifdef DEBUG_MODE_PARTIAL_RESULT
 			cout << "[Result] Current query vertex: " << curr_u << " Partial mapping: " << mapping << endl;
 #endif
 			if (add_flag)
 			{
 				SIVertex* v = new SIVertex;
-				v->id = SIKey(id.vID, mapping);
+				v->id = SIKey(id.vID, id.wID, mapping);
 				this->add_vertex(v);
 			}
 
@@ -600,10 +642,10 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						if (it->second == query->getLabel(next_u) &&
 							notContains(mapping, it->first))
 						{ // check for label and uniqueness
-							send_message(SIKey(it->first), msg);
+							send_message(it->first, msg);
 #ifdef DEBUG_MODE_MSG
 						cout << "[DEBUG] Message sent from " << id.vID << " to "
-							 << it->first << ". \n\t"
+							 << it->first.vID << ". \n\t"
 							 << "Type: MAPPING. \n\t"
 							 << "Mapping: " << msg.mapping << endl;
 #endif
@@ -615,8 +657,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 		virtual void preprocess(MessageContainer & messages)
 		{
-			hash_map<VertexID, int> & nbs = value().neighbors;
-			hash_map<VertexID, int>::iterator it;
+			hash_map<SIKey, int> & nbs = value().neighbors;
+			hash_map<SIKey, int>::iterator it;
 
 #ifdef DEBUG_MODE_ACTIVE
 				cout << "[DEBUG] STEP NUMBER " << step_num()
@@ -625,9 +667,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 			if (step_num() == 1)
 			{ // send label info to neighbors
-				SIMessage msg = SIMessage(LABEL_INFOMATION, id.vID, value().label);
+				SIMessage msg = SIMessage(LABEL_INFOMATION, id, value().label);
 				for (it = nbs.begin(); it != nbs.end(); it++)
-					send_message(SIKey(it->first), msg);
+					send_message(it->first, msg);
 				vote_to_halt();
 			}
 			else // if (step_num() == 2)
@@ -636,7 +678,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				{
 					SIMessage & msg = messages[i];
 					if (msg.type == LABEL_INFOMATION)
-						nbs[msg.vertex] = msg.label;
+						nbs[msg.key] = msg.value;
 				}
 				vote_to_halt();
 			}
@@ -644,7 +686,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 		virtual void compute(MessageContainer &messages, WorkerParams &params)
 		{
-			hash_map<VertexID, int> & nbs = value().neighbors;
+			hash_map<SIKey, int> & nbs = value().neighbors;
 			SIQuery* query = (SIQuery*)getQuery();
 			bool add_flag; // add a dummy vertex for each mapping
 
@@ -660,7 +702,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				add_flag = params.enumerate && query->isBranch(root_u);
 				if (value().label == root_label)
 				{
-					vector<VertexID> mapping;
+					vector<SIKey> mapping;
 					continue_mapping(mapping, root_u, add_flag);
 				}
 				vote_to_halt();
@@ -673,14 +715,14 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				for (size_t i = 0; i < messages.size(); i++)
 				{
 					SIMessage & msg = messages[i];
-					b_nbs = query->getBNeighbors(msg.vertex);
-					curr_level = query->getLevel(msg.vertex);
+					b_nbs = query->getBNeighbors(msg.value);
+					curr_level = query->getLevel(msg.value);
 					flag = true;
 					for (size_t i = 0; i < b_nbs.size(); i++)
 					{
 						nb_level = query->getLevel(b_nbs[i]);
 						if ((nb_level != curr_level - 1) &&
-								(nbs.find(msg.mapping[nb_level]) == nbs.end()))
+							(nbs.find(msg.mapping[nb_level]) == nbs.end()))
 						{
 							flag = false;
 							break;
@@ -689,8 +731,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					if (flag)
 					{
 						add_flag = params.enumerate &&
-								query->isBranch(msg.vertex);
-						continue_mapping(msg.mapping, msg.vertex,
+								query->isBranch(msg.value);
+						continue_mapping(msg.mapping, msg.value,
 								add_flag);
 					}
 				}
@@ -698,11 +740,13 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 		}
 
-		void enumerate_new(MessageContainer & messages)
+		int enumerate_new(MessageContainer & messages)
 		{
+			// return the number of mappings
 			SIQuery* query = (SIQuery*)getQuery();
-			hash_map<int, vector<vector<VertexID> > >::iterator it;
-			int num, curr_u, anc_u, to_v, j;
+			hash_map<int, vector<Mapping> >::iterator it;
+			int num, curr_u, anc_u, j, total = 0;
+			SIKey to_key;
 			// hash_map<curr_u, map<chd_u's DFS number, vector<SIBranch> > >
 			hash_map<int, map<int, vector<SIBranch> > > u_children;
 			hash_map<int, map<int, vector<SIBranch> > >::iterator it1;
@@ -726,18 +770,18 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						{
 							Mapping m1, m2;
 							Mapping & m = it->second[i];
-							to_v = m[query->getLevel(anc_u)];
+							to_key = m[query->getLevel(anc_u)];
 							for (j = 0; j <= query->getLevel(anc_u); j++)
 								m1.push_back(m[j]);
 							for (; j < (int) m.size(); j++)
 								m2.push_back(m[j]);
 							SIBranch b = SIBranch(m2);
-							send_message(SIKey(to_v, m1),
+							send_message(SIKey(to_key.vID, to_key.wID, m1),
 								SIMessage(BRANCH, b, curr_u));
 #ifdef DEBUG_MODE_MSG
 						cout << "[DEBUG] Superstep " << step_num()
 							 << "\n\tMessage sent from (leaf) " << id.vID
-							 <<	" to <" << to_v << ", " << m1 << ">."
+							 <<	" to <" << to_key.vID << ", " << m1 << ">."
 							 << "\n\tType: BRANCH. "
 							 << "\n\tMapping: " << m2 << endl;
 #endif
@@ -755,14 +799,13 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 			// receive msg and join for supersteps [2, max_branch_number + 1]
 			// send msg to ancestor for supersteps [2, max_branch_number]
-			// send mapping_count to v1 for supersteps max_branch_number + 1
 			if (step_num() > 1 && step_num() < query->max_branch_number + 2)
 			{
 				for (size_t i = 0; i < messages.size(); i++)
 				{
 					SIMessage & msg = messages[i];
-					curr_u = query->getNearestBranchingAncestor(msg.vertex);
-					num = query->getDFSNumber(msg.vertex);
+					curr_u = query->getNearestBranchingAncestor(msg.value);
+					num = query->getDFSNumber(msg.value);
 					u_children[curr_u][num].push_back(msg.branch);
 				}
 
@@ -776,7 +819,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					// make sure every child sends you result!
 					if ((int) it1->second.size() !=
 							query->getChildrenNumber(curr_u))
-						return;
+						return total;
 
 					if (step_num() == query->max_branch_number + 1)
 					{
@@ -785,14 +828,12 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 								it2 != it1->second.end(); it2++)
 							b.addBranch(it2->second);
 						this->results[curr_u] = b.expand();
-						send_message(SIKey(1),
-								SIMessage(MAPPING_COUNT,
-										this->results[curr_u].size()));
+						total += this->results[curr_u].size();
 					}
 					else
 					{
 						anc_u = query->getNearestBranchingAncestor(curr_u);
-						to_v = m[query->getLevel(anc_u)];
+						to_key = m[query->getLevel(anc_u)];
 						for (j = 0; j <= query->getLevel(anc_u); j++)
 							m1.push_back(m[j]);
 						for (; j < (int) m.size(); j++)
@@ -801,12 +842,12 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						for (it2 = it1->second.begin();
 								it2 != it1->second.end(); it2++)
 							b.addBranch(it2->second);
-						send_message(SIKey(to_v, m1),
+						send_message(SIKey(to_key.vID, to_key.wID, m1),
 								SIMessage(BRANCH, b, curr_u));
 #ifdef DEBUG_MODE_MSG
 					cout << "[DEBUG] Superstep " << step_num()
 						 << "\n\tMessage sent from (branching) " << id.vID
-						 <<	" to <" << to_v << ", " << m1 << ">. \n\t"
+						 <<	" to <" << to_key.vID << ", " << m1 << ">. \n\t"
 						 << "Type: BRANCH. \n\t"
 						 << "Mapping: " << m2 << endl;
 #endif
@@ -814,32 +855,25 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				}
 			}
 
-			if (step_num() == query->max_branch_number + 2)
-			{
-				int total = 0;
-				for (size_t i = 0; i < messages.size(); i++)
-				{
-					total += messages[i].label;
-				}
-				cout << "Mapping count: " << total << endl;
-				vote_to_halt();
-			}
-
 			if (this->results.empty())
 			{
 				vote_to_halt();
 			}
+
+			return total;
 		}
 
-		void enumerate_old(MessageContainer & messages)
+		int enumerate_old(MessageContainer & messages)
 		{
+			// return the number of mappings
 			SIQuery* query = (SIQuery*)getQuery();
 
 			hash_map<Mapping, mResult> join_results;
 			hash_map<Mapping, mResult>::iterator join_it;
 			Mapping prefix, tail;
 			vector<Mapping> temp_results;
-			int num, curr_u, anc_u, to_send;
+			int num, curr_u, anc_u, total = 0;
+			SIKey to_send;
 
 			// join operations for supersteps [2, max_branch_number + 1]
 			if (step_num() > 1 && step_num() < query->max_branch_number + 2)
@@ -849,7 +883,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				for (size_t i = 0; i < messages.size(); i++)
 				{
 					SIMessage & msg = messages[i];
-					curr_u = msg.vertex;
+					curr_u = msg.value;
 					anc_u = query->getNearestBranchingAncestor(curr_u);
 
 					Mapping & mapping = msg.mapping;
@@ -896,28 +930,14 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				}
 			}
 
-			// send mapping count to vertex1 for the last but one superstep
+			// count mappings for the last but one superstep
 			if (step_num() == query->max_branch_number + 1)
 			{
 				for (Result::iterator it = this->results.begin();
 						it != this->results.end(); it++)
 				{
-					send_message(SIKey(1),
-								SIMessage(MAPPING_COUNT,
-										it->second.size()));
+					total += it->second.size();
 				}
-			}
-
-			// accumulate mapping count for the final superstep
-			if (step_num() == query->max_branch_number + 2)
-			{
-				int total = 0;
-				for (size_t i = 0; i < messages.size(); i++)
-				{
-					total += messages[i].label;
-				}
-				cout << "Mapping count: " << total << endl;
-				vote_to_halt();
 			}
 
 			// send messages for supersteps [1, max_branch_number]
@@ -935,11 +955,11 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						for (size_t i = 0; i < it->second.size(); i++)
 						{
 							to_send = it->second[i][query->getLevel(anc_u)];
-							send_message(SIKey(to_send),
+							send_message(to_send,
 								SIMessage(BRANCH_RESULT, it->second[i], curr_u));
 #ifdef DEBUG_MODE_MSG
 						cout << "[DEBUG] Message sent from " << id.vID << " to "
-							 << to_send << ".\n\t"
+							 << to_send.vID << ".\n\t"
 							 << "Type: BRANCH RESULT. \n\t"
 							 << "curr_u: " << curr_u << endl;
 #endif
@@ -950,6 +970,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 			else
 				vote_to_halt();
+
+			return total;
 		}
 };
 
@@ -971,32 +993,37 @@ class SIWorker:public Worker<SIVertex, SIQuery>
 			if (default_format)
 			{
 				pch = strtok(line, " ");
-				v->id = SIKey(atoi(pch));
+				int id = atoi(pch);
+				v->id = SIKey(id, id % _num_workers);
 
 				pch = strtok(NULL, " ");
 				v->value().label = atoi(pch);
 
 				pch = strtok(NULL, " ");
 				int num = atoi(pch);
+				SIKey neighbor;
 				for (int k = 0; k < num; k++)
 				{
-					pch=strtok(NULL, " ");
-					int neighbor = atoi(pch);
+					pch = strtok(NULL, " ");
+					id = atoi(pch);
+					neighbor = SIKey(id, id % _num_workers);
 					v->value().neighbors[neighbor] = 0;
 				}
 			}
 			else
 			{
 				pch = strtok(line, " \t");
-				v->id = SIKey(atoi(pch));
+				int id = atoi(pch);
+				v->id = SIKey(id, id % _num_workers);
 
 				pch = strtok(NULL, " \t");
 				v->value().label = (int) *pch;
 
-				int key, value;
+				SIKey key;
 				while((pch = strtok(NULL, " ")) != NULL)
 				{
-					key = atoi(pch);
+					id = atoi(pch);
+					key = SIKey(id, id % _num_workers);
 					pch = strtok(NULL, " ");
 					v->value().neighbors[key] = (int) *pch;
 				}
@@ -1024,7 +1051,8 @@ class SIWorker:public Worker<SIVertex, SIQuery>
 #endif
 					for (size_t j = 0; j < mapping.size(); j++)
 					{
-						sprintf(buf, "%d %d\n", query->dfs_order[j], mapping[j]);
+						sprintf(buf, "%d %d\n", query->dfs_order[j],
+								mapping[j].vID);
 						writer.write(buf);
 					}
 				}
@@ -1061,7 +1089,7 @@ void pregel_subgraph(const WorkerParams & params)
 	double time, load_time = 0.0, compute_time = 0.0, dump_time = 0.0,
 			offline_time = 0.0, online_time = 0.0;
 
-	time = worker.load_data(params.data_path, params.input);
+	time = worker.load_data(params);
 	load_time += time;
 
 	if (params.input)

@@ -8,6 +8,7 @@ int main(int argc, char* argv[]){
     params.query_path = command.getQueryPath();
     params.output_path = command.getOutputPath();
 
+    params.partition = command.getPartition();
     params.enumerate = command.getEnumerateMethod();
     params.report = command.getReport();
     params.input = command.getInputFormat();

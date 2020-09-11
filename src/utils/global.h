@@ -53,6 +53,8 @@ struct WorkerParams {
     string query_path;
     string output_path;
     bool force_write;
+
+    string partition;
     bool enumerate;
     bool report;
     bool input;
@@ -84,6 +86,7 @@ struct MultiInputParams {
 //============================
 //general types
 typedef int VertexID;
+typedef int uID;
 
 //============================
 //global variables (original)
@@ -190,20 +193,6 @@ void forceTerminate()
     setBit(FORCE_TERMINATE_ORBIT);
 }
 
-//==========================================================================
-// Overloading << operator of vector, print like Python, for debug purpose
-
-ostream & operator << (ostream & os, const vector<int> & v)
-{
-	os << "[";
-	for (size_t i = 0; i < v.size(); i++)
-	{
-		os << v[i];
-		if (i != (v.size() - 1)) os << ", ";
-	}
-	os << "]";
-	return os;
-}
 
 //====================================================
 //Set up a pointer to query in global.h
@@ -219,43 +208,24 @@ inline void* getQuery()
 //====================================================
 // Self-defined function
 
-bool notContains(vector<int> & v, int x)
+template <class T>
+bool notContains(vector<T> & v, T x)
 {
-	for (vector<int>::iterator it = v.begin(); it != v.end(); it++)
+	size_t size = v.size();
+	for (size_t i = 0; i < size; i++)
 	{
-		if (*it == x) return false;
+		if (v[i] == x) return false;
 	}
 	return true;
 }
 
-bool notContainsDuplicate(vector<int> & v)
+template <class T>
+bool notContainsDuplicate(vector<T> & v)
 {
-	hash_set<int> s = hash_set<int>(v.begin(), v.end());
+	hash_set<T> s = hash_set<T>(v.begin(), v.end());
 	return (s.size() == v.size());
 }
 
-typedef vector<VertexID> Mapping;
-
-vector<Mapping> joinVectors(vector<Mapping> & v1,
-		vector<Mapping> & v2)
-{
-	// recursive function to join vectors
-	vector<Mapping> results;
-	Mapping v;
-
-	for (size_t i = 0; i < v1.size(); i++)
-	{
-		for (size_t j = 0; j < v2.size(); j++)
-		{
-			v = v1[i];
-			v.insert(v.end(), v2[j].begin(), v2[j].end());
-			if (notContainsDuplicate(v))
-				results.push_back(v);
-		}
-	}
-
-	return results;
-}
 
 //========================================================================
 
@@ -310,6 +280,7 @@ public:
     string getQueryPath() { return options_value[1]; }
     string getOutputPath() { return options_value[2]; }
 
+    string getPartition() { return options_value[3]; }
     bool getEnumerateMethod() {
     	return (options_value[8] != "old");
     }
