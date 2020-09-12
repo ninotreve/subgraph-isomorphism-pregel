@@ -550,6 +550,7 @@ public:
 
         //check path + init
         if (_my_rank == MASTER_RANK) {
+            cout << "output path: " << output_path << endl;
             if (dirCheck(output_path.c_str(), force_write) == -1)
                 exit(-1);
         }
