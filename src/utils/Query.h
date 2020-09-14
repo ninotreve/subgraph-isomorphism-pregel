@@ -9,6 +9,8 @@ public:
 	virtual void init() = 0;
     virtual void addNode(char* line) = 0;
     virtual void printOrder() = 0;
+
+    virtual ~Query() {}
 };
 
 #endif
