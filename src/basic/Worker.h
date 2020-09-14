@@ -179,6 +179,9 @@ public:
 				case PREPROCESS:
 					vertexes[i]->preprocess(v_msgbufs[i]);
 					break;
+                case FILTER:
+                	vertexes[i]->filter(v_msgbufs[i]);
+					break;
 				case MATCH:
 					vertexes[i]->compute(v_msgbufs[i], params);
 					break;
@@ -191,9 +194,11 @@ public:
 				}
 
 				v_msgbufs[i].clear(); //clear used msgs
-				AggregatorT* agg = (AggregatorT*)get_aggregator();
-				if (agg != NULL)
-					agg->stepPartial(vertexes[i]);
+				if (type == ENUMERATE)
+				{
+					AggregatorT* agg = (AggregatorT*)get_aggregator();
+					agg->stepPartial(vertexes[i], type);
+				}
 				if (vertexes[i]->is_active())
 					active_count++;
             }
@@ -232,7 +237,7 @@ public:
                     send_ibinstream(m, MASTER_RANK);
                 }
                 //scattering FinalT
-                slaveBcast(*((FinalT*)global_agg));
+                //slaveBcast(*((FinalT*)global_agg));
             } else {
                 //------------------------ strategy choosing BEGIN ------------------------
                 int total = all_sum(0);
@@ -263,7 +268,7 @@ public:
                 FinalT* final = agg->finishFinal();
                 //cannot set "global_agg=final" since MASTER_RANK works as a slave, and agg->finishFinal() may change
                 *((FinalT*)global_agg) = *final; //deep copy
-                masterBcast(*((FinalT*)global_agg));
+                //masterBcast(*((FinalT*)global_agg));
             }
         }
     }
@@ -391,7 +396,7 @@ public:
     		cout << "=================Start loading query...===================" << endl;
 
 		//check path + init
-		if (_my_rank == MASTER_RANK) {
+    	if (_my_rank == MASTER_RANK) {
 			if (dirCheck(input_path.c_str()) == -1)
 				exit(-1);
 		}
@@ -408,9 +413,6 @@ public:
 			{
 				load_query_graph(it->c_str());
 			}
-
-			QueryT* query = (QueryT*) global_query;
-			query->init();
 			masterBcast(*((QueryT*) global_query));
 		}
 		else
@@ -432,6 +434,30 @@ public:
 		return get_timer(WORKER_TIMER);
 	}
 
+    //====================================================================
+
+    // build the query tree, return build time
+    double build_query_tree()
+	{
+    	if (_my_rank == MASTER_RANK)
+    		cout << "=================Start building query tree...===================" << endl;
+
+    	init_timers();
+		ResetTimer(WORKER_TIMER);
+    	QueryT* query = (QueryT*) global_query;
+		query->init();
+
+		//debug
+		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
+		//((QueryT*) global_query)->printOrder();
+
+		//barrier for query tree build
+		worker_barrier(); 
+		StopTimer(WORKER_TIMER);
+		PrintTimer("Build Query Tree Time", WORKER_TIMER);
+		return get_timer(WORKER_TIMER);
+	}
+
     //=========================================================
 
     // run preprocess, match or enumerate, return compute time
@@ -444,6 +470,9 @@ public:
     		case PREPROCESS:
     			cout << "================Start preprocessing...=================" << endl;
     			break;
+            case FILTER:
+    			cout << "================Start filtering...=================" << endl;
+    			break;    
     		case MATCH:
     			cout << "================Start matching...======================" << endl;
     			break;
@@ -478,9 +507,9 @@ public:
             } else
                 active_vnum() = get_vnum();
             //===================
-            AggregatorT* agg = (AggregatorT*)get_aggregator();
-            if (agg != NULL)
-                agg->init();
+            //AggregatorT* agg = (AggregatorT*)get_aggregator();
+            //if (agg != NULL)
+                //agg->init();
             //===================
             clearBits();
             n = active_compute(type, params, wakeAll);
@@ -492,7 +521,7 @@ public:
                 global_vadd_num += step_vadd_num;
             }
             vector<VertexT*>& to_add = message_buffer->sync_messages();
-            agg_sync();
+            //agg_sync();
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);
             to_add.clear();
@@ -504,7 +533,18 @@ public:
                 	 << "Time elapsed: " << get_timer(4) << " seconds" << endl;
                 cout << "#msgs: " << step_msg_num << endl;
             }
+        } // end of while loop
+        if (type == FILTER)
+        {
+        	for (size_t i = 0; i < vertexes.size(); i++)
+        	{
+				AggregatorT* agg = (AggregatorT*)get_aggregator();
+				agg->stepPartial(vertexes[i], type);
+        	}
         }
+        if (type == FILTER || type == ENUMERATE)
+        	agg_sync();
+
         worker_barrier();
         StopTimer(WORKER_TIMER);
         if (_my_rank == MASTER_RANK && !params.report)
@@ -520,6 +560,9 @@ public:
     		case ENUMERATE:
     			cout << "Subgraph enumeration done. " << endl;
     			break;
+            case FILTER:
+                cout << "Candidate filtering done." << endl;
+                break;
     		}
     	}
 

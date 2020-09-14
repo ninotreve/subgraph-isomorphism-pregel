@@ -116,6 +116,14 @@ ibinstream& operator<<(ibinstream& m, const string& str)
     return m;
 }
 
+template <class S, class T>
+ibinstream& operator<<(ibinstream& m, const pair<S, T>& v)
+{
+    m << v.first;
+    m << v.second;
+    return m;
+}
+
 template <class KeyT, class ValT>
 ibinstream& operator<<(ibinstream& m, const map<KeyT, ValT>& v)
 {
@@ -273,6 +281,15 @@ obinstream& operator>>(obinstream& m, string& str)
     str.append(data, length);
     return m;
 }
+
+template <class S, class T>
+obinstream& operator>>(obinstream& m, pair<S, T>& v)
+{
+    m >> v.first;
+    m >> v.second;
+    return m;
+}
+
 template <class KeyT, class ValT>
 obinstream& operator>>(obinstream& m, map<KeyT, ValT>& v)
 {
