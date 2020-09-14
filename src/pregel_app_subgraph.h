@@ -17,7 +17,9 @@ using namespace std;
 
 struct SIKey;
 typedef vector<SIKey> Mapping;
+typedef hash_map<int, hash_set<SIKey> > Candidate;
 typedef hash_map<int, vector<Mapping> > Result;
+typedef hash_map<pair<int, int>, int> AggMap;
 
 // the first int for anc_u, the second int for curr_u's branch_num.
 typedef hash_map<int, map<int, vector<Mapping> > > mResult;
@@ -103,8 +105,8 @@ namespace __gnu_cxx {
 			// this is general hash
 	        size_t seed = 0;
 	        hash_combine(seed, key.vID);
-	        for (size_t i = 0; i < key.partial_mapping.size(); i++)
-	        	hash_combine(seed, key.partial_mapping[i].vID);
+	        for (SIKey &k : key.partial_mapping)
+	        	hash_combine(seed, k.vID);
 	        return seed;
 		}
 	};
@@ -119,10 +121,23 @@ namespace __gnu_cxx {
 		size_t operator()(Mapping m) const
 		{
 			size_t seed = 0;
-			for (size_t i = 0; i < m.size(); i++)
-			{
-				hash_combine(seed, m[i].vID);
-			}
+			for (SIKey &k : m)
+				hash_combine(seed, k.vID);
+			return seed;
+		}
+	};
+}
+
+// Define hash of pair
+
+namespace __gnu_cxx {
+	template <>
+	struct hash<pair<int, int>> {
+		size_t operator()(pair<int, int> p) const
+		{
+			size_t seed = 0;
+			hash_combine(seed, p.first);
+			hash_combine(seed, p.second);
 			return seed;
 		}
 	};
@@ -149,7 +164,7 @@ obinstream & operator>>(obinstream & m, SIValue & v){
 //==========================================================================
 
 struct SIBranch;
-vector<Mapping> crossJoin(vector<Mapping> v1, vector<SIBranch> b);
+vector<Mapping> crossJoin(vector<Mapping> v1, vector<SIBranch> &b);
 
 struct SIBranch
 {
@@ -172,26 +187,24 @@ struct SIBranch
 	{
 		vector<Mapping> v;
 		v.push_back(this->p);
-		for (size_t i = 0; i < branches.size(); i++)
-			v = crossJoin(v, this->branches[i]);
+		for (vector<SIBranch> &b : this->branches)
+			v = crossJoin(v, b);
 
 		return v;
 	}
 };
 
-vector<Mapping> crossJoin(vector<Mapping> v1, vector<SIBranch> b)
+vector<Mapping> crossJoin(vector<Mapping> v1, vector<SIBranch> &vecB)
 {
 	vector<Mapping> results;
-	Mapping m;
-	for (size_t i = 0; i < v1.size(); i++)
+	for (Mapping m : v1)
 	{
-		for (size_t j = 0; j < b.size(); j++)
+		for (SIBranch &b : vecB)
 		{
-			vector<Mapping> v2 = b[j].expand();
-			for (size_t k = 0; k < v2.size(); k++)
+			vector<Mapping> v2 = b.expand();
+			for (Mapping &m2 : v2)
 			{
-				m = v1[i];
-				m.insert(m.end(), v2[k].begin(), v2[k].end());
+				m.insert(m.end(), m2.begin(), m2.end());
 				if (notContainsDuplicate(m)) results.push_back(m);
 			}
 		}
@@ -203,13 +216,10 @@ ibinstream& operator<<(ibinstream& m, const SIBranch& branch)
 {
     m << branch.p;
     m << branch.branches.size();
-    for (size_t i = 0; i < branch.branches.size(); i++)
+    for (vector<SIBranch> vecB : branch.branches)
     {
-    	m << branch.branches[i].size();
-    	for (size_t j = 0; j < branch.branches[i].size(); j++)
-		{
-    		m << branch.branches[i][j];
-		}
+    	m << vecB.size();
+    	for (SIBranch &b : vecB)	m << b;
     }
 
     return m;
@@ -236,16 +246,18 @@ obinstream& operator>>(obinstream& m, SIBranch& branch)
 
 //--------SIMessage = <type, key, value, mapping, branch>--------
 //  e.g. <type = LABEL_INFOMATION, key = vertex, value = label>
-//	     <type = MAPPING, mapping, vertex = next_u>
+//	     <type = MAPPING, mapping, value = next_u>
 //		 <type = BRANCH_RESULT, mapping, value = curr_u>
 // 		 <type = BRANCH, branch, value = curr_u>
 //		 <type = MAPPING_COUNT, value = count>
+//		 <type = CANDIDATE, key = vertex, v_int = candidates of v>
 
 struct SIMessage
 {
 	int type;
 	SIKey key;
 	int value;
+	vector<int> v_int;
 	vector<SIKey> mapping;
 	SIBranch branch;
 
@@ -279,6 +291,17 @@ struct SIMessage
 		this->type = type;
 		this->value = label;
 	}
+
+	SIMessage(int type, SIKey vertex)
+	{ // for candidate initialization
+		this->type = type;
+		this->key = vertex;
+	}
+
+	void add_int(int i)
+	{
+		this->v_int.push_back(i);
+	}
 };
 
 enum MESSAGE_TYPES {
@@ -286,36 +309,57 @@ enum MESSAGE_TYPES {
 	MAPPING = 1,
 	BRANCH_RESULT = 2,
 	BRANCH = 3,
-	MAPPING_COUNT = 4
+	MAPPING_COUNT = 4,
+	CANDIDATE = 5
 };
 
 ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 {
 	m << v.type;
-	if (v.type == MESSAGE_TYPES::LABEL_INFOMATION)
+	switch (v.type)
+	{
+	case MESSAGE_TYPES::LABEL_INFOMATION:
 		m << v.key << v.value;
-	else if (v.type == MESSAGE_TYPES::MAPPING
-			|| v.type == MESSAGE_TYPES::BRANCH_RESULT)
+		break;
+	case MESSAGE_TYPES::MAPPING:
+	case MESSAGE_TYPES::BRANCH_RESULT:
 		m << v.mapping << v.value;
-	else if (v.type == MESSAGE_TYPES::BRANCH)
+		break;
+	case MESSAGE_TYPES::BRANCH:
 		m << v.branch << v.value;
-	else if (v.type == MESSAGE_TYPES::MAPPING_COUNT)
+		break;
+	case MESSAGE_TYPES::MAPPING_COUNT:
 		m << v.value;
+		break;
+	case MESSAGE_TYPES::CANDIDATE:
+		m << v.key << v.v_int;
+		break;
+	}
 	return m;
 }
 
 obinstream & operator>>(obinstream & m, SIMessage & v)
 {
 	m >> v.type;
-	if (v.type == MESSAGE_TYPES::LABEL_INFOMATION)
+	switch (v.type)
+	{
+	case MESSAGE_TYPES::LABEL_INFOMATION:
 		m >> v.key >> v.value;
-	else if (v.type == MESSAGE_TYPES::MAPPING
-			|| v.type == MESSAGE_TYPES::BRANCH_RESULT)
+		break;
+	case MESSAGE_TYPES::MAPPING:
+	case MESSAGE_TYPES::BRANCH_RESULT:
 		m >> v.mapping >> v.value;
-	else if (v.type == MESSAGE_TYPES::BRANCH)
+		break;
+	case MESSAGE_TYPES::BRANCH:
 		m >> v.branch >> v.value;
-	else if (v.type == MESSAGE_TYPES::MAPPING_COUNT)
+		break;
+	case MESSAGE_TYPES::MAPPING_COUNT:
 		m >> v.value;
+		break;
+	case MESSAGE_TYPES::CANDIDATE:
+		m >> v.key >> v.v_int;
+		break;
+	}
 	return m;
 }
 
@@ -337,7 +381,7 @@ struct SINode
 	vector<int> children;
 	vector<int> b_nbs; // backward neighbors
 
-	SINode() {}
+	SINode() { this->visited = false; }
 
 	SINode(int id, int label)
 	{
@@ -354,32 +398,20 @@ struct SINode
 
 ibinstream& operator<<(ibinstream& m, const SINode& node)
 {
-    m << node.id << node.label << node.nbs << node.branch_number << node.parent
-      << node.dfs_number << node.level << node.children << node.b_nbs;
+	m << node.id << node.label << node.nbs;
     return m;
 }
 
 obinstream& operator>>(obinstream& m, SINode& node)
 {
-    m >> node.id >> node.label >> node.nbs >> node.branch_number >> node.parent
-      >> node.dfs_number >> node.level >> node.children >> node.b_nbs;
+	m >> node.id >> node.label >> node.nbs;
     return m;
 }
 
 
 //==========================================================================
-// Overloading << operator of SINode for debug purpose.
-ostream & operator << (ostream & os, const SINode & node)
-{
-	os << "ID: " << node.id << endl;
-	os << "Label: " << node.label << endl;
-	os << "Branch number: " << node.branch_number << endl;
-	return os;
-}
-
-
-//==========================================================================
-// Overloading << operator of mapping, print like Python, for debug purpose
+// Overloading << operator of mapping and vector<int>
+// print like Python, for debug purpose
 
 ostream & operator << (ostream & os, const Mapping & v)
 {
@@ -393,7 +425,28 @@ ostream & operator << (ostream & os, const Mapping & v)
 	return os;
 }
 
+ostream & operator << (ostream & os, const vector<int> & v)
+{
+	os << "[";
+	for (size_t i = 0; i < v.size(); i++)
+	{
+		os << v[i];
+		if (i != (v.size() - 1)) os << ", ";
+	}
+	os << "]";
+	return os;
+}
 
+//==========================================================================
+// Overloading << operator of SINode for debug purpose.
+ostream & operator << (ostream & os, const SINode & node)
+{
+	os << "ID: " << node.id << endl;
+	os << "Label: " << node.label << endl;
+	os << "Branch number: " << node.branch_number << endl;
+	os << "Neighbors: " << node.nbs << endl;
+	return os;
+}
 
 //===========================================================
 
@@ -405,9 +458,9 @@ bool sortByValDesc(const pair<int, int> &a, const pair<int, int> &b)
 class SIQuery:public Query<SINode>
 {
 public:
-	int root;
 	hash_map<int, SINode> nodes;
 
+	int root;
 	int max_branch_number = 0;
 	vector<int> dfs_order;
 	// <vertex, nearest branch ancestor or root if it doesn't have one>
@@ -421,6 +474,16 @@ public:
 			// pick arbitrary start vertex
 			this->root = this->nodes.begin()->first;
 			*/
+
+			// print the statistics
+			for (auto it = ((AggMap*)global_agg)->begin();
+					it != ((AggMap*)global_agg)->end();
+					it++)
+			{
+				cout << "[" << it->first.first << ", " << it->first.second
+					 << "]: " << it->second << endl;
+			}
+
 
 			// pick vertex with largest degree
 			hash_map<int, SINode>::iterator it;
@@ -467,6 +530,7 @@ public:
 
 	virtual void printOrder()
 	{
+		cout << "this->nodes size: " << this->nodes.size() << endl;
 		for (size_t i = 0; i < this->dfs_order.size(); i++)
 		{
 			SINode* curr = &this->nodes[this->dfs_order[i]];
@@ -511,8 +575,8 @@ public:
 
 		sort(unv_nbs_degree.begin(), unv_nbs_degree.end(), sortByValDesc);
 
-		for (vector<pair<int, int> >::iterator it = unv_nbs_degree.begin();
-				it != unv_nbs_degree.end(); it++)
+		for (auto it = unv_nbs_degree.begin(); it != unv_nbs_degree.end();
+				it++)
 		{
 			if (! this->nodes[it->first].visited)
 			{
@@ -541,7 +605,25 @@ public:
 			this->addBranchNumber(curr->children[i], num, ancID);
 	}
 
-	// Query is read-only, so a lot of get functions
+	// Query is read-only.
+	// get functions before dfs.
+	vector<int> getNbs(int id) { return this->nodes[id].nbs; }
+	void LDFFilter(int label, size_t degree,
+			hash_map<int, vector<int> > &cand_map)
+	{
+		vector<int> nbs;
+		int curr_u, lab;
+		for (auto nodeit = nodes.begin(); nodeit != nodes.end(); nodeit ++)
+		{
+			curr_u = nodeit->first;
+			lab = nodeit->second.label;
+			nbs = nodeit->second.nbs;
+			if (lab == label && nbs.size() <= degree)
+				cand_map[curr_u] = nbs;
+		}
+	}
+
+	// get functions after dfs.
 	int getLabel(int id) { return this->nodes[id].label; }
 	int getLevel(int id) { return this->nodes[id].level; }
 	int getBranchNumber(int id) { return this->nodes[id].branch_number;	}
@@ -561,14 +643,28 @@ public:
 };
 
 ibinstream & operator<<(ibinstream & m, const SIQuery & q){
-	m << q.root << q.nodes << q.max_branch_number << q.dfs_order
-	  << q.nbancestors;
+	if (q.dfs_order.empty())
+	{
+		m << 0;
+		m << q.nodes;
+	}
+	else
+	{
+		m << 1;
+		m << q.root << q.nodes << q.max_branch_number << q.dfs_order
+		  << q.nbancestors;
+	}
 	return m;
 }
 
 obinstream & operator>>(obinstream & m, SIQuery & q){
-	m >> q.root >> q.nodes >> q.max_branch_number >> q.dfs_order
-	  >> q.nbancestors;
+	int type;
+	m >> type;
+	if (type == 0)
+		m >> q.nodes;
+	else
+		m >> q.root >> q.nodes >> q.max_branch_number >> q.dfs_order
+		  >> q.nbancestors;
 	return m;
 }
 
@@ -600,17 +696,24 @@ vector<Mapping> joinVectors(vector<Mapping> & v1,
 class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 	public:
+		// used in the filtering step:
+		// typedef hash_map<int, hash_set<SIKey> > Candidate;
+		// candidates[curr_u][next_u] = vector<SIKey>
+		hash_map<int, Candidate> candidates;
+		// curr_u: vector<next_u>
+		hash_map<int, vector<int> > cand_map;
+
 		// used in the final step:
 		// key = query_vertex, value = vector of path mapping
 		int root_query_vertex;
+		// typedef hash_map<int, vector<Mapping> > Result;
 		Result results;
 
 		void continue_mapping(vector<SIKey> &mapping, int &curr_u,
-				bool add_flag)
+				bool add_flag, bool filter_flag)
 		{ // Add current vertex to mapping;
 		  // Send messages to neighbors with label of next_u(next query vertex)
 		  // if add_flag, add a dummy vertex for each mapping.
-			hash_map<SIKey, int> & nbs = value().neighbors;
 			hash_map<SIKey, int>::iterator it;
 			SIQuery* query = (SIQuery*)getQuery();
 
@@ -634,21 +737,42 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			{
 				int next_u;
 				for (int i = 0; i < children_num; i++)
-				{ // for every child in query graph
+				{ // for every child (next_u) in query graph
 					next_u = query->getChildID(curr_u, i);
 					SIMessage msg = SIMessage(MAPPING, mapping, next_u);
-					for (it = nbs.begin(); it != nbs.end(); it++)
-					{
-						if (it->second == query->getLabel(next_u) &&
-							notContains(mapping, it->first))
-						{ // check for label and uniqueness
-							send_message(it->first, msg);
+					if (filter_flag)
+					{ // with filtering
+						hash_set<SIKey> &keys = candidates[curr_u][next_u];
+						for (auto it = keys.begin(); it != keys.end(); it++)
+						{
+							if (notContains(mapping, *it))
+							{
+								send_message(*it, msg);
 #ifdef DEBUG_MODE_MSG
-						cout << "[DEBUG] Message sent from " << id.vID << " to "
-							 << it->first.vID << ". \n\t"
-							 << "Type: MAPPING. \n\t"
-							 << "Mapping: " << msg.mapping << endl;
+							cout << "[DEBUG] Message sent from " << id.vID << " to "
+								 << it->vID << ". \n\t"
+								 << "Type: MAPPING. \n\t"
+								 << "Mapping: " << msg.mapping << endl;
 #endif
+							}
+						}
+					}
+					else
+					{ // without filtering
+						hash_map<SIKey, int> & nbs = value().neighbors;
+						for (it = nbs.begin(); it != nbs.end(); it++)
+						{
+							if (it->second == query->getLabel(next_u) &&
+								notContains(mapping, it->first))
+							{ // check for label and uniqueness
+								send_message(it->first, msg);
+#ifdef DEBUG_MODE_MSG
+							cout << "[DEBUG] Message sent from " << id.vID << " to "
+								 << it->first.vID << ". \n\t"
+								 << "Type: MAPPING. \n\t"
+								 << "Mapping: " << msg.mapping << endl;
+#endif
+							}
 						}
 					}
 				}
@@ -696,14 +820,27 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 #endif
 
 			if (step_num() == 1)
-			{   // start mapping with vertices with same label
+			{
 				int root_u = query->root;
-				int root_label = query->getLabel(root_u);
 				add_flag = params.enumerate && query->isBranch(root_u);
-				if (value().label == root_label)
-				{
-					vector<SIKey> mapping;
-					continue_mapping(mapping, root_u, add_flag);
+				if (params.filter)
+				{ // with filtering
+					if (!candidates[root_u].empty())
+					{
+						vector<SIKey> mapping;
+						continue_mapping(mapping, root_u, add_flag,
+								params.filter);
+					}
+				}
+				else
+				{ // without filtering, map with vertices with same label
+					int root_label = query->getLabel(root_u);
+					if (value().label == root_label)
+					{
+						vector<SIKey> mapping;
+						continue_mapping(mapping, root_u, add_flag,
+								params.filter);
+					}
 				}
 				vote_to_halt();
 			}
@@ -718,9 +855,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					b_nbs = query->getBNeighbors(msg.value);
 					curr_level = query->getLevel(msg.value);
 					flag = true;
-					for (size_t i = 0; i < b_nbs.size(); i++)
+					for (int b_nb : b_nbs)
 					{
-						nb_level = query->getLevel(b_nbs[i]);
+						nb_level = query->getLevel(b_nb);
 						if ((nb_level != curr_level - 1) &&
 							(nbs.find(msg.mapping[nb_level]) == nbs.end()))
 						{
@@ -733,9 +870,129 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						add_flag = params.enumerate &&
 								query->isBranch(msg.value);
 						continue_mapping(msg.mapping, msg.value,
-								add_flag);
+								add_flag, params.filter);
 					}
 				}
+				vote_to_halt();
+			}
+		}
+
+		void check_candidates(hash_set<int> &invalid_set)
+		{
+			int u1, u2;
+			for (auto cand_it = cand_map.begin(); cand_it != cand_map.end();
+					cand_it ++)
+			{
+				u1 = cand_it->first;
+				for (int u : cand_it->second)
+				{
+					if (candidates[u1][u].empty())
+					{
+						invalid_set.insert(u1);
+						break;
+					}
+				}
+			}
+
+			for (hash_set<int>::iterator set_it = invalid_set.begin();
+					set_it != invalid_set.end(); set_it ++)
+			{
+				u1 = *set_it;
+				for (Candidate::iterator it = candidates[u1].begin();
+						it != candidates[u1].end(); it++)
+				{
+					u2 = it->first;
+					for (SIKey k : it->second)
+					{
+						SIMessage msg = SIMessage(CANDIDATE, id);
+						msg.add_int(u2);
+						msg.add_int(u1);
+						send_message(k, msg);
+#ifdef DEBUG_MODE_MSG
+						cout << "[DEBUG] Superstep " << step_num()
+							 << "\n\tMessage sent from " << id.vID
+							 <<	" to " << k.vID << "."
+							 << "\n\tType: CANDIDATE. "
+							 << "\n\tv_int: " << msg.v_int << endl;
+#endif
+					}
+				}
+			}
+		}
+
+		void filter(MessageContainer & messages)
+		{
+			SIQuery* query = (SIQuery*)getQuery();
+			hash_map<SIKey, int> & nbs = value().neighbors;
+			hash_map<SIKey, int>::iterator it;
+			vector<int> temp_vec;
+
+			if (step_num() == 1)
+			{ // initialize candidates
+				query->LDFFilter(value().label, nbs.size(), cand_map);
+				SIMessage msg = SIMessage(CANDIDATE, id);
+				for (hash_map<int, vector<int> >::iterator cand_it
+						= cand_map.begin(); cand_it != cand_map.end();
+						cand_it ++)
+					msg.add_int(cand_it->first);
+
+				if (!cand_map.empty())
+				{
+					for (it = nbs.begin(); it != nbs.end(); it++)
+					{
+						send_message(it->first, msg);
+#ifdef DEBUG_MODE_MSG
+						cout << "[DEBUG] Superstep " << step_num()
+							 << "\n\tMessage sent from " << id.vID
+							 <<	" to " << it->first.vID << "."
+							 << "\n\tType: CANDIDATE. "
+							 << "\n\tv_int: " << msg.v_int << endl;
+#endif
+					}
+				}
+				vote_to_halt();
+			}
+			else if (step_num() == 2)
+			{ // initialize candidates
+				for (size_t i = 0; i < messages.size(); i++)
+				{
+					SIMessage & msg = messages[i];
+					for (hash_map<int, vector<int> >::iterator cand_it
+							= cand_map.begin(); cand_it != cand_map.end();
+							cand_it ++)
+					{
+						vector<int> &a = cand_it->second;
+						set_intersection(a.begin(), a.end(), msg.v_int.begin(),
+								msg.v_int.end(), back_inserter(temp_vec));
+						for (int u : temp_vec)
+							candidates[cand_it->first][u].insert(msg.key);
+
+						temp_vec.clear();
+					}
+				}
+
+				hash_set<int> invalid_set; // invalid candidates
+				check_candidates(invalid_set); // includes sending message
+
+				for (hash_set<int>::iterator set_it = invalid_set.begin();
+						set_it != invalid_set.end(); set_it ++)
+				{
+					candidates.erase(*set_it);
+				}
+				vote_to_halt();
+			}
+			else
+			{ // filter candidates recursively
+				for (SIMessage &msg : messages)
+					candidates[msg.v_int[0]][msg.v_int[1]].erase(msg.key);
+
+				hash_set<int> invalid_set; // invalid candidates
+				check_candidates(invalid_set); // includes sending message
+
+				for (auto set_it = invalid_set.begin();
+						set_it != invalid_set.end(); set_it ++)
+					candidates.erase(*set_it);
+
 				vote_to_halt();
 			}
 		}
@@ -977,7 +1234,58 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 //=============================================================================
 
-class SIWorker:public Worker<SIVertex, SIQuery>
+// typedef hash_map<pair<int, int>, int> AggMap;
+
+class SIAgg : public Aggregator<SIVertex, AggMap, AggMap>
+{ // uniform aggregator for candidates and mappings
+public:
+	AggMap agg_map;
+
+    virtual void init()
+    {
+    }
+    virtual void stepPartial(SIVertex* v, int type)
+    {
+    	if (type == FILTER)
+    	{
+        	int u1, u2;
+    		for (auto it = v->candidates.begin(); it != v->candidates.end();
+    				it++)
+    		{
+    			u1 = it->first;
+    			for (auto jt = it->second.begin(); jt != it->second.end();
+    					jt++)
+    			{
+    				u2 = jt->first;
+    				if (u1 < u2)
+    					agg_map[make_pair(u1, u2)] += jt->second.size();
+    			}
+    		}
+    	}
+    	else if (type == ENUMERATE)
+    	{
+    		for (auto it = v->results.begin(); it != v->results.end(); it++)
+    			agg_map[make_pair(0, 0)] += it->second.size();
+    	}
+    }
+    virtual void stepFinal(AggMap* part)
+    {
+    	for (auto it = part->begin(); it != part->end(); it++)
+    		agg_map[it->first] += it->second;
+    }
+    virtual AggMap* finishPartial()
+    {
+    	return &agg_map;
+    }
+    virtual AggMap* finishFinal()
+    {
+    	return &agg_map;
+    }
+};
+
+//=============================================================================
+
+class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 {
 	char buf[100];
 
@@ -1077,14 +1385,14 @@ void pregel_subgraph(const WorkerParams & params)
 	//CCCombiner_pregel combiner;
 	//if(use_combiner) worker.setCombiner(&combiner);
 
-	//SIAgg agg;
-	//worker.setAggregator(&agg);
-
 	init_timers();
 	start_timer(TOTAL_TIMER);
 
 	SIQuery query;
 	worker.setQuery(&query);
+
+	SIAgg agg;
+	worker.setAggregator(&agg);
 
 	double time, load_time = 0.0, compute_time = 0.0, dump_time = 0.0,
 			offline_time = 0.0, online_time = 0.0;
@@ -1106,6 +1414,14 @@ void pregel_subgraph(const WorkerParams & params)
 	load_time += time;
 
 	start_timer(COMPUTE_TIMER);
+	if (params.filter)
+	{
+		wakeAll();
+		time = worker.run_type(FILTER, params);
+	}
+
+	time = worker.build_query_tree();
+
 	wakeAll();
 	time = worker.run_type(MATCH, params);
 
@@ -1124,6 +1440,8 @@ void pregel_subgraph(const WorkerParams & params)
 	if (_my_rank == MASTER_RANK)
 	{
 		cout << "================ Final Report ===============" << endl;
+		cout << "Mapping count: " <<
+				(*((AggMap*)global_agg))[make_pair(0, 0)] << endl;
 		cout << "Load time: " << load_time << " s." << endl;
 		cout << "Dump time: " << dump_time << " s." << endl;
 		cout << "Compute time: " << compute_time << " s." << endl;

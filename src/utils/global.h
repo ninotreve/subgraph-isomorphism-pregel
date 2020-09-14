@@ -55,6 +55,7 @@ struct WorkerParams {
     bool force_write;
 
     string partition;
+    bool filter;
     bool enumerate;
     bool report;
     bool input;
@@ -152,7 +153,8 @@ inline int& active_vnum()
 enum COMPUTE_TYPES {
     PREPROCESS = 0,
     MATCH = 1,
-    ENUMERATE = 2
+    ENUMERATE = 2,
+    FILTER = 3
 };
 
 enum BITS {
@@ -281,6 +283,9 @@ public:
     string getOutputPath() { return options_value[2]; }
 
     string getPartition() { return options_value[3]; }
+    bool getFilterMethod() {
+    	return (options_value[5] != "off");
+    }
     bool getEnumerateMethod() {
     	return (options_value[8] != "old");
     }

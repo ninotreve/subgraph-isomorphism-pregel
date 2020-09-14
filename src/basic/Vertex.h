@@ -66,6 +66,8 @@ public:
     {
     }
 
+    virtual ~Vertex() {}
+
     inline bool operator<(const VertexT& rhs) const
     {
         return id < rhs.id;

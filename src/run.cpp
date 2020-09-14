@@ -1,5 +1,5 @@
 // ./run -d /fdu-zyj/labeled -q /fdu-zyj/query -out /fdu-zyj/output -input g-thinker
-
+//./run -d /labelyou -q /gtQuery -out /output -input g-thinker
 #include "pregel_app_subgraph.h"
 
 int main(int argc, char* argv[]){
@@ -11,6 +11,7 @@ int main(int argc, char* argv[]){
     params.output_path = command.getOutputPath();
 
     params.partition = command.getPartition();
+    params.filter = command.getFilterMethod();
     params.enumerate = command.getEnumerateMethod();
     params.report = command.getReport();
     params.input = command.getInputFormat();
