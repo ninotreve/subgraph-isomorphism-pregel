@@ -5,7 +5,7 @@ using namespace std;
 //#define DEBUG_MODE_ACTIVE 1
 //#define DEBUG_MODE_MSG 1
 //#define DEBUG_MODE_PARTIAL_RESULT 1
-#define DEBUG_MODE_RESULT 1
+//#define DEBUG_MODE_RESULT 1
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -450,9 +450,9 @@ ostream & operator << (ostream & os, const SINode & node)
 
 //===========================================================
 
-bool sortByValDesc(const pair<int, int> &a, const pair<int, int> &b)
+bool sortByVal(const pair<int, int> &a, const pair<int, int> &b)
 {
-	return (a.second > b.second);
+	return (a.second < b.second);
 }
 
 class SIQuery:public Query<SINode>
@@ -466,38 +466,27 @@ public:
 	// <vertex, nearest branch ancestor or root if it doesn't have one>
 	hash_map<int, int> nbancestors;
 
-	virtual void init()
+	virtual void init(const string &order)
 	{
+		// order = "degree", value = degree
+		// order = "candidate", value = candidate size
 		if (! this->nodes.empty())
 		{
-			/*
-			// pick arbitrary start vertex
-			this->root = this->nodes.begin()->first;
-			*/
-
-			// print the statistics
-			for (auto it = ((AggMap*)global_agg)->begin();
-					it != ((AggMap*)global_agg)->end();
-					it++)
+			size_t value, min_value;
+			for (auto it = this->nodes.begin(); it != this->nodes.end(); it++)
 			{
-				cout << "[" << it->first.first << ", " << it->first.second
-					 << "]: " << it->second << endl;
-			}
-
-
-			// pick vertex with largest degree
-			hash_map<int, SINode>::iterator it;
-			size_t degree, max_degree = 0;
-			for (it = this->nodes.begin(); it != this->nodes.end(); it++)
-			{
-				degree = it->second.nbs.size();
-				if (degree > max_degree)
+				if (order == "degree")
+					value = - it->second.nbs.size(); // default asc
+				else
+					value = (*((AggMap*)global_agg))[make_pair(
+							it->first, it->first)];
+				if (it == this->nodes.begin() || value < min_value)
 				{
-					max_degree = degree;
+					min_value = value;
 					this->root = it->first;
 				}
 			}
-			this->dfs(this->root, 0, true);
+			this->dfs(this->root, 0, true, order);
 			this->addBranchNumber(this->root, 0, this->root);
 		}
 	}
@@ -535,11 +524,12 @@ public:
 		{
 			SINode* curr = &this->nodes[this->dfs_order[i]];
 			cout << "Node " << i << endl;
-			cout << *curr << "It has " << curr->children.size() << " children." << endl;
+			cout << *curr << "It has " << curr->children.size() <<
+					" children." << endl;
 		}
 	}
 
-	void dfs(int currID, int parentID, bool isRoot)
+	void dfs(int currID, int parentID, bool isRoot, const string &order)
 	{
 		// recursive function to implement depth-first search.
 		// only called when current node is not visited.
@@ -560,27 +550,34 @@ public:
 
 		// we must have two loops to avoid descendants being visited
 		// by other descendants.
-		// the first loop also stores unvisited neighbor's degree.
-		vector<pair<int, int> > unv_nbs_degree;
+		// the first loop also stores unvisited neighbor's value
+		// (degree or candidate size).
+		int value;
+		vector<pair<int, int> > unv_nbs_value;
 
-		for (vector<int>::iterator it = curr->nbs.begin();
-				it != curr->nbs.end(); it++)
+		for (int nextID : curr->nbs)
 		{
-			if (this->nodes[*it].visited)
-				curr->b_nbs.push_back(*it);
+			if (this->nodes[nextID].visited)
+				curr->b_nbs.push_back(nextID);
 			else
-				unv_nbs_degree.push_back(
-						make_pair(*it, this->nodes[*it].nbs.size()));
+			{
+				if (order == "degree")
+					value = - this->nodes[nextID].nbs.size(); // default asc
+				else
+					value = (*((AggMap*)global_agg))[make_pair(currID, nextID)]
+					     + (*((AggMap*)global_agg))[make_pair(nextID, currID)];
+				unv_nbs_value.push_back(make_pair(nextID, value));
+			}
 		}
 
-		sort(unv_nbs_degree.begin(), unv_nbs_degree.end(), sortByValDesc);
+		sort(unv_nbs_value.begin(), unv_nbs_value.end(), sortByVal);
 
-		for (auto it = unv_nbs_degree.begin(); it != unv_nbs_degree.end();
+		for (auto it = unv_nbs_value.begin(); it != unv_nbs_value.end();
 				it++)
 		{
 			if (! this->nodes[it->first].visited)
 			{
-				this->dfs(it->first, currID, false);
+				this->dfs(it->first, currID, false, order);
 			}
 		}
 	}
@@ -997,12 +994,12 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 		}
 
-		int enumerate_new(MessageContainer & messages)
+		void enumerate_new(MessageContainer & messages)
 		{
 			// return the number of mappings
 			SIQuery* query = (SIQuery*)getQuery();
 			hash_map<int, vector<Mapping> >::iterator it;
-			int num, curr_u, anc_u, j, total = 0;
+			int num, curr_u, anc_u, j;
 			SIKey to_key;
 			// hash_map<curr_u, map<chd_u's DFS number, vector<SIBranch> > >
 			hash_map<int, map<int, vector<SIBranch> > > u_children;
@@ -1011,8 +1008,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 			hash_set<int> delete_set; // hash map keys to be deleted
 
-			// send mappings from the leaves for superstep [1, max_num_number]
-			if (step_num() > 0 && step_num() < query->max_branch_number + 1)
+			// send mappings from leaves for supersteps [1, max_branch_number]
+			if (step_num() > 0 && step_num() <= query->max_branch_number)
 			{
 				for (it = this->results.begin(); it != this->results.end();
 						it++)
@@ -1056,7 +1053,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 			// receive msg and join for supersteps [2, max_branch_number + 1]
 			// send msg to ancestor for supersteps [2, max_branch_number]
-			if (step_num() > 1 && step_num() < query->max_branch_number + 2)
+			if (step_num() > 1 && step_num() <= query->max_branch_number + 1)
 			{
 				for (size_t i = 0; i < messages.size(); i++)
 				{
@@ -1076,7 +1073,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					// make sure every child sends you result!
 					if ((int) it1->second.size() !=
 							query->getChildrenNumber(curr_u))
-						return total;
+						return;
 
 					if (step_num() == query->max_branch_number + 1)
 					{
@@ -1085,7 +1082,6 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 								it2 != it1->second.end(); it2++)
 							b.addBranch(it2->second);
 						this->results[curr_u] = b.expand();
-						total += this->results[curr_u].size();
 					}
 					else
 					{
@@ -1112,15 +1108,15 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				}
 			}
 
-			if (this->results.empty())
+			if (this->results.empty()
+					|| step_num() >= query->max_branch_number)
 			{
 				vote_to_halt();
 			}
 
-			return total;
 		}
 
-		int enumerate_old(MessageContainer & messages)
+		void enumerate_old(MessageContainer & messages)
 		{
 			// return the number of mappings
 			SIQuery* query = (SIQuery*)getQuery();
@@ -1129,7 +1125,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			hash_map<Mapping, mResult>::iterator join_it;
 			Mapping prefix, tail;
 			vector<Mapping> temp_results;
-			int num, curr_u, anc_u, total = 0;
+			int num, curr_u, anc_u;
 			SIKey to_send;
 
 			// join operations for supersteps [2, max_branch_number + 1]
@@ -1187,16 +1183,6 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				}
 			}
 
-			// count mappings for the last but one superstep
-			if (step_num() == query->max_branch_number + 1)
-			{
-				for (Result::iterator it = this->results.begin();
-						it != this->results.end(); it++)
-				{
-					total += it->second.size();
-				}
-			}
-
 			// send messages for supersteps [1, max_branch_number]
 			if (step_num() < query->max_branch_number + 1)
 			{
@@ -1228,7 +1214,6 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			else
 				vote_to_halt();
 
-			return total;
 		}
 };
 
@@ -1237,7 +1222,11 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 // typedef hash_map<pair<int, int>, int> AggMap;
 
 class SIAgg : public Aggregator<SIVertex, AggMap, AggMap>
-{ // uniform aggregator for candidates and mappings
+{
+	// uniform aggregator for candidates and mappings
+	// agg_map[u1, u1] = candidate(u1);
+	// agg_map[u1, u2] = sum_i(|C'_{u1, vi}(u2)|), u1 < u2
+	// agg_map[0, 0] = # mappings
 public:
 	AggMap agg_map;
 
@@ -1253,6 +1242,7 @@ public:
     				it++)
     		{
     			u1 = it->first;
+    			agg_map[make_pair(u1, u1)] += 1;
     			for (auto jt = it->second.begin(); jt != it->second.end();
     					jt++)
     			{
@@ -1420,7 +1410,7 @@ void pregel_subgraph(const WorkerParams & params)
 		time = worker.run_type(FILTER, params);
 	}
 
-	time = worker.build_query_tree();
+	time = worker.build_query_tree(params.order);
 
 	wakeAll();
 	time = worker.run_type(MATCH, params);

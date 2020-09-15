@@ -45,26 +45,6 @@ void worker_barrier()
     MPI_Barrier(MPI_COMM_WORLD);
 }
 
-//------------------------
-// worker parameters
-
-struct WorkerParams {
-    string data_path;
-    string query_path;
-    string output_path;
-    bool force_write;
-
-    string partition;
-    bool filter;
-    bool enumerate;
-    bool report;
-    bool input;
-
-    WorkerParams()
-    {
-        force_write = true;
-    }
-};
 
 struct MultiInputParams {
     vector<string> input_paths;
@@ -286,6 +266,7 @@ public:
     bool getFilterMethod() {
     	return (options_value[5] != "off");
     }
+    string getOrderMethod() { return options_value[7]; }
     bool getEnumerateMethod() {
     	return (options_value[8] != "old");
     }
@@ -294,6 +275,42 @@ public:
     }
     bool getInputFormat() {
     	return (options_value[10] != "g-thinker");
+    }
+};
+
+//------------------------
+// worker parameters
+
+struct WorkerParams {
+    string data_path;
+    string query_path;
+    string output_path;
+    bool force_write;
+
+    string partition;
+    bool filter;
+    string order;
+    bool enumerate;
+    bool report;
+    bool input;
+
+    WorkerParams()
+    {
+        force_write = true;
+    }
+
+    WorkerParams(MatchingCommand &command, bool fw)
+    {
+        data_path = command.getDataPath();
+        query_path = command.getQueryPath();
+        output_path = command.getOutputPath();
+        force_write = fw;
+        partition = command.getPartition();
+        filter = command.getFilterMethod();
+        order = command.getOrderMethod();
+        enumerate = command.getEnumerateMethod();
+        report = command.getReport();
+        input = command.getInputFormat();
     }
 };
 

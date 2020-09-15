@@ -159,10 +159,9 @@ public:
 		}
 		*/
 
-    int active_compute(int type, WorkerParams params, int wakeAll)
+    void active_compute(int type, WorkerParams params, int wakeAll)
     {
         active_count = 0;
-        int total = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
         for (size_t i = 0; i < vertexes.size(); i++) {
@@ -187,9 +186,9 @@ public:
 					break;
 				case ENUMERATE:
 					if (params.enumerate)
-						total += vertexes[i]->enumerate_new(v_msgbufs[i]);
+						vertexes[i]->enumerate_new(v_msgbufs[i]);
 					else
-						total += vertexes[i]->enumerate_old(v_msgbufs[i]);
+						vertexes[i]->enumerate_old(v_msgbufs[i]);
 					break;
 				}
 
@@ -203,8 +202,6 @@ public:
 					active_count++;
             }
         }
-
-        return total;
     }
 
     inline void add_vertex(VertexT* vertex)
@@ -237,7 +234,7 @@ public:
                     send_ibinstream(m, MASTER_RANK);
                 }
                 //scattering FinalT
-                //slaveBcast(*((FinalT*)global_agg));
+                slaveBcast(*((FinalT*)global_agg));
             } else {
                 //------------------------ strategy choosing BEGIN ------------------------
                 int total = all_sum(0);
@@ -268,7 +265,7 @@ public:
                 FinalT* final = agg->finishFinal();
                 //cannot set "global_agg=final" since MASTER_RANK works as a slave, and agg->finishFinal() may change
                 *((FinalT*)global_agg) = *final; //deep copy
-                //masterBcast(*((FinalT*)global_agg));
+                masterBcast(*((FinalT*)global_agg));
             }
         }
     }
@@ -437,7 +434,7 @@ public:
     //====================================================================
 
     // build the query tree, return build time
-    double build_query_tree()
+    double build_query_tree(const string &order)
 	{
     	if (_my_rank == MASTER_RANK)
     		cout << "=================Start building query tree...===================" << endl;
@@ -445,7 +442,7 @@ public:
     	init_timers();
 		ResetTimer(WORKER_TIMER);
     	QueryT* query = (QueryT*) global_query;
-		query->init();
+		query->init(order);
 
 		//debug
 		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
@@ -490,7 +487,6 @@ public:
         long long step_vadd_num;
         long long global_msg_num = 0;
         long long global_vadd_num = 0;
-        int n = 0;
         while (true) {
             global_step_num++;
             ResetTimer(4);
@@ -512,7 +508,7 @@ public:
                 //agg->init();
             //===================
             clearBits();
-            n = active_compute(type, params, wakeAll);
+            active_compute(type, params, wakeAll);
             message_buffer->combine();
             step_msg_num = master_sum_LL(message_buffer->get_total_msg());
             step_vadd_num = master_sum_LL(message_buffer->get_total_vadd());
@@ -574,12 +570,6 @@ public:
         {
             cout << "Total #msgs=" << global_msg_num << ", "
             		"Total #vadd=" << global_vadd_num << endl;
-        }
-
-        if (type == ENUMERATE)
-        {
-        	cout << "Worker " << get_worker_id() << ": " << n
-        		<< " mappings." << endl;
         }
 
         return get_timer(WORKER_TIMER);
