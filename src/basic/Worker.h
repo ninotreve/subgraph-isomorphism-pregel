@@ -446,7 +446,8 @@ public:
 
 		//debug
 		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
-		//((QueryT*) global_query)->printOrder();
+		if (_my_rank == MASTER_RANK)
+			((QueryT*) global_query)->printOrder();
 
 		//barrier for query tree build
 		worker_barrier(); 
