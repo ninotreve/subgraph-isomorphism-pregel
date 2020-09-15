@@ -197,13 +197,15 @@ struct SIBranch
 vector<Mapping> crossJoin(vector<Mapping> v1, vector<SIBranch> &vecB)
 {
 	vector<Mapping> results;
-	for (Mapping m : v1)
+	Mapping m;
+	for (size_t i = 0; i < v1.size(); i++)
 	{
 		for (SIBranch &b : vecB)
 		{
 			vector<Mapping> v2 = b.expand();
 			for (Mapping &m2 : v2)
 			{
+				m = v1[i];
 				m.insert(m.end(), m2.begin(), m2.end());
 				if (notContainsDuplicate(m)) results.push_back(m);
 			}
@@ -1037,7 +1039,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 							 << "\n\tMessage sent from (leaf) " << id.vID
 							 <<	" to <" << to_key.vID << ", " << m1 << ">."
 							 << "\n\tType: BRANCH. "
-							 << "\n\tMapping: " << m2 << endl;
+							 << "\n\tMapping: " << m2
+							 << ", curr_u: " << curr_u << endl;
 #endif
 						}
 						delete_set.insert(curr_u);
@@ -1073,7 +1076,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					// make sure every child sends you result!
 					if ((int) it1->second.size() !=
 							query->getChildrenNumber(curr_u))
-						return;
+						continue;
 
 					if (step_num() == query->max_branch_number + 1)
 					{
@@ -1344,6 +1347,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 					writer.write(buf);
 
 #ifdef DEBUG_MODE_RESULT
+					cout << "[DEBUG] Worker ID: " << get_worker_id() << endl;
 					cout << "[DEBUG] Vertex ID: " << v->id.vID << endl;
 					cout << "[DEBUG] Result: " << mapping << endl;
 #endif
