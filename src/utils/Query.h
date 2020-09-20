@@ -13,4 +13,6 @@ public:
     virtual ~Query() {}
 };
 
+
+
 #endif
