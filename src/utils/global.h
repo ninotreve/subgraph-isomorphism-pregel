@@ -175,7 +175,6 @@ void forceTerminate()
     setBit(FORCE_TERMINATE_ORBIT);
 }
 
-
 //====================================================
 //Set up a pointer to query in global.h
 //so that it can be used anywhere in the program
