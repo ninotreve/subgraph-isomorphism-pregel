@@ -18,125 +18,7 @@ using namespace std;
 #include "SItypes/SIValue.h"
 #include "SItypes/SIBranch.h"
 #include "SItypes/SIQuery.h"
-
-//--------SIMessage = <type, key, value, mapping, branch>--------
-//  e.g. <type = LABEL_INFOMATION, key = vertex, value = label>
-//	     <type = MAPPING, mapping, value = next_u>
-//		 <type = BRANCH_RESULT, mapping, value = curr_u>
-// 		 <type = BRANCH, branch, value = curr_u>
-//		 <type = MAPPING_COUNT, value = count>
-//		 <type = CANDIDATE, key = vertex, v_int = candidates of v>
-
-struct SIMessage
-{
-	int type;
-	SIKey key;
-	int value;
-	vector<int> v_int;
-	vector<SIKey> mapping;
-	SIBranch branch;
-
-	SIMessage()
-	{
-	}
-
-	SIMessage(int type, SIKey vertex, int label)
-	{ // for label information
-		this->type = type;
-		this->key = vertex;
-		this->value = label;
-	}
-
-	SIMessage(int type, Mapping mapping, uID next_u)
-	{ // for mapping or branch result
-		this->type = type;
-		this->mapping = mapping;
-		this->value = next_u; // or curr_u
-	}
-
-	SIMessage(int type, SIBranch branch, uID curr_u)
-	{ // for new enumeration
-		this->type = type;
-		this->branch = branch;
-		this->value = curr_u;
-	}
-
-	SIMessage(int type, int label)
-	{ // for mapping count
-		this->type = type;
-		this->value = label;
-	}
-
-	SIMessage(int type, SIKey vertex)
-	{ // for candidate initialization
-		this->type = type;
-		this->key = vertex;
-	}
-
-	void add_int(int i)
-	{
-		this->v_int.push_back(i);
-	}
-};
-
-enum MESSAGE_TYPES {
-	LABEL_INFOMATION = 0,
-	MAPPING = 1,
-	BRANCH_RESULT = 2,
-	BRANCH = 3,
-	MAPPING_COUNT = 4,
-	CANDIDATE = 5
-};
-
-ibinstream & operator<<(ibinstream & m, const SIMessage & v)
-{
-	m << v.type;
-	switch (v.type)
-	{
-	case MESSAGE_TYPES::LABEL_INFOMATION:
-		m << v.key << v.value;
-		break;
-	case MESSAGE_TYPES::MAPPING:
-	case MESSAGE_TYPES::BRANCH_RESULT:
-		m << v.mapping << v.value;
-		break;
-	case MESSAGE_TYPES::BRANCH:
-		m << v.branch << v.value;
-		break;
-	case MESSAGE_TYPES::MAPPING_COUNT:
-		m << v.value;
-		break;
-	case MESSAGE_TYPES::CANDIDATE:
-		m << v.key << v.v_int;
-		break;
-	}
-	return m;
-}
-
-obinstream & operator>>(obinstream & m, SIMessage & v)
-{
-	m >> v.type;
-	switch (v.type)
-	{
-	case MESSAGE_TYPES::LABEL_INFOMATION:
-		m >> v.key >> v.value;
-		break;
-	case MESSAGE_TYPES::MAPPING:
-	case MESSAGE_TYPES::BRANCH_RESULT:
-		m >> v.mapping >> v.value;
-		break;
-	case MESSAGE_TYPES::BRANCH:
-		m >> v.branch >> v.value;
-		break;
-	case MESSAGE_TYPES::MAPPING_COUNT:
-		m >> v.value;
-		break;
-	case MESSAGE_TYPES::CANDIDATE:
-		m >> v.key >> v.v_int;
-		break;
-	}
-	return m;
-}
+#include "SItypes/SIMessage.h"
 
 //===============================================================
 
@@ -233,28 +115,25 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 		virtual void preprocess(MessageContainer & messages)
 		{
-			hash_map<SIKey, int> & nbs = value().neighbors;
-			hash_map<SIKey, int>::iterator it;
-
-#ifdef DEBUG_MODE_ACTIVE
-				cout << "[DEBUG] STEP NUMBER " << step_num()
-					 << " ACTIVE Vertex ID " << id.vID << endl;
-#endif
-
 			if (step_num() == 1)
 			{ // send label info to neighbors
 				SIMessage msg = SIMessage(LABEL_INFOMATION, id, value().label);
-				for (it = nbs.begin(); it != nbs.end(); it++)
-					send_message(it->first, msg);
+				size_t sz = value().nbs_vector.size();
+				for (size_t i < 0; i < sz; ++i)
+					send_message(value().nbs_vector[i], msg);
 				vote_to_halt();
 			}
 			else // if (step_num() == 2)
 			{   // receive label info from neighbors
-				for (size_t i = 0; i < messages.size(); i++)
+				for (size_t i = 0; i < messages.size(); ++i)
 				{
 					SIMessage & msg = messages[i];
-					if (msg.type == LABEL_INFOMATION)
-						nbs[msg.key] = msg.value;
+					size_t sz = value().nbs_vector.size();
+					for (size_t i < 0; i < sz; ++i)
+					{
+						if (value().nbs_vector[i].key == msg.key)
+							value().nbs_vector[i].label = msg.value;
+					}
 				}
 				vote_to_halt();
 			}
@@ -695,13 +574,13 @@ public:
     	if (type == FILTER)
     	{
         	int u1, u2;
-    		for (auto it = v->candidates.begin(); it != v->candidates.end();
-    				it++)
+			auto iend = v->candidates.end();
+    		for (auto it = v->candidates.begin(); it != iend; ++it)
     		{
     			u1 = it->first;
     			agg_map[make_pair(u1, u1)] += 1;
-    			for (auto jt = it->second.begin(); jt != it->second.end();
-    					jt++)
+				auto jend = it->second.end();
+    			for (auto jt = it->second.begin(); jt != jend; ++jt)
     			{
     				u2 = jt->first;
     				if (u1 < u2)
@@ -756,13 +635,15 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 
 				pch = strtok(NULL, " ");
 				int num = atoi(pch);
-				SIKey neighbor;
-				for (int k = 0; k < num; k++)
+				SIKey key;
+				for (int k = 0; k < num; ++k)
 				{
 					pch = strtok(NULL, " ");
 					id = atoi(pch);
-					neighbor = SIKey(id, id % _num_workers);
-					v->value().neighbors[neighbor] = 0;
+					key = SIKey(id, id % _num_workers);
+					v->value().nbs_vector.push_back(KeyLabel(key, 0));
+					if (num > 20)
+						v->value().nbs_set.insert(key);
 				}
 			}
 			else
@@ -775,14 +656,19 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 				v->value().label = (int) *pch;
 
 				SIKey key;
-				while((pch = strtok(NULL, " ")) != NULL)
+				while ((pch = strtok(NULL, " ")) != NULL)
 				{
 					id = atoi(pch);
 					key = SIKey(id, id % _num_workers);
 					pch = strtok(NULL, " ");
-					v->value().neighbors[key] = (int) *pch;
+					v->value().nbs_vector.push_back(KeyLabel(key, (int) *pch));
 				}
-
+				size_t sz = v->value().nbs_vector.size();
+				if (sz > 20)
+				{
+					for (size_t i = 0; i < sz; ++i)
+						v->value().nbs_set.insert(v->value().nbs_vector[i].key);
+				}
 			}
 			return v;
 		}
