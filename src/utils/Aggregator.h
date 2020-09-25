@@ -12,7 +12,7 @@ public:
     typedef PartialT PartialType;
     typedef FinalT FinalType;
 
-    virtual void init() = 0;
+    virtual void init(int type) = 0;
     virtual void stepPartial(VertexT* v, int type) = 0;
     virtual void stepFinal(PartialT* part) = 0;
     virtual PartialT* finishPartial() = 0;
