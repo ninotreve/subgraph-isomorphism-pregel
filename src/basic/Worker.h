@@ -488,6 +488,10 @@ public:
         long long step_vadd_num;
         long long global_msg_num = 0;
         long long global_vadd_num = 0;
+        AggregatorT* agg = (AggregatorT*)get_aggregator();
+        if (type == FILTER || type == ENUMERATE)
+            agg->init(type);
+
         while (true) {
             global_step_num++;
             ResetTimer(4);
@@ -535,7 +539,6 @@ public:
         {
         	for (size_t i = 0; i < vertexes.size(); i++)
         	{
-				AggregatorT* agg = (AggregatorT*)get_aggregator();
 				agg->stepPartial(vertexes[i], type);
         	}
         }

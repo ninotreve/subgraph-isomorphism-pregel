@@ -1,7 +1,7 @@
 #ifndef SIQUERY_H
 #define SIQUERY_H
 
-typedef hash_map<pair<int, int>, int> AggMap;
+typedef vector<vector<int>> AggMat;
 // define hash of pair
 
 namespace __gnu_cxx {
@@ -93,7 +93,6 @@ ostream & operator << (ostream & os, const vector<int> & v)
 // Overloading << operator of SINode for debug purpose.
 ostream & operator << (ostream & os, const SINode & node)
 {
-	os << "ID: " << node.id << endl;
 	os << "Label: " << node.label << endl;
 	os << "Branch number: " << node.branch_number << endl;
 	os << "Neighbors: " << node.nbs << endl;
@@ -110,32 +109,36 @@ bool sortByVal(const pair<int, int> &a, const pair<int, int> &b)
 class SIQuery:public Query<SINode>
 {
 public:
-	hash_map<int, SINode> nodes;
+	hash_map<int, int> id_ind; // id to index mapping
+	vector<SINode> nodes;
 
+	size_t num;
 	int root;
 	int max_branch_number = 0;
 	vector<int> dfs_order;
-	// <vertex, nearest branch ancestor or root if it doesn't have one>
-	hash_map<int, int> nbancestors;
+	// nearest branch ancestor or root if it doesn't have one
+	vector<int> nbancestors;
 
 	virtual void init(const string &order)
-	{
+	{ // call after the query is sent to each worker
+		this->num = this->nodes.size();
+		this->nbancestors.resize(this->num);
+
 		// order = "degree", value = degree
 		// order = "candidate", value = candidate size
 		if (! this->nodes.empty())
 		{
 			size_t value, min_value;
-			for (auto it = this->nodes.begin(); it != this->nodes.end(); it++)
+			for (size_t i = 0; i < this->nodes.size(); ++i)
 			{
 				if (order == "degree")
-					value = - it->second.nbs.size(); // default asc
+					value = - this->nodes[i].nbs.size(); // default asc
 				else
-					value = (*((AggMap*)global_agg))[make_pair(
-							it->first, it->first)];
-				if (it == this->nodes.begin() || value < min_value)
+					value = (*((AggMat*)global_agg))[i][i];
+				if (i == 0 || value < min_value)
 				{
 					min_value = value;
-					this->root = it->first;
+					this->root = i;
 				}
 			}
 			this->dfs(this->root, 0, true, order);
@@ -152,7 +155,9 @@ public:
 		pch = strtok(NULL, " ");
 		int label = atoi(pch);
 
-		this->nodes[id] = SINode(id, label);
+		int i1 = this->nodes.size();
+		this->nodes.push_back(SINode(id, label));
+		this->id_ind[id] = i1;
 
 		pch = strtok(NULL, " ");
 		int num = atoi(pch);
@@ -160,10 +165,11 @@ public:
 		{
 			pch=strtok(NULL, " ");
 			int neighbor = atoi(pch);
-			if (id > neighbor)
+			if (this->id_ind.find(neighbor) != this->id_ind.end())
 			{
-				this->nodes[id].add_edge(neighbor);
-				this->nodes[neighbor].add_edge(id);
+				int i2 = this->id_ind[neighbor];
+				this->nodes[i1].add_edge(i2);
+				this->nodes[i2].add_edge(i1);
 			}
 		}
 		// cout << "Node " << id << " Label " << label << endl;
@@ -216,16 +222,15 @@ public:
 				if (order == "degree")
 					value = - this->nodes[nextID].nbs.size(); // default asc
 				else
-					value = (*((AggMap*)global_agg))[make_pair(currID, nextID)]
-					     + (*((AggMap*)global_agg))[make_pair(nextID, currID)];
+					value = (*((AggMat*)global_agg))[currID][nextID]
+					     + (*((AggMat*)global_agg))[nextID][currID];
 				unv_nbs_value.push_back(make_pair(nextID, value));
 			}
 		}
 
 		sort(unv_nbs_value.begin(), unv_nbs_value.end(), sortByVal);
 
-		for (auto it = unv_nbs_value.begin(); it != unv_nbs_value.end();
-				it++)
+		for (auto it = unv_nbs_value.begin(); it != unv_nbs_value.end(); it++)
 		{
 			if (! this->nodes[it->first].visited)
 			{
@@ -256,6 +261,7 @@ public:
 
 	// Query is read-only.
 	// get functions before dfs.
+	int getID(int id) { return this->nodes[id].id; }
 	vector<int> getNbs(int id) { return this->nodes[id].nbs; }
 
 	// fill cand_map with right vertices
@@ -264,11 +270,10 @@ public:
 	{
 		vector<int> nbs;
 		int curr_u, lab;
-		for (auto nodeit = nodes.begin(); nodeit != nodes.end(); nodeit ++)
+		for (curr_u = 0; curr_u < this->num; ++curr_u)
 		{
-			curr_u = nodeit->first;
-			lab = nodeit->second.label;
-			nbs = nodeit->second.nbs;
+			lab = this->nodes[curr_u].label;
+			nbs = this->nodes[curr_u].nbs;
 			if (lab == label && nbs.size() <= degree)
 				cand_map[curr_u] = nbs;
 		}
@@ -294,28 +299,12 @@ public:
 };
 
 ibinstream & operator<<(ibinstream & m, const SIQuery & q){
-	if (q.dfs_order.empty())
-	{
-		m << 0;
-		m << q.nodes;
-	}
-	else
-	{
-		m << 1;
-		m << q.root << q.nodes << q.max_branch_number << q.dfs_order
-		  << q.nbancestors;
-	}
+	m << q.nodes;
 	return m;
 }
 
 obinstream & operator>>(obinstream & m, SIQuery & q){
-	int type;
-	m >> type;
-	if (type == 0)
-		m >> q.nodes;
-	else
-		m >> q.root >> q.nodes >> q.max_branch_number >> q.dfs_order
-		  >> q.nbancestors;
+	m >> q.nodes;
 	return m;
 }
 
