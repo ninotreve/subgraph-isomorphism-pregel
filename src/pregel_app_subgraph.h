@@ -43,12 +43,37 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 		// typedef hash_map<int, vector<Mapping> > Result;
 		Result results;
 
+		virtual void preprocess(MessageContainer & messages)
+		{
+			if (step_num() == 1)
+			{ // send label info to neighbors
+				SIMessage msg = SIMessage(LABEL_INFOMATION, id, value().label);
+				size_t sz = value().nbs_vector.size();
+				for (size_t i = 0; i < sz; ++i)
+					send_message(value().nbs_vector[i].key, msg);
+				vote_to_halt();
+			}
+			else // if (step_num() == 2)
+			{   // receive label info from neighbors
+				for (size_t i = 0; i < messages.size(); ++i)
+				{
+					SIMessage & msg = messages[i];
+					size_t sz = value().nbs_vector.size();
+					for (size_t i = 0; i < sz; ++i)
+					{
+						if (value().nbs_vector[i].key == msg.key)
+							value().nbs_vector[i].label = msg.value;
+					}
+				}
+				vote_to_halt();
+			}
+		}
+
 		void continue_mapping(vector<SIKey> &mapping, int &curr_u,
 				bool add_flag, bool filter_flag)
 		{ // Add current vertex to mapping;
 		  // Send messages to neighbors with label of next_u(next query vertex)
 		  // if add_flag, add a dummy vertex for each mapping.
-			hash_map<SIKey, int>::iterator it;
 			SIQuery* query = (SIQuery*)getQuery();
 
 			mapping.push_back(id);
@@ -93,13 +118,14 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					}
 					else
 					{ // without filtering
-						hash_map<SIKey, int> & nbs = value().neighbors;
-						for (it = nbs.begin(); it != nbs.end(); it++)
+						int next_label = query->getLabel(next_u);
+						for (int i = 0; i < value().degree; ++i)
 						{
-							if (it->second == query->getLabel(next_u) &&
-								notContains(mapping, it->first))
+							KeyLabel &kl = value().nbs_vector[i];
+							if (kl.label == next_label &&
+								notContains(mapping, kl.key))
 							{ // check for label and uniqueness
-								send_message(it->first, msg);
+								send_message(kl.key, msg);
 #ifdef DEBUG_MODE_MSG
 							cout << "[DEBUG] Message sent from " << id.vID << " to "
 								 << it->first.vID << ". \n\t"
@@ -113,35 +139,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 		}
 
-		virtual void preprocess(MessageContainer & messages)
-		{
-			if (step_num() == 1)
-			{ // send label info to neighbors
-				SIMessage msg = SIMessage(LABEL_INFOMATION, id, value().label);
-				size_t sz = value().nbs_vector.size();
-				for (size_t i < 0; i < sz; ++i)
-					send_message(value().nbs_vector[i], msg);
-				vote_to_halt();
-			}
-			else // if (step_num() == 2)
-			{   // receive label info from neighbors
-				for (size_t i = 0; i < messages.size(); ++i)
-				{
-					SIMessage & msg = messages[i];
-					size_t sz = value().nbs_vector.size();
-					for (size_t i < 0; i < sz; ++i)
-					{
-						if (value().nbs_vector[i].key == msg.key)
-							value().nbs_vector[i].label = msg.value;
-					}
-				}
-				vote_to_halt();
-			}
-		}
-
 		virtual void compute(MessageContainer &messages, WorkerParams &params)
 		{
-			hash_map<SIKey, int> & nbs = value().neighbors;
 			SIQuery* query = (SIQuery*)getQuery();
 			bool add_flag; // add a dummy vertex for each mapping
 
@@ -179,19 +178,19 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			else
 			{   // check if backward neighbors in neighbors
 				int curr_level, nb_level;
-				bool flag;
 				vector<int> b_nbs;
-				for (size_t i = 0; i < messages.size(); i++)
+				bool flag;
+				for (size_t i = 0; i < messages.size(); ++i)
 				{
 					SIMessage & msg = messages[i];
 					b_nbs = query->getBNeighbors(msg.value);
 					curr_level = query->getLevel(msg.value);
 					flag = true;
-					for (int b_nb : b_nbs)
+					for (size_t j = 0; j < b_nbs.size(); ++j)
 					{
-						nb_level = query->getLevel(b_nb);
+						nb_level = query->getLevel(b_nbs[j]);
 						if ((nb_level != curr_level - 1) &&
-							(nbs.find(msg.mapping[nb_level]) == nbs.end()))
+							!(value().hasNeighbor(msg.mapping[nb_level])))
 						{
 							flag = false;
 							break;
@@ -255,28 +254,26 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 		void filter(MessageContainer & messages)
 		{
 			SIQuery* query = (SIQuery*)getQuery();
-			hash_map<SIKey, int> & nbs = value().neighbors;
-			hash_map<SIKey, int>::iterator it;
 			vector<int> temp_vec;
+			int degree = value().nbs_vector.size();
 
 			if (step_num() == 1)
 			{ // initialize candidates
-				query->LDFFilter(value().label, nbs.size(), cand_map);
+				query->LDFFilter(value().label, degree, cand_map);
 				SIMessage msg = SIMessage(CANDIDATE, id);
-				for (hash_map<int, vector<int> >::iterator cand_it
-						= cand_map.begin(); cand_it != cand_map.end();
-						cand_it ++)
+				for (auto cand_it = cand_map.begin(); cand_it != cand_map.end();
+						++ cand_it)
 					msg.add_int(cand_it->first);
 
 				if (!cand_map.empty())
 				{
-					for (it = nbs.begin(); it != nbs.end(); it++)
+					for (size_t i = 0; i < degree; ++i)
 					{
-						send_message(it->first, msg);
+						send_message(value().nbs_vector[i].key, msg);
 #ifdef DEBUG_MODE_MSG
 						cout << "[DEBUG] Superstep " << step_num()
 							 << "\n\tMessage sent from " << id.vID
-							 <<	" to " << it->first.vID << "."
+							 <<	" to " << value.nbs_vector[i].key.vID << "."
 							 << "\n\tType: CANDIDATE. "
 							 << "\n\tv_int: " << msg.v_int << endl;
 #endif
@@ -289,9 +286,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				for (size_t i = 0; i < messages.size(); i++)
 				{
 					SIMessage & msg = messages[i];
-					for (hash_map<int, vector<int> >::iterator cand_it
-							= cand_map.begin(); cand_it != cand_map.end();
-							cand_it ++)
+					for (auto cand_it = cand_map.begin(); cand_it != cand_map.end();
+							++cand_it)
 					{
 						vector<int> &a = cand_it->second;
 						set_intersection(a.begin(), a.end(), msg.v_int.begin(),
@@ -555,20 +551,34 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 //=============================================================================
 
-typedef hash_map<pair<int, int>, int> AggMap;
+typedef vector<vector<int>> AggMat;
 
-class SIAgg : public Aggregator<SIVertex, AggMap, AggMap>
+class SIAgg : public Aggregator<SIVertex, AggMat, AggMat>
 {
 	// uniform aggregator for candidates and mappings
-	// agg_map[u1, u1] = candidate(u1);
-	// agg_map[u1, u2] = sum_i(|C'_{u1, vi}(u2)|), u1 < u2
-	// agg_map[0, 0] = # mappings
+	// agg_mat[u1, u1] = candidate(u1);
+	// agg_mat[u1, u2] = sum_i(|C'_{u1, vi}(u2)|), u1 < u2
+	// agg_mat[0, 0] = # mappings
 public:
-	AggMap agg_map;
+	AggMat agg_mat;
 
-    virtual void init()
+    virtual void init(int type)
     {
+		if (type == FILTER)
+		{
+			SIQuery* query = (SIQuery*)getQuery();
+			int n = query->nodes.size();
+			agg_mat.resize(n);
+			for (int i = 0; i < n; ++i)
+				agg_mat[i].resize(i+1); // lower-triangular matrix
+		}
+		else if (type == ENUMERATE)
+		{
+			agg_mat.resize(1);
+			agg_mat[0].resize(1);
+		}
     }
+
     virtual void stepPartial(SIVertex* v, int type)
     {
     	if (type == FILTER)
@@ -578,34 +588,35 @@ public:
     		for (auto it = v->candidates.begin(); it != iend; ++it)
     		{
     			u1 = it->first;
-    			agg_map[make_pair(u1, u1)] += 1;
-				auto jend = it->second.end();
+    			agg_mat[u1][u1] += 1;
+			auto jend = it->second.end();
     			for (auto jt = it->second.begin(); jt != jend; ++jt)
     			{
     				u2 = jt->first;
-    				if (u1 < u2)
-    					agg_map[make_pair(u1, u2)] += jt->second.size();
+    				if (u1 > u2)
+    					agg_mat[u1][u2] += jt->second.size();
     			}
     		}
     	}
     	else if (type == ENUMERATE)
     	{
     		for (auto it = v->results.begin(); it != v->results.end(); it++)
-    			agg_map[make_pair(0, 0)] += it->second.size();
+    			agg_mat[0][0] += it->second.size();
     	}
     }
-    virtual void stepFinal(AggMap* part)
+    virtual void stepFinal(AggMat* part)
     {
-    	for (auto it = part->begin(); it != part->end(); it++)
-    		agg_map[it->first] += it->second;
+    	for (int i = 0; i < part->size(); ++i)
+			for (int j = 0; j < (*part)[i].size(); ++j)
+    		agg_mat[i][j] += (*part)[i][j];
     }
-    virtual AggMap* finishPartial()
+    virtual AggMat* finishPartial()
     {
-    	return &agg_map;
+    	return &agg_mat;
     }
-    virtual AggMap* finishFinal()
+    virtual AggMat* finishFinal()
     {
-    	return &agg_map;
+    	return &agg_mat;
     }
 };
 
@@ -635,6 +646,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 
 				pch = strtok(NULL, " ");
 				int num = atoi(pch);
+				v->value().degree = num;
 				SIKey key;
 				for (int k = 0; k < num; ++k)
 				{
@@ -664,6 +676,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 					v->value().nbs_vector.push_back(KeyLabel(key, (int) *pch));
 				}
 				size_t sz = v->value().nbs_vector.size();
+				v->value().degree = sz;
 				if (sz > 20)
 				{
 					for (size_t i = 0; i < sz; ++i)
@@ -693,8 +706,8 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 #endif
 					for (size_t j = 0; j < mapping.size(); j++)
 					{
-						sprintf(buf, "%d %d\n", query->dfs_order[j],
-								mapping[j].vID);
+						sprintf(buf, "%d %d\n", 
+							query->getID(query->dfs_order[j]), mapping[j].vID);
 						writer.write(buf);
 					}
 				}
@@ -775,7 +788,7 @@ void pregel_subgraph(const WorkerParams & params)
 	{
 		cout << "================ Final Report ===============" << endl;
 		cout << "Mapping count: " <<
-				(*((AggMap*)global_agg))[make_pair(0, 0)] << endl;
+				(*((AggMat*)global_agg))[0][0] << endl;
 		cout << "Load time: " << load_time << " s." << endl;
 		cout << "Dump time: " << dump_time << " s." << endl;
 		cout << "Compute time: " << compute_time << " s." << endl;
