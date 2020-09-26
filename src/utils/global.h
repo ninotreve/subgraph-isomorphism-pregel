@@ -307,9 +307,25 @@ struct WorkerParams {
         partition = command.getPartition();
         filter = command.getFilterMethod();
         order = command.getOrderMethod();
+        if (!filter && order == "candidate")
+        {
+            cout << "Warning: non-filter mode cannot have candidate as order." << endl;
+            order = "random";
+        }
         enumerate = command.getEnumerateMethod();
         report = command.getReport();
         input = command.getInputFormat();
+    }
+
+    void print()
+    {
+        cout << "Data graph path: " << data_path << endl;
+        cout << "Query graph path: " << query_path << endl;
+        cout << "Output graph path: " << output_path << endl;
+        cout << "Partition Method: " << partition << endl;
+        cout << "Filter Method: " << filter << endl;
+        cout << "Order Method: " << order << endl;
+        cout << "Enumerate Method: " << enumerate << endl;
     }
 };
 
