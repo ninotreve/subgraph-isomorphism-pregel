@@ -1,0 +1,102 @@
+Data graph path: /labelyou
+Query graph path: /query
+Output graph path: /output
+Partition Method: 
+Filter Method: 1
+Order Method: 
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 8.121345 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://2f957c17abfd:9000/query/query.txt" loaded
+Communication Time : 0.000038 seconds
+- Serialization Time : 0.000007 seconds
+- Transfer Time : 0.000030 seconds
+Load Query Time : 0.073473 seconds
+================Start filtering...=================
+Superstep 1 done.Time elapsed: 0.626189 seconds
+#msgs: 854703
+Superstep 2 done.Time elapsed: 0.307442 seconds
+#msgs: 24109
+Superstep 3 done.Time elapsed: 0.0391541 seconds
+#msgs: 2339
+Superstep 4 done.Time elapsed: 0.0130401 seconds
+#msgs: 674
+Superstep 5 done.Time elapsed: 0.0102639 seconds
+#msgs: 168
+Superstep 6 done.Time elapsed: 0.00942779 seconds
+#msgs: 79
+Superstep 7 done.Time elapsed: 0.00922012 seconds
+#msgs: 21
+Superstep 8 done.Time elapsed: 0.00903416 seconds
+#msgs: 1
+Superstep 9 done.Time elapsed: 0.00899601 seconds
+#msgs: 0
+Candidate filtering done.
+Communication Time : 0.099344 seconds
+- Serialization Time : 0.054506 seconds
+- Transfer Time : 0.043968 seconds
+Total Computational Time : 1.153955 seconds
+Total #msgs=882094, Total #vadd=0
+=================Start building query tree...===================
+this->nodes size: 5
+Node 2
+Label: 99
+Branch number: 1
+Neighbors: [0, 1, 3]
+It has 2 children.
+Node 0
+Label: 97
+Branch number: 1
+Neighbors: [1, 2]
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 1
+Neighbors: [0, 2]
+It has 0 children.
+Node 3
+Label: 98
+Branch number: 1
+Neighbors: [2, 4]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 1
+Neighbors: [3]
+It has 0 children.
+Build Query Tree Time : 0.000048 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.126681 seconds
+#msgs: 4738
+Superstep 2 done.Time elapsed: 0.038065 seconds
+#msgs: 54737
+Superstep 3 done.Time elapsed: 0.0188291 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 0.010650 seconds
+- Serialization Time : 0.006271 seconds
+- Transfer Time : 0.004264 seconds
+Total Computational Time : 0.183654 seconds
+Total #msgs=59475, Total #vadd=43597
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 0.290722 seconds
+#msgs: 39592
+Superstep 2 done.Time elapsed: 0.168672 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.010842 seconds
+- Serialization Time : 0.005741 seconds
+- Transfer Time : 0.005095 seconds
+Total Computational Time : 0.612866 seconds
+Total #msgs=39592, Total #vadd=0
+=================Start dumping graph...===================
+output path: /output
+Dump Time : 0.369688 seconds
+================ Final Report ===============
+Mapping count: 238901
+Load time: 8.19482 s.
+Dump time: 0.369688 s.
+Compute time: 1.9506 s.
+Offline time: 8.97789 s.
+Online time: 2.44882 s.

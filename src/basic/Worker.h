@@ -193,11 +193,6 @@ public:
 				}
 
 				v_msgbufs[i].clear(); //clear used msgs
-				if (type == ENUMERATE)
-				{
-					AggregatorT* agg = (AggregatorT*)get_aggregator();
-					agg->stepPartial(vertexes[i], type);
-				}
 				if (vertexes[i]->is_active())
 					active_count++;
             }
@@ -535,16 +530,14 @@ public:
                 cout << "#msgs: " << step_msg_num << endl;
             }
         } // end of while loop
-        if (type == FILTER)
+        if (type == FILTER || type == ENUMERATE)
         {
         	for (size_t i = 0; i < vertexes.size(); i++)
         	{
 				agg->stepPartial(vertexes[i], type);
         	}
+            agg_sync();
         }
-        if (type == FILTER || type == ENUMERATE)
-        	agg_sync();
-
         worker_barrier();
         StopTimer(WORKER_TIMER);
         if (_my_rank == MASTER_RANK && !params.report)

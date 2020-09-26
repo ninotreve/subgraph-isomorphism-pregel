@@ -39,7 +39,7 @@ struct SIValue
 	{
 		if (degree > 20)
 		{
-			return nbs_set.find(k) == nbs_set.end();
+			return nbs_set.find(k) != nbs_set.end();
 		}
 		else
 		{

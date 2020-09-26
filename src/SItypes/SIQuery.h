@@ -126,19 +126,27 @@ public:
 
 		// order = "degree", value = degree
 		// order = "candidate", value = candidate size
+		// order = "random"
 		if (! this->nodes.empty())
 		{
-			size_t value, min_value;
-			for (size_t i = 0; i < this->nodes.size(); ++i)
+			if (order == "random")
 			{
-				if (order == "degree")
-					value = - this->nodes[i].nbs.size(); // default asc
-				else
-					value = (*((AggMat*)global_agg))[i][i];
-				if (i == 0 || value < min_value)
+				this->root = 0;
+			}
+			else
+			{
+				size_t value, min_value;
+				for (size_t i = 0; i < this->nodes.size(); ++i)
 				{
-					min_value = value;
-					this->root = i;
+					if (order == "degree")
+						value = - this->nodes[i].nbs.size(); // default asc
+					else
+						value = (*((AggMat*)global_agg))[i][i];
+					if (i == 0 || value < min_value)
+					{
+						min_value = value;
+						this->root = i;
+					}
 				}
 			}
 			this->dfs(this->root, 0, true, order);
@@ -181,7 +189,7 @@ public:
 		for (size_t i = 0; i < this->dfs_order.size(); i++)
 		{
 			SINode* curr = &this->nodes[this->dfs_order[i]];
-			cout << "Node " << i << endl;
+			cout << "Node " << this->dfs_order[i] << endl;
 			cout << *curr << "It has " << curr->children.size() <<
 					" children." << endl;
 		}
@@ -219,9 +227,11 @@ public:
 				curr->b_nbs.push_back(nextID);
 			else
 			{
-				if (order == "degree")
+				if (order == "random")
+					value = 0;
+				else if (order == "degree")
 					value = - this->nodes[nextID].nbs.size(); // default asc
-				else
+				else if (order == "candidate")
 					value = (*((AggMat*)global_agg))[currID][nextID]
 					     + (*((AggMat*)global_agg))[nextID][currID];
 				unv_nbs_value.push_back(make_pair(nextID, value));
@@ -270,7 +280,7 @@ public:
 	{
 		vector<int> nbs;
 		int curr_u, lab;
-		for (curr_u = 0; curr_u < this->num; ++curr_u)
+		for (curr_u = 0; curr_u < this->nodes.size(); ++curr_u)
 		{
 			lab = this->nodes[curr_u].label;
 			nbs = this->nodes[curr_u].nbs;
