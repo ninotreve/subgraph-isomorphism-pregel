@@ -1,0 +1,456 @@
+Data graph path: /toyGraph/toy2
+Query graph path: /toyQuery/query4
+Output graph path: /toyOutput
+Partition Method: 
+Filter Method: 1
+Order Method: 
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 0.121586 seconds
+================Start preprocessing...=================
+Communication Time : 0.000000 seconds
+- Serialization Time : 0.000000 seconds
+- Transfer Time : 0.000000 seconds
+Total Computational Time : 0.000049 seconds
+Total #msgs=16, Total #vadd=0
+=================Start loading query...===================
+Worker 0: "hdfs://2f957c17abfd:9000/toyQuery/query4/query4.txt" loaded
+Communication Time : 0.000011 seconds
+- Serialization Time : 0.000008 seconds
+- Transfer Time : 0.000002 seconds
+Load Query Time : 0.059062 seconds
+================Start filtering...=================
+[DEBUG] Superstep 1
+	Message sent from 1 to 2.
+	Type: CANDIDATE. 
+	v_int: [0]
+[DEBUG] Superstep 1
+	Message sent from 1 to 3.
+	Type: CANDIDATE. 
+	v_int: [0]
+[DEBUG] Superstep 1
+	Message sent from 1 to 8.
+	Type: CANDIDATE. 
+	v_int: [0]
+[DEBUG] Superstep 1
+	Message sent from 1 to 9.
+	Type: CANDIDATE. 
+	v_int: [0]
+[DEBUG] Superstep 1
+	Message sent from 2 to 1.
+	Type: CANDIDATE. 
+	v_int: [1, 2, 7, 8]
+[DEBUG] Superstep 1
+	Message sent from 2 to 4.
+	Type: CANDIDATE. 
+	v_int: [1, 2, 7, 8]
+[DEBUG] Superstep 1
+	Message sent from 2 to 5.
+	Type: CANDIDATE. 
+	v_int: [1, 2, 7, 8]
+[DEBUG] Superstep 1
+	Message sent from 3 to 1.
+	Type: CANDIDATE. 
+	v_int: [1, 2, 7, 8]
+[DEBUG] Superstep 1
+	Message sent from 3 to 6.
+	Type: CANDIDATE. 
+	v_int: [1, 2, 7, 8]
+[DEBUG] Superstep 1
+	Message sent from 3 to 7.
+	Type: CANDIDATE. 
+	v_int: [1, 2, 7, 8]
+[DEBUG] Superstep 1
+	Message sent from 4 to 2.
+	Type: CANDIDATE. 
+	v_int: [3, 4, 5, 6]
+[DEBUG] Superstep 1
+	Message sent from 5 to 2.
+	Type: CANDIDATE. 
+	v_int: [3, 4, 5, 6]
+[DEBUG] Superstep 1
+	Message sent from 6 to 3.
+	Type: CANDIDATE. 
+	v_int: [3, 4, 5, 6]
+[DEBUG] Superstep 1
+	Message sent from 7 to 3.
+	Type: CANDIDATE. 
+	v_int: [3, 4, 5, 6]
+[DEBUG] Superstep 1
+	Message sent from 8 to 1.
+	Type: CANDIDATE. 
+	v_int: [7, 8]
+[DEBUG] Superstep 1
+	Message sent from 9 to 1.
+	Type: CANDIDATE. 
+	v_int: [7, 8]
+Communication Time : 0.000007 seconds
+- Serialization Time : 0.000001 seconds
+- Transfer Time : 0.000003 seconds
+Total Computational Time : 0.000396 seconds
+Total #msgs=16, Total #vadd=0
+=================Start building query tree...===================
+this->nodes size: 9
+Node 0
+Label: 1
+Branch number: 1
+Neighbors: [1, 2, 7, 8]
+It has 4 children.
+Node 1
+Label: 2
+Branch number: 2
+Neighbors: [0, 3, 4]
+It has 2 children.
+Node 2
+Label: 3
+Branch number: 2
+Neighbors: [1]
+It has 0 children.
+Node 3
+Label: 3
+Branch number: 2
+Neighbors: [1]
+It has 0 children.
+Node 4
+Label: 2
+Branch number: 2
+Neighbors: [0, 5, 6]
+It has 2 children.
+Node 5
+Label: 3
+Branch number: 2
+Neighbors: [2]
+It has 0 children.
+Node 6
+Label: 3
+Branch number: 2
+Neighbors: [2]
+It has 0 children.
+Node 7
+Label: 2
+Branch number: 1
+Neighbors: [0]
+It has 0 children.
+Node 8
+Label: 2
+Branch number: 1
+Neighbors: [0]
+It has 0 children.
+Build Query Tree Time : 0.000132 seconds
+================Start matching...======================
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 1
+[Result] Current query vertex: 0 Partial mapping: [1]
+[DEBUG] Message sent from 1 to 2. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 3. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 2. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 3. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 2. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 3. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 8. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 9. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 2. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 3. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 8. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] Message sent from 1 to 9. 
+	Type: MAPPING. 
+	Mapping: [1]
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 2
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 3
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 4
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 5
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 6
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 7
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 8
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 9
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 2
+[Result] Current query vertex: 1 Partial mapping: [1, 2]
+[DEBUG] Message sent from 2 to 4. 
+	Type: MAPPING. 
+	Mapping: [1, 2]
+[DEBUG] Message sent from 2 to 5. 
+	Type: MAPPING. 
+	Mapping: [1, 2]
+[DEBUG] Message sent from 2 to 4. 
+	Type: MAPPING. 
+	Mapping: [1, 2]
+[DEBUG] Message sent from 2 to 5. 
+	Type: MAPPING. 
+	Mapping: [1, 2]
+[Result] Current query vertex: 2 Partial mapping: [1, 2]
+[DEBUG] Message sent from 2 to 4. 
+	Type: MAPPING. 
+	Mapping: [1, 2]
+[DEBUG] Message sent from 2 to 5. 
+	Type: MAPPING. 
+	Mapping: [1, 2]
+[DEBUG] Message sent from 2 to 4. 
+	Type: MAPPING. 
+	Mapping: [1, 2]
+[DEBUG] Message sent from 2 to 5. 
+	Type: MAPPING. 
+	Mapping: [1, 2]
+[Result] Current query vertex: 7 Partial mapping: [1, 2]
+[Result] Current query vertex: 8 Partial mapping: [1, 2]
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 3
+[Result] Current query vertex: 1 Partial mapping: [1, 3]
+[DEBUG] Message sent from 3 to 6. 
+	Type: MAPPING. 
+	Mapping: [1, 3]
+[DEBUG] Message sent from 3 to 7. 
+	Type: MAPPING. 
+	Mapping: [1, 3]
+[DEBUG] Message sent from 3 to 6. 
+	Type: MAPPING. 
+	Mapping: [1, 3]
+[DEBUG] Message sent from 3 to 7. 
+	Type: MAPPING. 
+	Mapping: [1, 3]
+[Result] Current query vertex: 2 Partial mapping: [1, 3]
+[DEBUG] Message sent from 3 to 6. 
+	Type: MAPPING. 
+	Mapping: [1, 3]
+[DEBUG] Message sent from 3 to 7. 
+	Type: MAPPING. 
+	Mapping: [1, 3]
+[DEBUG] Message sent from 3 to 6. 
+	Type: MAPPING. 
+	Mapping: [1, 3]
+[DEBUG] Message sent from 3 to 7. 
+	Type: MAPPING. 
+	Mapping: [1, 3]
+[Result] Current query vertex: 7 Partial mapping: [1, 3]
+[Result] Current query vertex: 8 Partial mapping: [1, 3]
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 8
+[Result] Current query vertex: 7 Partial mapping: [1, 8]
+[Result] Current query vertex: 8 Partial mapping: [1, 8]
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 9
+[Result] Current query vertex: 7 Partial mapping: [1, 9]
+[Result] Current query vertex: 8 Partial mapping: [1, 9]
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 1
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 4
+[Result] Current query vertex: 3 Partial mapping: [1, 2, 4]
+[Result] Current query vertex: 4 Partial mapping: [1, 2, 4]
+[Result] Current query vertex: 5 Partial mapping: [1, 2, 4]
+[Result] Current query vertex: 6 Partial mapping: [1, 2, 4]
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 5
+[Result] Current query vertex: 3 Partial mapping: [1, 2, 5]
+[Result] Current query vertex: 4 Partial mapping: [1, 2, 5]
+[Result] Current query vertex: 5 Partial mapping: [1, 2, 5]
+[Result] Current query vertex: 6 Partial mapping: [1, 2, 5]
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 6
+[Result] Current query vertex: 3 Partial mapping: [1, 3, 6]
+[Result] Current query vertex: 4 Partial mapping: [1, 3, 6]
+[Result] Current query vertex: 5 Partial mapping: [1, 3, 6]
+[Result] Current query vertex: 6 Partial mapping: [1, 3, 6]
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 7
+[Result] Current query vertex: 3 Partial mapping: [1, 3, 7]
+[Result] Current query vertex: 4 Partial mapping: [1, 3, 7]
+[Result] Current query vertex: 5 Partial mapping: [1, 3, 7]
+[Result] Current query vertex: 6 Partial mapping: [1, 3, 7]
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 2
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 2
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 3
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 3
+Communication Time : 0.000000 seconds
+- Serialization Time : 0.000000 seconds
+- Transfer Time : 0.000000 seconds
+Total Computational Time : 0.000379 seconds
+Total #msgs=28, Total #vadd=5
+================Start enumerating...===================
+[DEBUG] Superstep 1
+	Message sent from (leaf) 4 to <2, [1, 2]>.
+	Type: BRANCH. 
+	Mapping: [4], curr_u: 3
+[DEBUG] Superstep 1
+	Message sent from (leaf) 4 to <2, [1, 2]>.
+	Type: BRANCH. 
+	Mapping: [4], curr_u: 4
+[DEBUG] Superstep 1
+	Message sent from (leaf) 4 to <2, [1, 2]>.
+	Type: BRANCH. 
+	Mapping: [4], curr_u: 5
+[DEBUG] Superstep 1
+	Message sent from (leaf) 4 to <2, [1, 2]>.
+	Type: BRANCH. 
+	Mapping: [4], curr_u: 6
+[DEBUG] Superstep 1
+	Message sent from (leaf) 5 to <2, [1, 2]>.
+	Type: BRANCH. 
+	Mapping: [5], curr_u: 3
+[DEBUG] Superstep 1
+	Message sent from (leaf) 5 to <2, [1, 2]>.
+	Type: BRANCH. 
+	Mapping: [5], curr_u: 4
+[DEBUG] Superstep 1
+	Message sent from (leaf) 5 to <2, [1, 2]>.
+	Type: BRANCH. 
+	Mapping: [5], curr_u: 5
+[DEBUG] Superstep 1
+	Message sent from (leaf) 5 to <2, [1, 2]>.
+	Type: BRANCH. 
+	Mapping: [5], curr_u: 6
+[DEBUG] Superstep 1
+	Message sent from (leaf) 6 to <3, [1, 3]>.
+	Type: BRANCH. 
+	Mapping: [6], curr_u: 3
+[DEBUG] Superstep 1
+	Message sent from (leaf) 6 to <3, [1, 3]>.
+	Type: BRANCH. 
+	Mapping: [6], curr_u: 4
+[DEBUG] Superstep 1
+	Message sent from (leaf) 6 to <3, [1, 3]>.
+	Type: BRANCH. 
+	Mapping: [6], curr_u: 5
+[DEBUG] Superstep 1
+	Message sent from (leaf) 6 to <3, [1, 3]>.
+	Type: BRANCH. 
+	Mapping: [6], curr_u: 6
+[DEBUG] Superstep 1
+	Message sent from (leaf) 7 to <3, [1, 3]>.
+	Type: BRANCH. 
+	Mapping: [7], curr_u: 3
+[DEBUG] Superstep 1
+	Message sent from (leaf) 7 to <3, [1, 3]>.
+	Type: BRANCH. 
+	Mapping: [7], curr_u: 4
+[DEBUG] Superstep 1
+	Message sent from (leaf) 7 to <3, [1, 3]>.
+	Type: BRANCH. 
+	Mapping: [7], curr_u: 5
+[DEBUG] Superstep 1
+	Message sent from (leaf) 7 to <3, [1, 3]>.
+	Type: BRANCH. 
+	Mapping: [7], curr_u: 6
+[DEBUG] Superstep 2
+	Message sent from (leaf) 2 to <1, [1]>.
+	Type: BRANCH. 
+	Mapping: [2], curr_u: 7
+[DEBUG] Superstep 2
+	Message sent from (leaf) 2 to <1, [1]>.
+	Type: BRANCH. 
+	Mapping: [2], curr_u: 8
+[DEBUG] Superstep 2
+	Message sent from (leaf) 3 to <1, [1]>.
+	Type: BRANCH. 
+	Mapping: [3], curr_u: 7
+[DEBUG] Superstep 2
+	Message sent from (leaf) 3 to <1, [1]>.
+	Type: BRANCH. 
+	Mapping: [3], curr_u: 8
+[DEBUG] Superstep 2
+	Message sent from (leaf) 8 to <1, [1]>.
+	Type: BRANCH. 
+	Mapping: [8], curr_u: 7
+[DEBUG] Superstep 2
+	Message sent from (leaf) 8 to <1, [1]>.
+	Type: BRANCH. 
+	Mapping: [8], curr_u: 8
+[DEBUG] Superstep 2
+	Message sent from (leaf) 9 to <1, [1]>.
+	Type: BRANCH. 
+	Mapping: [9], curr_u: 7
+[DEBUG] Superstep 2
+	Message sent from (leaf) 9 to <1, [1]>.
+	Type: BRANCH. 
+	Mapping: [9], curr_u: 8
+[DEBUG] Superstep 2
+	Message sent from (branching) 2 to <1, [1]>. 
+	Type: BRANCH. 
+	Mapping: [2]
+[DEBUG] Superstep 2
+	Message sent from (branching) 2 to <1, [1]>. 
+	Type: BRANCH. 
+	Mapping: [2]
+[DEBUG] Superstep 2
+	Message sent from (branching) 3 to <1, [1]>. 
+	Type: BRANCH. 
+	Mapping: [3]
+[DEBUG] Superstep 2
+	Message sent from (branching) 3 to <1, [1]>. 
+	Type: BRANCH. 
+	Mapping: [3]
+Communication Time : 0.000002 seconds
+- Serialization Time : 0.000000 seconds
+- Transfer Time : 0.000000 seconds
+Total Computational Time : 0.000719 seconds
+Total #msgs=28, Total #vadd=0
+=================Start dumping graph...===================
+output path: /toyOutput
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 2, 4, 5, 3, 6, 7, 8, 9]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 2, 4, 5, 3, 6, 7, 9, 8]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 2, 4, 5, 3, 7, 6, 8, 9]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 2, 4, 5, 3, 7, 6, 9, 8]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 2, 5, 4, 3, 6, 7, 8, 9]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 2, 5, 4, 3, 6, 7, 9, 8]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 2, 5, 4, 3, 7, 6, 8, 9]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 2, 5, 4, 3, 7, 6, 9, 8]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 3, 6, 7, 2, 4, 5, 8, 9]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 3, 6, 7, 2, 4, 5, 9, 8]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 3, 6, 7, 2, 5, 4, 8, 9]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 3, 6, 7, 2, 5, 4, 9, 8]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 3, 7, 6, 2, 4, 5, 8, 9]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 3, 7, 6, 2, 4, 5, 9, 8]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 3, 7, 6, 2, 5, 4, 8, 9]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 1
+[DEBUG] Result: [1, 3, 7, 6, 2, 5, 4, 9, 8]
+Dump Time : 0.103495 seconds
+================ Final Report ===============
+Mapping count: 16
+Load time: 0.180648 s.
+Dump time: 0.103495 s.
+Compute time: 0.00165915 s.
+Offline time: 0.932463 s.
+Online time: 0.235184 s.

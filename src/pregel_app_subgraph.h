@@ -3,10 +3,12 @@
 #include "utils/Query.h"
 using namespace std;
 
-//#define DEBUG_MODE_ACTIVE 1
-//#define DEBUG_MODE_MSG 1
-//#define DEBUG_MODE_PARTIAL_RESULT 1
-//#define DEBUG_MODE_RESULT 1
+/*
+#define DEBUG_MODE_ACTIVE 1
+#define DEBUG_MODE_MSG 1
+#define DEBUG_MODE_PARTIAL_RESULT 1
+#define DEBUG_MODE_RESULT 1
+*/
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -78,7 +80,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 
 			mapping.push_back(id);
 #ifdef DEBUG_MODE_PARTIAL_RESULT
-			cout << "[Result] Current query vertex: " << curr_u << " Partial mapping: " << mapping << endl;
+			cout << "[Result] Current query vertex: " << curr_u << 
+			" Partial mapping: " << mapping << endl;
 #endif
 			if (add_flag)
 			{
@@ -102,7 +105,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 					if (filter_flag)
 					{ // with filtering
 						hash_set<SIKey> &keys = candidates[curr_u][next_u];
-						for (auto it = keys.begin(); it != keys.end(); it++)
+						auto it = keys.begin();
+						auto iend = keys.end();
+						for (; it != iend; ++it)
 						{
 							if (notContains(mapping, *it))
 							{
@@ -128,7 +133,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 								send_message(kl.key, msg);
 #ifdef DEBUG_MODE_MSG
 							cout << "[DEBUG] Message sent from " << id.vID << " to "
-								 << it->first.vID << ". \n\t"
+								 << kl.key.vID << ". \n\t"
 								 << "Type: MAPPING. \n\t"
 								 << "Mapping: " << msg.mapping << endl;
 #endif
@@ -273,7 +278,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 #ifdef DEBUG_MODE_MSG
 						cout << "[DEBUG] Superstep " << step_num()
 							 << "\n\tMessage sent from " << id.vID
-							 <<	" to " << value.nbs_vector[i].key.vID << "."
+							 <<	" to " << value().nbs_vector[i].key.vID << "."
 							 << "\n\tType: CANDIDATE. "
 							 << "\n\tv_int: " << msg.v_int << endl;
 #endif
@@ -570,12 +575,17 @@ public:
 			int n = query->nodes.size();
 			agg_mat.resize(n);
 			for (int i = 0; i < n; ++i)
+			{
 				agg_mat[i].resize(i+1); // lower-triangular matrix
+				for (int j = 0; j <= i; ++j)
+					agg_mat[i][j] = 0;
+			}
 		}
 		else if (type == ENUMERATE)
 		{
 			agg_mat.resize(1);
 			agg_mat[0].resize(1);
+			agg_mat[0][0] = 0;
 		}
     }
 
@@ -608,7 +618,7 @@ public:
     {
     	for (int i = 0; i < part->size(); ++i)
 			for (int j = 0; j < (*part)[i].size(); ++j)
-    		agg_mat[i][j] += (*part)[i][j];
+    			agg_mat[i][j] += (*part)[i][j];
     }
     virtual AggMat* finishPartial()
     {
