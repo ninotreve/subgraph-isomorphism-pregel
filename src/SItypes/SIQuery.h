@@ -232,8 +232,12 @@ public:
 				else if (order == "degree")
 					value = - this->nodes[nextID].nbs.size(); // default asc
 				else if (order == "candidate")
-					value = (*((AggMat*)global_agg))[currID][nextID]
-					     + (*((AggMat*)global_agg))[nextID][currID];
+				{
+					if (currID > nextID)
+						value = (*((AggMat*)global_agg))[currID][nextID];
+					else
+					    value = (*((AggMat*)global_agg))[nextID][currID];
+				}
 				unv_nbs_value.push_back(make_pair(nextID, value));
 			}
 		}
