@@ -27,7 +27,7 @@ public:
     vector<MessageContainerT> v_msg_bufs;
     HashT hash;
 
-    void init(vector<VertexT*> vertexes)
+    void init(vector<VertexT*> & vertexes)
     {
         v_msg_bufs.resize(vertexes.size());
         for (size_t i = 0; i < vertexes.size(); i++) {

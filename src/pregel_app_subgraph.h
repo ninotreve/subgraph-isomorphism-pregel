@@ -42,6 +42,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 		// used in the final step:
 		// key = query_vertex, value = vector of path mapping
 		int root_query_vertex;
+		int results_count = 0;
 		// typedef hash_map<int, vector<Mapping> > Result;
 		Result results;
 
@@ -94,6 +95,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			if (children_num == 0)
 			{ // leaf query vertex
 				this->results[curr_u].push_back(mapping);
+				++this->results_count;
 			}
 			else
 			{
@@ -158,25 +160,11 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			{
 				int root_u = query->root;
 				add_flag = params.enumerate && query->isBranch(root_u);
-				if (params.filter)
-				{ // with filtering
-					int root_label = query->getLabel(root_u);
-					if (value().label == root_label) //!candidates[root_u].empty()
-					{
-						vector<SIKey> mapping;
-						continue_mapping(mapping, root_u, add_flag,
-								params.filter);
-					}
-				}
-				else
-				{ // without filtering, map with vertices with same label
-					int root_label = query->getLabel(root_u);
-					if (value().label == root_label)
-					{
-						vector<SIKey> mapping;
-						continue_mapping(mapping, root_u, add_flag,
-								params.filter);
-					}
+				int root_label = query->getLabel(root_u);
+				if (value().label == root_label)
+				{
+					vector<SIKey> mapping;
+					continue_mapping(mapping, root_u, add_flag, params.filter);
 				}
 				vote_to_halt();
 			}
@@ -334,21 +322,15 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 		{
 			// return the number of mappings
 			SIQuery* query = (SIQuery*)getQuery();
-			hash_map<int, vector<Mapping> >::iterator it;
 			int num, curr_u, anc_u, j;
 			SIKey to_key;
-			// hash_map<curr_u, map<chd_u's DFS number, vector<SIBranch> > >
-			hash_map<int, map<int, vector<SIBranch> > > u_children;
-			hash_map<int, map<int, vector<SIBranch> > >::iterator it1;
-			map<int, vector<SIBranch> >::iterator it2;
-
-			hash_set<int> delete_set; // hash map keys to be deleted
 
 			// send mappings from leaves for supersteps [1, max_branch_number]
 			if (step_num() > 0 && step_num() <= query->max_branch_number)
 			{
-				for (it = this->results.begin(); it != this->results.end();
-						it++)
+				hash_set<int> delete_set; // hash map keys to be deleted
+				auto iend = this->results.end();
+				for (auto it = this->results.begin(); it != iend; ++it)
 				{
 					curr_u = it->first;
 					num = query->getBranchNumber(curr_u);
@@ -386,12 +368,17 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				{
 					this->results.erase(*it);
 				}
+				this->results_count = 0;
 			}
 
 			// receive msg and join for supersteps [2, max_branch_number + 1]
 			// send msg to ancestor for supersteps [2, max_branch_number]
 			if (step_num() > 1 && step_num() <= query->max_branch_number + 1)
 			{
+				// hash_map<curr_u, map<chd_u's DFS number, vector<SIBranch> > >
+				hash_map<int, map<int, vector<SIBranch> > > u_children;
+				hash_map<int, map<int, vector<SIBranch> > >::iterator it1;
+				map<int, vector<SIBranch> >::iterator it2;
 				for (size_t i = 0; i < messages.size(); i++)
 				{
 					SIMessage & msg = messages[i];
@@ -419,6 +406,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 								it2 != it1->second.end(); it2++)
 							b.addBranch(it2->second);
 						this->results[curr_u] = b.expand();
+						this->results_count += this->results[curr_u].size();
 					}
 					else
 					{
@@ -599,7 +587,7 @@ public:
     		{
     			u1 = it->first;
     			agg_mat[u1][u1] += 1;
-			auto jend = it->second.end();
+				auto jend = it->second.end();
     			for (auto jt = it->second.begin(); jt != jend; ++jt)
     			{
     				u2 = jt->first;
@@ -610,8 +598,7 @@ public:
     	}
     	else if (type == ENUMERATE)
     	{
-    		for (auto it = v->results.begin(); it != v->results.end(); it++)
-    			agg_mat[0][0] += it->second.size();
+    		agg_mat[0][0] += v->results_count;
     	}
     }
     virtual void stepFinal(AggMat* part)
@@ -628,6 +615,7 @@ public:
     {
     	return &agg_mat;
     }
+
 };
 
 //=============================================================================
@@ -648,6 +636,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 			if (default_format)
 			{
 				pch = strtok(line, " ");
+				if (*pch == '#') return NULL;
 				int id = atoi(pch);
 				v->id = SIKey(id, id % _num_workers);
 
@@ -671,6 +660,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 			else
 			{
 				pch = strtok(line, " \t");
+				if (*pch == '#') return NULL;
 				int id = atoi(pch);
 				v->id = SIKey(id, id % _num_workers);
 

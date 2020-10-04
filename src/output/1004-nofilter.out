@@ -1,0 +1,79 @@
+Data graph path: /labelyou
+Query graph path: /query
+Output graph path: /output
+Partition Method: 
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 8.163932 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://2f957c17abfd:9000/query/query.txt" loaded
+Communication Time : 0.000034 seconds
+- Serialization Time : 0.000016 seconds
+- Transfer Time : 0.000018 seconds
+Load Query Time : 0.068420 seconds
+=================Start building query tree...===================
+this->nodes size: 5
+Node 0
+Label: 97
+Branch number: 0
+Neighbors: [1, 2]
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 0
+Neighbors: [0, 2]
+It has 1 children.
+Node 2
+Label: 99
+Branch number: 0
+Neighbors: [0, 1, 3]
+It has 1 children.
+Node 3
+Label: 98
+Branch number: 0
+Neighbors: [2, 4]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 0
+Neighbors: [3]
+It has 0 children.
+Build Query Tree Time : 0.000196 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.03899 seconds
+#msgs: 8620
+Superstep 2 done.Time elapsed: 0.0579612 seconds
+#msgs: 97569
+Superstep 3 done.Time elapsed: 0.044728 seconds
+#msgs: 37037
+Superstep 4 done.Time elapsed: 0.152628 seconds
+#msgs: 238901
+Superstep 5 done.Time elapsed: 0.0444019 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 0.094387 seconds
+- Serialization Time : 0.058087 seconds
+- Transfer Time : 0.035218 seconds
+Total Computational Time : 0.338868 seconds
+Total #msgs=382127, Total #vadd=0
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 0.0211718 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.000017 seconds
+- Serialization Time : 0.000004 seconds
+- Transfer Time : 0.000011 seconds
+Total Computational Time : 0.033662 seconds
+Total #msgs=0, Total #vadd=0
+=================Start dumping graph...===================
+output path: /output
+Dump Time : 0.321898 seconds
+================ Final Report ===============
+Mapping count: 238901
+Load time: 8.23235 s.
+Dump time: 0.321898 s.
+Compute time: 0.372779 s.
+Offline time: 9.04163 s.
+Online time: 0.817681 s.
