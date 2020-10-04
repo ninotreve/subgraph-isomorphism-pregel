@@ -265,7 +265,12 @@ public:
     bool getFilterMethod() {
     	return (options_value[5] != "off");
     }
-    string getOrderMethod() { return options_value[7]; }
+    string getOrderMethod() {
+        if (options_value[7] == "candidate" || options_value[7] == "degree")
+            return options_value[7];
+        else
+            return "random";
+    }
     bool getEnumerateMethod() {
     	return (options_value[8] != "old");
     }

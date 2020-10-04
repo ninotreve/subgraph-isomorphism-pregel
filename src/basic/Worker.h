@@ -270,7 +270,8 @@ public:
 
     void load_vertex(VertexT* v)
     { //called by load_graph
-        add_vertex(v);
+        if (v != NULL)
+            add_vertex(v);
     }
 
     void load_graph(const char* inpath, bool default_format)
@@ -441,6 +442,7 @@ public:
 
 		//debug
 		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
+        //((QueryT*) global_query)->printOrder();
 		if (_my_rank == MASTER_RANK)
 			((QueryT*) global_query)->printOrder();
 
@@ -490,7 +492,7 @@ public:
         while (true) {
             global_step_num++;
             ResetTimer(4);
-            //===================
+            // stopping criteria for MATCH and ENUMRATE
             char bits_bor = all_bor(global_bor_bitmap);
             if (getBit(FORCE_TERMINATE_ORBIT, bits_bor) == 1)
                 break;
