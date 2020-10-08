@@ -1,0 +1,108 @@
+Data graph path: /fdu-zyj/labelSK
+Query graph path: /fdu-zyj/query
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Filter Method: 1
+Order Method: candidate
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 83.490583 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query/query.txt" loaded
+Communication Time : 0.000101 seconds
+- Serialization Time : 0.000010 seconds
+- Transfer Time : 0.000091 seconds
+Load Query Time : 0.716538 seconds
+================Start filtering...=================
+Superstep 1 done.Time elapsed: 1.26915 seconds
+#msgs: 3389153
+Superstep 2 done.Time elapsed: 0.719477 seconds
+#msgs: 96618
+Superstep 3 done.Time elapsed: 0.305793 seconds
+#msgs: 9892
+Superstep 4 done.Time elapsed: 0.291491 seconds
+#msgs: 3331
+Superstep 5 done.Time elapsed: 0.197147 seconds
+#msgs: 881
+Superstep 6 done.Time elapsed: 0.248203 seconds
+#msgs: 295
+Superstep 7 done.Time elapsed: 0.210002 seconds
+#msgs: 144
+Superstep 8 done.Time elapsed: 0.277893 seconds
+#msgs: 37
+Superstep 9 done.Time elapsed: 0.229105 seconds
+#msgs: 10
+Superstep 10 done.Time elapsed: 0.364131 seconds
+#msgs: 11
+Superstep 11 done.Time elapsed: 0.241232 seconds
+#msgs: 0
+Candidate filtering done.
+Communication Time : 1.496110 seconds
+- Serialization Time : 0.158812 seconds
+- Transfer Time : 1.333471 seconds
+Total Computational Time : 4.679410 seconds
+Total #msgs=3500372, Total #vadd=0
+=================Start building query tree...===================
+this->nodes size: 5
+Node 0
+Label: 97
+Branch number: 0
+Neighbors: [1, 2]
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 0
+Neighbors: [0, 2]
+It has 1 children.
+Node 2
+Label: 99
+Branch number: 0
+Neighbors: [0, 1, 3]
+It has 1 children.
+Node 3
+Label: 98
+Branch number: 0
+Neighbors: [2, 4]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 0
+Neighbors: [3]
+It has 0 children.
+Build Query Tree Time : 0.025185 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.299907 seconds
+#msgs: 10669
+Superstep 2 done.Time elapsed: 1.40268 seconds
+#msgs: 858698
+Superstep 3 done.Time elapsed: 1.04199 seconds
+#msgs: 391926
+Superstep 4 done.Time elapsed: 12.3096 seconds
+#msgs: 7841842
+Superstep 5 done.Time elapsed: 0.934876 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 5.796726 seconds
+- Serialization Time : 0.414112 seconds
+- Transfer Time : 5.377967 seconds
+Total Computational Time : 16.145939 seconds
+Total #msgs=9103135, Total #vadd=0
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 0.169825 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.071560 seconds
+- Serialization Time : 0.000062 seconds
+- Transfer Time : 0.071476 seconds
+Total Computational Time : 0.329374 seconds
+Total #msgs=0, Total #vadd=0
+=================Start dumping graph...===================
+output path: /fdu-zyj/output
+Dump Time : 3.213864 seconds
+================ Final Report ===============
+Mapping count: 7841842
+Load time: 84.2071 s.
+Dump time: 3.21386 s.
+Compute time: 21.1876 s.
+Offline time: 87.912 s.
+Online time: 25.6661 s.
