@@ -800,12 +800,13 @@ void pregel_subgraph(const WorkerParams & params)
 	worker.setAggregator(&agg);
 
 	double time, load_time = 0.0, compute_time = 0.0, dump_time = 0.0,
-			offline_time = 0.0, online_time = 0.0;
+			offline_time = 0.0, online_time = 0.0, sync_time;
 
 	time = worker.load_data(params);
 	load_time += time;
 
-	time = worker.run_type(PREPROCESS, params);
+	if (params.input || params.preprocess)
+		worker.run_type(PREPROCESS, params);
 
 	stop_timer(TOTAL_TIMER);
 	offline_time = get_timer(TOTAL_TIMER);
@@ -818,16 +819,16 @@ void pregel_subgraph(const WorkerParams & params)
 	if (params.filter)
 	{
 		wakeAll();
-		time = worker.run_type(FILTER, params);
+		worker.run_type(FILTER, params);
 	}
 
 	time = worker.build_query_tree(params.order);
 
 	wakeAll();
-	time = worker.run_type(MATCH, params);
+	sync_time = worker.run_type(MATCH, params);
 
 	wakeAll();
-	time = worker.run_type(ENUMERATE, params);
+	worker.run_type(ENUMERATE, params);
 	stop_timer(COMPUTE_TIMER);
 	compute_time = get_timer(COMPUTE_TIMER);
 
@@ -849,4 +850,7 @@ void pregel_subgraph(const WorkerParams & params)
 		cout << "Offline time: " << offline_time << " s." << endl;
 		cout << "Online time: " << online_time << " s." << endl;
 	}
+
+	cout << "============ Load Balance Report ==============" << endl;
+	cout << "Rank: " << _my_rank << " Sync_time: " << sync_time << endl;
 }
