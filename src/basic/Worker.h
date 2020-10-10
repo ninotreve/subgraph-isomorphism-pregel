@@ -176,7 +176,7 @@ public:
 				switch (type)
 				{
 				case PREPROCESS:
-					vertexes[i]->preprocess(v_msgbufs[i]);
+					vertexes[i]->preprocess(v_msgbufs[i], params.preprocess);
 					break;
                 case FILTER:
                 	vertexes[i]->filter(v_msgbufs[i]);
@@ -266,7 +266,7 @@ public:
     }
 
     //user-defined graphLoader ==============================
-    virtual VertexT* toVertex(char* line, bool default_format) = 0;
+    virtual VertexT* toVertex(char* line, const WorkerParams & params) = 0;
 
     void load_vertex(VertexT* v)
     { //called by load_graph
@@ -274,7 +274,7 @@ public:
             add_vertex(v);
     }
 
-    void load_graph(const char* inpath, bool default_format)
+    void load_graph(const char* inpath, const WorkerParams & params)
     {
         hdfsFS fs = getHdfsFS();
         hdfsFile in = getRHandle(inpath, fs);
@@ -282,7 +282,7 @@ public:
         while (true) {
             reader.readLine();
             if (!reader.eof())
-                load_vertex(toVertex(reader.getLine(), default_format));
+                load_vertex(toVertex(reader.getLine(), params));
             else
                 break;
         }
@@ -330,7 +330,6 @@ public:
     double load_data(const WorkerParams & params)
     {
     	const string& input_path = params.data_path;
-    	bool default_format = params.input;
 
     	if (_my_rank == MASTER_RANK)
     		cout << "=================Start loading data graph ...=====================" << endl;
@@ -352,7 +351,7 @@ public:
             //reading assigned splits (map)
             for (vector<string>::iterator it = assignedSplits.begin();
                  it != assignedSplits.end(); it++)
-                load_graph(it->c_str(), default_format);
+                load_graph(it->c_str(), params);
             delete arrangement;
         } else {
             vector<string> assignedSplits;
@@ -360,13 +359,13 @@ public:
             //reading assigned splits (map)
             for (vector<string>::iterator it = assignedSplits.begin();
                  it != assignedSplits.end(); it++)
-                load_graph(it->c_str(), default_format);
+                load_graph(it->c_str(), params);
         }
 
-        // reassigning id
+        // reassigning worker id
         if (params.partition == "complete")
         {
-        	// insert code here
+            // insert code here
         }
 
         //send vertices according to hash_id (reduce)

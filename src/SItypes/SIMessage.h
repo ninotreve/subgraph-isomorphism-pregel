@@ -3,6 +3,8 @@
 
 //--------SIMessage = <type, key, value, mapping, branch>--------
 //  e.g. <type = LABEL_INFOMATION, key = vertex, value = label>
+// 		 <type = DEGREE, key = vertex, value = degree>
+//		 <type = NEIGHBOR_PAIR, p_int = edge>
 //	     <type = MAPPING, mapping, value = next_u>
 //		 <type = BRANCH_RESULT, mapping, value = curr_u>
 // 		 <type = BRANCH, branch, value = curr_u>
@@ -15,6 +17,7 @@ struct SIMessage
 	SIKey key;
 	int value;
 	vector<int> v_int;
+	pair<int, int> p_int;
 	vector<SIKey> mapping;
 	SIBranch branch;
 
@@ -22,11 +25,17 @@ struct SIMessage
 	{
 	}
 
-	SIMessage(int type, SIKey vertex, int label)
-	{ // for label information
+	SIMessage(int type, SIKey vertex, int value)
+	{ // for degree or label information
 		this->type = type;
 		this->key = vertex;
-		this->value = label;
+		this->value = value;
+	}
+
+	SIMessage(int type, pair<int, int> p_int)
+	{
+		this->type = type;
+		this->p_int = p_int;
 	}
 
 	SIMessage(int type, Mapping mapping, uID next_u)
@@ -67,7 +76,9 @@ enum MESSAGE_TYPES {
 	BRANCH_RESULT = 2,
 	BRANCH = 3,
 	MAPPING_COUNT = 4,
-	CANDIDATE = 5
+	CANDIDATE = 5,
+	DEGREE = 6,
+	NEIGHBOR_PAIR = 7
 };
 
 ibinstream & operator<<(ibinstream & m, const SIMessage & v)
@@ -76,7 +87,11 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 	switch (v.type)
 	{
 	case MESSAGE_TYPES::LABEL_INFOMATION:
+	case MESSAGE_TYPES::DEGREE:
 		m << v.key << v.value;
+		break;
+	case MESSAGE_TYPES::NEIGHBOR_PAIR:
+		m << v.p_int.first << v.p_int.second;
 		break;
 	case MESSAGE_TYPES::MAPPING:
 	case MESSAGE_TYPES::BRANCH_RESULT:
@@ -101,7 +116,11 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 	switch (v.type)
 	{
 	case MESSAGE_TYPES::LABEL_INFOMATION:
+	case MESSAGE_TYPES::DEGREE:
 		m >> v.key >> v.value;
+		break;
+	case MESSAGE_TYPES::NEIGHBOR_PAIR:
+		m >> v.p_int.first >> v.p_int.second;
 		break;
 	case MESSAGE_TYPES::MAPPING:
 	case MESSAGE_TYPES::BRANCH_RESULT:
