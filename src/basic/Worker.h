@@ -523,7 +523,9 @@ public:
                 add_vertex(to_add[i]);
             to_add.clear();
             //===================
+            StartTimer(SYNC_TIMER);
             worker_barrier();
+            StopTimer(SYNC_TIMER);
             StopTimer(4);
             if (_my_rank == MASTER_RANK && !params.report) {
                 cout << "Superstep " << global_step_num << " done."
@@ -539,7 +541,9 @@ public:
         	}
             agg_sync();
         }
+        StartTimer(SYNC_TIMER);
         worker_barrier();
+        StopTimer(SYNC_TIMER);
         StopTimer(WORKER_TIMER);
         if (_my_rank == MASTER_RANK && !params.report)
     	{
@@ -570,7 +574,7 @@ public:
             		"Total #vadd=" << global_vadd_num << endl;
         }
 
-        return get_timer(WORKER_TIMER);
+        return get_timer(SYNC_TIMER);
     }
 
     // dump result and return dump time

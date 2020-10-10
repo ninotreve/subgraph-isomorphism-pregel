@@ -20,7 +20,7 @@ double get_current_time()
     return (double)t.tv_sec + (double)t.tv_usec / 1000000;
 }
 
-const int N_Timers = 7;
+const int N_Timers = 8;
 static double _timers[N_Timers]; // timers
 static double _acc_time[N_Timers]; // accumulated time
 
@@ -38,7 +38,8 @@ enum TIMERS {
     COMMUNICATION_TIMER = 3,
     TMP_TIMER = 4,
     TOTAL_TIMER = 5,
-    COMPUTE_TIMER = 6
+    COMPUTE_TIMER = 6,
+    SYNC_TIMER = 7
 };
 
 void start_timer(int i)
