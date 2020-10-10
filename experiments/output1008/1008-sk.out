@@ -1,0 +1,79 @@
+Data graph path: /fdu-zyj/labelSK
+Query graph path: /fdu-zyj/query
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 91.043272 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query/query.txt" loaded
+Communication Time : 0.000125 seconds
+- Serialization Time : 0.000011 seconds
+- Transfer Time : 0.000114 seconds
+Load Query Time : 0.700142 seconds
+=================Start building query tree...===================
+this->nodes size: 5
+Node 0
+Label: 97
+Branch number: 0
+Neighbors: [1, 2]
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 0
+Neighbors: [0, 2]
+It has 1 children.
+Node 2
+Label: 99
+Branch number: 0
+Neighbors: [0, 1, 3]
+It has 1 children.
+Node 3
+Label: 98
+Branch number: 0
+Neighbors: [2, 4]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 0
+Neighbors: [3]
+It has 0 children.
+Build Query Tree Time : 0.032427 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.301541 seconds
+#msgs: 34624
+Superstep 2 done.Time elapsed: 4.50969 seconds
+#msgs: 3420845
+Superstep 3 done.Time elapsed: 0.828585 seconds
+#msgs: 508286
+Superstep 4 done.Time elapsed: 11.4883 seconds
+#msgs: 7841842
+Superstep 5 done.Time elapsed: 0.719912 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 7.697992 seconds
+- Serialization Time : 0.626402 seconds
+- Transfer Time : 7.052483 seconds
+Total Computational Time : 17.903505 seconds
+Total #msgs=11805597, Total #vadd=0
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 0.246746 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.188551 seconds
+- Serialization Time : 0.000065 seconds
+- Transfer Time : 0.188462 seconds
+Total Computational Time : 0.457849 seconds
+Total #msgs=0, Total #vadd=0
+=================Start dumping graph...===================
+output path: /fdu-zyj/output
+Dump Time : 4.416370 seconds
+================ Final Report ===============
+Mapping count: 7841842
+Load time: 91.7434 s.
+Dump time: 4.41637 s.
+Compute time: 18.394 s.
+Offline time: 94.8936 s.
+Online time: 24.0704 s.
