@@ -24,7 +24,7 @@ const char* newLine = "\n";
 hdfsFS getHdfsFS()
 {
 	hdfsBuilder * bld = hdfsNewBuilder();
-	hdfsBuilderSetNameNode(bld, "master");
+	hdfsBuilderSetNameNode(bld, "2f957c17abfd");
 	hdfsBuilderSetNameNodePort(bld, 9000);
 	hdfsFS fs = hdfsBuilderConnect(bld);
 	if(!fs) {
