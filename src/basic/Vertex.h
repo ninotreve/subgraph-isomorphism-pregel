@@ -50,7 +50,6 @@ public:
     }
 
     virtual void compute(MessageContainer& messages, WorkerParams& params) = 0;
-    virtual void preprocess(MessageContainer& messages) = 0;
 
     inline ValueT& value()
     {

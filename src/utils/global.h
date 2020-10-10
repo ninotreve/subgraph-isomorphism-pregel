@@ -262,6 +262,9 @@ public:
     string getOutputPath() { return options_value[2]; }
 
     string getPartition() { return options_value[3]; }
+    bool getPreprocessMethod() {
+        return (options_value[4] != "off");
+    }
     bool getFilterMethod() {
     	return (options_value[5] != "off");
     }
@@ -292,6 +295,7 @@ struct WorkerParams {
     bool force_write;
 
     string partition;
+    bool preprocess;
     bool filter;
     string order;
     bool enumerate;
@@ -310,6 +314,7 @@ struct WorkerParams {
         output_path = command.getOutputPath();
         force_write = fw;
         partition = command.getPartition();
+        preprocess = command.getPreprocessMethod();
         filter = command.getFilterMethod();
         order = command.getOrderMethod();
         if (!filter && order == "candidate")
@@ -328,6 +333,7 @@ struct WorkerParams {
         cout << "Query graph path: " << query_path << endl;
         cout << "Output graph path: " << output_path << endl;
         cout << "Partition Method: " << partition << endl;
+        cout << "Preprocess Method: " << preprocess << endl;
         cout << "Filter Method: " << filter << endl;
         cout << "Order Method: " << order << endl;
         cout << "Enumerate Method: " << enumerate << endl;

@@ -21,6 +21,7 @@ using namespace std;
 #include "SItypes/SIBranch.h"
 #include "SItypes/SIQuery.h"
 #include "SItypes/SIMessage.h"
+#include "SItypes/bloom_filter.h"
 
 //===============================================================
 
@@ -32,6 +33,9 @@ typedef hash_map<int, map<int, vector<Mapping> > > mResult;
 class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 	public:
+		// used in the preprocessing step:
+   		bloom_filter bfilter;
+	
 		// used in the filtering step:
 		// typedef hash_map<int, hash_set<SIKey> > Candidate;
 		// candidates[curr_u][next_u] = vector<SIKey>
@@ -46,34 +50,97 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 		// typedef hash_map<int, vector<Mapping> > Result;
 		Result results;
 
-		virtual void preprocess(MessageContainer & messages)
-		{
+		void preprocess(MessageContainer & messages, bool bloom_filter)
+		{  // use bloom filter to store neighbors' edges.
+			size_t sz = value().nbs_vector.size();
+
 			if (step_num() == 1)
-			{ // send label info to neighbors
-				SIMessage msg = SIMessage(LABEL_INFOMATION, id, value().label);
-				size_t sz = value().nbs_vector.size();
+			{ // send label and degree to neighbors
+				SIMessage msg1 = SIMessage(LABEL_INFOMATION, id, value().label);
+				SIMessage msg2 = SIMessage(DEGREE, id, value().degree);
 				for (size_t i = 0; i < sz; ++i)
-					send_message(value().nbs_vector[i].key, msg);
-				vote_to_halt();
+				{
+					send_message(value().nbs_vector[i].key, msg1);
+					if (bloom_filter)
+					{
+						send_message(value().nbs_vector[i].key, msg2);
+					}
+				}
 			}
-			else // if (step_num() == 2)
-			{   // receive label info from neighbors
+			
+			if (step_num() == 2)
+			{   // receive label and degree from neighbors, set up bloom filter
+				// send neighbors to neighbors
 				for (size_t i = 0; i < messages.size(); ++i)
 				{
 					SIMessage & msg = messages[i];
-					size_t sz = value().nbs_vector.size();
-					for (size_t i = 0; i < sz; ++i)
+					if (msg.type == LABEL_INFOMATION)
 					{
-						if (value().nbs_vector[i].key == msg.key)
-							value().nbs_vector[i].label = msg.value;
+						for (size_t i = 0; i < sz; ++i)
+						{
+							if (value().nbs_vector[i].key == msg.key)
+								value().nbs_vector[i].label = msg.value;
+						}
+					}
+					else // DEGREE
+					{
+						bfilter.add_projected_element_count(msg.value);
+						bfilter.init(0.01, 0xA5A5A5A5);
 					}
 				}
-				vote_to_halt();
+				if (!bloom_filter) vote_to_halt();
+			}
+
+			if (step_num() >= 2 && bloom_filter)
+			{ // fill in bloom filter and send one edge to neighbors
+				for (size_t i = 0; i < messages.size(); ++i)
+				{
+					SIMessage & msg = messages[i];
+					if (msg.type == NEIGHBOR_PAIR)
+						bfilter.insert(msg.p_int);
+				}
+				int index = step_num() - 2; // start from 0
+				if (index < sz)
+				{
+					int me = this->id.vID;
+					int nb = value().nbs_vector[index].key.vID;
+					for (size_t i = 0; i < sz; ++i)
+					{
+						if (i != index)
+						{
+							SIMessage msg = SIMessage(NEIGHBOR_PAIR, 
+								make_pair(me, nb));
+							send_message(value().nbs_vector[i].key, msg);
+						}
+					}
+				}
+				else vote_to_halt();
 			}
 		}
 
+		bool check_backward_neighbors(vector<SIKey> &mapping, int query_u,
+			bool bloom_filter, int vID)
+		{
+			SIQuery* query = (SIQuery*)getQuery();
+			vector<int> b_nbs = query->getBNeighbors(query_u);
+			int nb_level, curr_level = query->getLevel(query_u);
+			bool level_flag, flag = true;
+			for (size_t j = 0; j < b_nbs.size(); ++j)
+			{
+				nb_level = query->getLevel(b_nbs[j]);
+				level_flag = nb_level != (curr_level - 1);
+				if (level_flag && bloom_filter)
+					flag = this->bfilter.contains(make_pair(vID, mapping[nb_level].vID));
+				if (level_flag && !bloom_filter)
+					flag = value().hasNeighbor(mapping[nb_level]);
+				if (!flag)
+					return false;
+			}
+			return true;
+		}
+
 		void continue_mapping(vector<SIKey> &mapping, int &curr_u,
-				bool add_flag, bool filter_flag)
+				bool add_flag, bool filter_flag, bool bloom_filter)
 		{ // Add current vertex to mapping;
 		  // Send messages to neighbors with label of next_u(next query vertex)
 		  // if add_flag, add a dummy vertex for each mapping.
@@ -111,7 +178,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						auto iend = keys.end();
 						for (; it != iend; ++it)
 						{
-							if (notContains(mapping, *it))
+							if (notContains(mapping, *it) &&
+								(!bloom_filter || check_backward_neighbors(
+									mapping, next_u, true, it->vID)))
 							{
 								send_message(*it, msg);
 #ifdef DEBUG_MODE_MSG
@@ -130,7 +199,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						{
 							KeyLabel &kl = value().nbs_vector[i];
 							if (kl.label == next_label &&
-								notContains(mapping, kl.key))
+								notContains(mapping, kl.key) &&
+								(!bloom_filter || check_backward_neighbors(
+									mapping, next_u, true, kl.key.vID)))
 							{ // check for label and uniqueness
 								send_message(kl.key, msg);
 #ifdef DEBUG_MODE_MSG
@@ -164,37 +235,23 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				if (value().label == root_label)
 				{
 					vector<SIKey> mapping;
-					continue_mapping(mapping, root_u, add_flag, params.filter);
+					continue_mapping(mapping, root_u, add_flag, params.filter, 
+						params.preprocess);
 				}
 				vote_to_halt();
 			}
 			else
 			{   // check if backward neighbors in neighbors
-				int curr_level, nb_level;
-				vector<int> b_nbs;
-				bool flag;
 				for (size_t i = 0; i < messages.size(); ++i)
 				{
 					SIMessage & msg = messages[i];
-					b_nbs = query->getBNeighbors(msg.value);
-					curr_level = query->getLevel(msg.value);
-					flag = true;
-					for (size_t j = 0; j < b_nbs.size(); ++j)
-					{
-						nb_level = query->getLevel(b_nbs[j]);
-						if ((nb_level != curr_level - 1) &&
-							!(value().hasNeighbor(msg.mapping[nb_level])))
-						{
-							flag = false;
-							break;
-						}
-					}
-					if (flag)
+					if (check_backward_neighbors(msg.mapping, msg.value, 
+						false, 0))
 					{
 						add_flag = params.enumerate &&
 								query->isBranch(msg.value);
 						continue_mapping(msg.mapping, msg.value,
-								add_flag, params.filter);
+								add_flag, params.filter, params.preprocess);
 					}
 				}
 				vote_to_halt();
@@ -628,10 +685,11 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 		// C version
 		// input line format:
 		// vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
-		virtual SIVertex* toVertex(char* line, bool default_format)
+		virtual SIVertex* toVertex(char* line, const WorkerParams & params)
 		{
 			char * pch;
 			SIVertex* v = new SIVertex;
+			bool default_format = params.input;
 
 			if (default_format)
 			{
@@ -747,11 +805,7 @@ void pregel_subgraph(const WorkerParams & params)
 	time = worker.load_data(params);
 	load_time += time;
 
-	if (params.input)
-	{
-		time = worker.run_type(PREPROCESS, params);
-		compute_time += time;
-	}
+	time = worker.run_type(PREPROCESS, params);
 
 	stop_timer(TOTAL_TIMER);
 	offline_time = get_timer(TOTAL_TIMER);
