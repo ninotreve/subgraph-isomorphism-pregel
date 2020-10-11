@@ -490,8 +490,8 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				}
 			}
 
-			if (this->results.empty()
-					|| step_num() >= query->max_branch_number)
+			if (step_num() >= query->max_branch_number 
+					|| this->results.empty())
 			{
 				vote_to_halt();
 			}
