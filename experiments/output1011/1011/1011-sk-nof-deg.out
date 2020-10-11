@@ -1,0 +1,144 @@
+Data graph path: /fdu-zyj/labelSK
+Query graph path: /fdu-zyj/query
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 0
+Filter Method: 0
+Order Method: degree
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 87.736879 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query/query.txt" loaded
+Communication Time : 0.000129 seconds
+- Serialization Time : 0.000024 seconds
+- Transfer Time : 0.000105 seconds
+Load Query Time : 0.693173 seconds
+=================Start building query tree...===================
+this->nodes size: 5
+Node 2
+Label: 99
+Branch number: 1
+Neighbors: [0, 1, 3]
+It has 2 children.
+Node 0
+Label: 97
+Branch number: 1
+Neighbors: [1, 2]
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 1
+Neighbors: [0, 2]
+It has 0 children.
+Node 3
+Label: 98
+Branch number: 1
+Neighbors: [2, 4]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 1
+Neighbors: [3]
+It has 0 children.
+Build Query Tree Time : 0.044345 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.273154 seconds
+#msgs: 65560
+Superstep 2 done.Time elapsed: 6.66344 seconds
+#msgs: 5251912
+Superstep 3 done.Time elapsed: 0.888777 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 3.847062 seconds
+- Serialization Time : 2.160303 seconds
+- Transfer Time : 1.320574 seconds
+Total Computational Time : 7.943253 seconds
+Total #msgs=5317472, Total #vadd=64958
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 1.89329 seconds
+#msgs: 3410369
+Superstep 2 done.Time elapsed: 4.94819 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.815217 seconds
+- Serialization Time : 0.305238 seconds
+- Transfer Time : 0.509584 seconds
+Total Computational Time : 6.983889 seconds
+Total #msgs=3410369, Total #vadd=0
+=================Start dumping graph...===================
+output path: /fdu-zyj/output
+Dump Time : 3.433676 seconds
+================ Final Report ===============
+Mapping count: 7841842
+Load time: 88.4301 s.
+Dump time: 3.43368 s.
+Compute time: 14.9717 s.
+Offline time: 91.9622 s.
+Online time: 19.6908 s.
+============ Load Balance Report ==============
+Rank: 0 Sync_time: 0.122215
+============ Load Balance Report ==============
+Rank: 4 Sync_time: 0.8544
+============ Load Balance Report ==============
+Rank: 27 Sync_time: 0.716953
+============ Load Balance Report ==============
+Rank: 23 Sync_time: 1.06632
+============ Load Balance Report ==============
+Rank: 32 Sync_time: 0.40369
+============ Load Balance Report ==============
+Rank: 10 Sync_time: 1.241
+============ Load Balance Report ==============
+Rank: 26 Sync_time: 0.697201
+============ Load Balance Report ==============
+Rank: 30 Sync_time: 0.592462
+============ Load Balance Report ==============
+Rank: 3 Sync_time: 0.64111
+============ Load Balance Report ==============
+Rank: 31 Sync_time: 0.435639
+============ Load Balance Report ==============
+Rank: 21 Sync_time: 1.22278
+============ Load Balance Report ==============
+Rank: 14 Sync_time: 1.1747
+============ Load Balance Report ==============
+Rank: 12 Sync_time: 1.32309
+============ Load Balance Report ==============
+============ Load Balance Report ==============
+Rank: 6 Sync_time: 0.686193
+Rank: 11 Sync_time: 1.17282
+============ Load Balance Report ==============
+Rank: 28 Sync_time: 0.70841
+============ Load Balance Report ==============
+Rank: 9 Sync_time: 1.12937
+============ Load Balance Report ==============
+Rank: 1 Sync_time: 0.348439
+============ Load Balance Report ==============
+Rank: 15 Sync_time: 1.15036
+============ Load Balance Report ==============
+Rank: 29 Sync_time: 0.654484
+============ Load Balance Report ==============
+Rank: 2 Sync_time: 0.564841
+============ Load Balance Report ==============
+Rank: 24 Sync_time: 1.14127
+============ Load Balance Report ==============
+Rank: 8 Sync_time: 1.20199
+============ Load Balance Report ==============
+Rank: 7 Sync_time: 0.60746
+============ Load Balance Report ==============
+Rank: 13 Sync_time: 1.16882
+============ Load Balance Report ==============
+Rank: 18 Sync_time: 1.249
+============ Load Balance Report ==============
+Rank: 22 Sync_time: 1.24005
+============ Load Balance Report ==============
+Rank: 16 Sync_time: 1.23179
+============ Load Balance Report ==============
+Rank: 25 Sync_time: 0.633335
+============ Load Balance Report ==============
+Rank: 20 Sync_time: 1.38566
+============ Load Balance Report ==============
+Rank: 19 Sync_time: 1.03655
+============ Load Balance Report ==============
+Rank: 17 Sync_time: 1.29079
+============ Load Balance Report ==============
+Rank: 5 Sync_time: 0.748333

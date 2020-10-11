@@ -1,0 +1,9 @@
+Data graph path: /g-thinker/labelOR.txt
+Query graph path: /fdu-zyj/query
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 0
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+=================Start loading data graph ...=====================
