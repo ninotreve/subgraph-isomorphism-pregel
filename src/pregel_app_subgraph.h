@@ -118,22 +118,20 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 		}
 
-		bool check_backward_neighbors(vector<SIKey> &mapping, int query_u,
-			bool bloom_filter, int vID)
-		{
+		bool check_feasibility(vector<SIKey> &mapping, int query_u)
+		{ // check vertex uniqueness and backward neighbors 
 			SIQuery* query = (SIQuery*)getQuery();
-			vector<int> b_nbs = query->getBNeighbors(query_u);
-			int nb_level, curr_level = query->getLevel(query_u);
-			bool level_flag, flag = true;
-			for (size_t j = 0; j < b_nbs.size(); ++j)
+			// check vertex uniqueness
+			for (int b_level : query->getBSameLabPos(query_u))
 			{
-				nb_level = query->getLevel(b_nbs[j]);
-				level_flag = nb_level != (curr_level - 1);
-				if (level_flag && bloom_filter)
-					flag = this->bfilter.contains(make_pair(vID, mapping[nb_level].vID));
-				if (level_flag && !bloom_filter)
-					flag = value().hasNeighbor(mapping[nb_level]);
-				if (!flag)
+				if (this->id == mapping[b_level])
+					return false;
+			}
+
+			// check backward neighbors
+			for (int b_level : query->getBNeighborsPos(query_u))
+			{
+				if (! this->value().hasNeighbor(mapping[b_level]))
 					return false;
 			}
 			return true;
@@ -179,17 +177,14 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						auto it = keys.begin(); auto iend = keys.end();
 						for (; it != iend; ++it)
 						{
-							if (notContains(mapping, *it))
-							{
-								SIMessage msg = SIMessage(MAPPING, mapping, next_u);
-								send_message(*it, msg);
+							SIMessage msg = SIMessage(MAPPING, mapping, next_u);
+							send_message(*it, msg);
 #ifdef DEBUG_MODE_MSG
 							cout << "[DEBUG] Message sent from " << id.vID << " to "
 								 << it->vID << ". \n\t"
 								 << "Type: MAPPING. \n\t"
 								 << "Mapping: " << msg.mapping << endl;
 #endif
-							}
 						}
 					}
 				}
@@ -202,8 +197,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 						for (int next_u : next_us)
 						{		
 							next_label = query->getLabel(next_u);							
-							if (kl.label == next_label &&
-								notContains(mapping, kl.key))
+							if (kl.label == next_label)
 							{ // check for label and uniqueness
 								SIMessage msg = SIMessage(MAPPING, mapping, next_u);
 								send_message(kl.key, msg);
@@ -248,8 +242,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 				for (size_t i = 0; i < messages.size(); ++i)
 				{
 					SIMessage & msg = messages[i];
-					if (check_backward_neighbors(msg.mapping, msg.value, 
-						false, 0))
+					if (check_feasibility(msg.mapping, msg.value))
 					{
 						add_flag = params.enumerate &&
 								query->isBranch(msg.value);
