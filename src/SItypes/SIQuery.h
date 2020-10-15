@@ -31,7 +31,10 @@ struct SINode
 	int parent;
 	int level; // root: level 0. Used as an index in mapping.
 	vector<int> children;
-	vector<int> b_nbs; // backward neighbors
+	// positions of backward neighbors (excluding its parent!)
+	vector<int> b_nbs_pos;
+	// positions of backward vertices with same label
+	vector<int> b_same_lab_pos;
 
 	SINode() { this->visited = false; }
 
@@ -96,6 +99,8 @@ ostream & operator << (ostream & os, const SINode & node)
 	os << "Label: " << node.label << endl;
 	os << "Branch number: " << node.branch_number << endl;
 	os << "Neighbors: " << node.nbs << endl;
+	os << "Backward neighbors: " << node.b_nbs_pos << endl;
+	os << "Backward same labels: " << node.b_same_lab_pos << endl;
 	return os;
 }
 
@@ -110,6 +115,7 @@ class SIQuery:public Query<SINode>
 {
 public:
 	hash_map<int, int> id_ind; // id to index mapping
+	// note that capitalized ID all means "index"
 	vector<SINode> nodes;
 
 	size_t num;
@@ -214,6 +220,13 @@ public:
 			curr->level = parent->level + 1;
 		}
 
+		// adding in nodes that are visited and with same label
+		for (SINode& node: this->nodes)
+		{
+			if (node.visited && node.label == curr->label && node.id != curr->id)
+				curr->b_same_lab_pos.push_back(node.level);
+		}
+
 		// we must have two loops to avoid descendants being visited
 		// by other descendants.
 		// the first loop also stores unvisited neighbor's value
@@ -223,14 +236,18 @@ public:
 
 		for (int nextID : curr->nbs)
 		{
-			if (this->nodes[nextID].visited)
-				curr->b_nbs.push_back(nextID);
+			SINode* next = &this->nodes[nextID];
+			if (next->visited)
+			{
+				if (next->level != curr->level - 1)
+					curr->b_nbs_pos.push_back(next->level);
+			}
 			else
 			{
 				if (order == "random")
 					value = 0;
 				else if (order == "degree")
-					value = - this->nodes[nextID].nbs.size(); // default asc
+					value = - next->nbs.size(); // default asc
 				else if (order == "candidate")
 				{
 					if (currID > nextID)
@@ -303,8 +320,10 @@ public:
 	{ return (int) this->nodes[id].children.size(); }
 	int getChildID(int id, int index)
 	{ return this->nodes[id].children[index]; }
-	vector<int> getBNeighbors(int id)
-	{ return this->nodes[id].b_nbs; }
+	vector<int> getBNeighborsPos(int id)
+	{ return this->nodes[id].b_nbs_pos; }
+	vector<int> getBSameLabPos(int id)
+	{ return this->nodes[id].b_same_lab_pos; }
 	int getNearestBranchingAncestor(int id)
 	{ return this->nbancestors[id]; }
 
