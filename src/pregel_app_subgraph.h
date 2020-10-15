@@ -166,22 +166,22 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			}
 			else
 			{
-				int next_u;
+				vector<int> next_us;
 				for (int i = 0; i < children_num; i++)
 				{ // for every child (next_u) in query graph
-					next_u = query->getChildID(curr_u, i);
-					SIMessage msg = SIMessage(MAPPING, mapping, next_u);
-					if (filter_flag)
-					{ // with filtering
+					next_us.push_back(query->getChildID(curr_u, i));
+				}
+				if (filter_flag)
+				{ // with filtering
+					for (int next_u : next_us)
+					{
 						hash_set<SIKey> &keys = candidates[curr_u][next_u];
-						auto it = keys.begin();
-						auto iend = keys.end();
+						auto it = keys.begin(); auto iend = keys.end();
 						for (; it != iend; ++it)
 						{
-							if (notContains(mapping, *it) &&
-								(!bloom_filter || check_backward_neighbors(
-									mapping, next_u, true, it->vID)))
+							if (notContains(mapping, *it))
 							{
+								SIMessage msg = SIMessage(MAPPING, mapping, next_u);
 								send_message(*it, msg);
 #ifdef DEBUG_MODE_MSG
 							cout << "[DEBUG] Message sent from " << id.vID << " to "
@@ -192,17 +192,20 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 							}
 						}
 					}
-					else
-					{ // without filtering
-						int next_label = query->getLabel(next_u);
-						for (int i = 0; i < value().degree; ++i)
-						{
-							KeyLabel &kl = value().nbs_vector[i];
+				}
+				else
+				{ // without filtering
+					int next_label;
+					for (int i = 0; i < value().degree; ++i)
+					{
+						KeyLabel &kl = value().nbs_vector[i];
+						for (int next_u : next_us)
+						{		
+							next_label = query->getLabel(next_u);							
 							if (kl.label == next_label &&
-								notContains(mapping, kl.key) &&
-								(!bloom_filter || check_backward_neighbors(
-									mapping, next_u, true, kl.key.vID)))
+								notContains(mapping, kl.key))
 							{ // check for label and uniqueness
+								SIMessage msg = SIMessage(MAPPING, mapping, next_u);
 								send_message(kl.key, msg);
 #ifdef DEBUG_MODE_MSG
 							cout << "[DEBUG] Message sent from " << id.vID << " to "
