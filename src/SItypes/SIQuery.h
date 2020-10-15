@@ -1,6 +1,12 @@
 #ifndef SIQUERY_H
 #define SIQUERY_H
 
+// buckets
+// e.g. level 2: u_1(A), u_3(B), u_5(B), u_7(C)
+// bucketsize(A) = 1, bucketsize(B) = 2, bucketsize(C) = 1
+// bucketnumber(u_1) = 0, bucketnumber(u_3) = 0, 
+// bucketnumber(u_5) = 1, bucketnumber(u_7) = 0.
+
 typedef vector<vector<int>> AggMat;
 // define hash of pair
 
@@ -121,9 +127,15 @@ public:
 	size_t num;
 	int root;
 	int max_branch_number = 0;
+	int max_level = 0;
 	vector<int> dfs_order;
 	// nearest branch ancestor or root if it doesn't have one
 	vector<int> nbancestors;
+
+	// bucket stat
+	vector<vector<int>> bucket_size_key;
+	vector<vector<int>> bucket_size_value;
+	vector<int> bucket_number;
 
 	virtual void init(const string &order)
 	{ // call after the query is sent to each worker
@@ -157,6 +169,7 @@ public:
 			}
 			this->dfs(this->root, 0, true, order);
 			this->addBranchNumber(this->root, 0, this->root);
+			this->initBuckets();
 		}
 	}
 
@@ -210,6 +223,7 @@ public:
 		curr->dfs_number = this->dfs_order.size();
 		dfs_order.push_back(currID);
 
+		// update level
 		if (isRoot)
 			curr->level = 0;
 		else
@@ -218,6 +232,8 @@ public:
 			SINode* parent = & this->nodes[parentID];
 			parent->children.push_back(currID);
 			curr->level = parent->level + 1;
+			if (curr->level > this->max_level)
+				this->max_level = curr->level;
 		}
 
 		// adding in nodes that are visited and with same label
@@ -329,6 +345,52 @@ public:
 
 	bool isBranch(int id)
 	{ return this->getChildrenNumber(id) > 1; }
+
+	void initBuckets()
+	{
+		this->bucket_size_key.resize(this->max_level+1);
+		this->bucket_size_value.resize(this->max_level+1);
+		this->bucket_number.resize(this->nodes.size());
+
+		SINode *curr;
+		bool flag = true;
+		for (int i = 0; i < this->nodes.size(); ++i)
+		{
+			curr = &this->nodes[i];
+			vector<int> &k = this->bucket_size_key[curr->level];
+			vector<int> &v = this->bucket_size_value[curr->level];
+			for (int j = 0; j < k.size(); ++j)
+			{
+				if (k[j] == curr->label)
+				{
+					this->bucket_number[i] = v[j];
+					v[j] += 1;
+					flag = false;
+					break;
+				}
+			}
+			if (flag)
+			{
+				k.push_back(curr->label);
+				v.push_back(1);
+				this->bucket_number[i] = 0;
+			}
+			flag = true;
+		}
+	}
+
+	// get functions regarding buckets
+	int getBucketSize(int level, int label)
+	{
+		vector<int> &k = this->bucket_size_key[level];
+		vector<int> &v = this->bucket_size_value[level];
+		size_t sz = k.size();
+		for (size_t j = 0; j < sz; ++j)
+			if (k[j] == label) return v[j];
+	}
+
+	int getBucketNumber(int id)
+	{ return this->bucket_number[id]; }
 };
 
 ibinstream & operator<<(ibinstream & m, const SIQuery & q){
