@@ -123,17 +123,14 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 			SIQuery* query = (SIQuery*)getQuery();
 			// check vertex uniqueness
 			for (int b_level : query->getBSameLabPos(query_u))
-			{
 				if (this->id == mapping[b_level])
 					return false;
-			}
 
 			// check backward neighbors
 			for (int b_level : query->getBNeighborsPos(query_u))
-			{
 				if (! this->value().hasNeighbor(mapping[b_level]))
 					return false;
-			}
+			
 			return true;
 		}
 
