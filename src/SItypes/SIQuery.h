@@ -376,7 +376,7 @@ public:
 			}
 			flag = true;
 		}
-		
+	/*	
 		for (int i = 0; i < this->max_level+1; ++i)
 		{
 			cout << "level " << i << endl;			
@@ -384,7 +384,7 @@ public:
 			cout << "values: " << this->bucket_size_value[i][0].size() << endl;
 		}
 		cout << this->bucket_number << endl;
-		
+	*/	
 	}
 
 	// get functions regarding buckets
