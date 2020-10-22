@@ -18,7 +18,8 @@ struct SIMessage
 	int value;
 	vector<int> v_int;
 	pair<int, int> p_int;
-	vector<SIKey> mapping;
+	Mapping mapping;
+	vector<Mapping> mappings;
 	SIBranch branch;
 
 	SIMessage()
@@ -43,6 +44,13 @@ struct SIMessage
 		this->type = type;
 		this->mapping = mapping;
 		this->value = next_u; // or curr_u
+	}
+
+	SIMessage(int type, vector<Mapping> mappings, uID parent_u)
+	{ // for mapping or branch result
+		this->type = type;
+		this->mappings = mappings;
+		this->value = parent_u;
 	}
 
 	SIMessage(int type, SIBranch branch, uID curr_u)
@@ -94,6 +102,8 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 		m << v.p_int.first << v.p_int.second;
 		break;
 	case MESSAGE_TYPES::MAPPING:
+		m << v.mappings << v.value;
+		break;
 	case MESSAGE_TYPES::BRANCH_RESULT:
 		m << v.mapping << v.value;
 		break;
@@ -123,6 +133,8 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 		m >> v.p_int.first >> v.p_int.second;
 		break;
 	case MESSAGE_TYPES::MAPPING:
+		m >> v.mappings >> v.value;
+		break;	
 	case MESSAGE_TYPES::BRANCH_RESULT:
 		m >> v.mapping >> v.value;
 		break;

@@ -3,7 +3,7 @@
 
 // buckets
 // e.g. level 2: u_1(A), u_3(B), u_5(B), u_7(C)
-// bucketsize(A) = 1, bucketsize(B) = 2, bucketsize(C) = 1
+// bucketsize(A) = {u_1}, bucketsize(B) = {u_3, u_5}, bucketsize(C) = {u_7}
 // bucketnumber(u_1) = 0, bucketnumber(u_3) = 0, 
 // bucketnumber(u_5) = 1, bucketnumber(u_7) = 0.
 
@@ -134,7 +134,7 @@ public:
 
 	// bucket stat
 	vector<vector<int>> bucket_size_key;
-	vector<vector<int>> bucket_size_value;
+	vector<vector<vector<int>>> bucket_size_value;
 	vector<int> bucket_number;
 
 	virtual void init(const string &order)
@@ -332,10 +332,8 @@ public:
 	int getBranchNumber(int id) { return this->nodes[id].branch_number;	}
 	int getDFSNumber(int id) { return this->nodes[id].dfs_number; }
 	int getParent(int id) { return this->nodes[id].parent; }
-	int getChildrenNumber(int id)
-	{ return (int) this->nodes[id].children.size(); }
-	int getChildID(int id, int index)
-	{ return this->nodes[id].children[index]; }
+	vector<int> getChildren(int id)
+	{ return this->nodes[id].children; }
 	vector<int> getBNeighborsPos(int id)
 	{ return this->nodes[id].b_nbs_pos; }
 	vector<int> getBSameLabPos(int id)
@@ -344,7 +342,7 @@ public:
 	{ return this->nbancestors[id]; }
 
 	bool isBranch(int id)
-	{ return this->getChildrenNumber(id) > 1; }
+	{ return this->getChildren(id).size() > 1; }
 
 	void initBuckets()
 	{
@@ -358,13 +356,13 @@ public:
 		{
 			curr = &this->nodes[i];
 			vector<int> &k = this->bucket_size_key[curr->level];
-			vector<int> &v = this->bucket_size_value[curr->level];
+			vector<vector<int>> &v = this->bucket_size_value[curr->level];
 			for (int j = 0; j < k.size(); ++j)
 			{
 				if (k[j] == curr->label)
 				{
-					this->bucket_number[i] = v[j];
-					v[j] += 1;
+					this->bucket_number[i] = v[j].size();
+					v[j].push_back(i);
 					flag = false;
 					break;
 				}
@@ -372,21 +370,34 @@ public:
 			if (flag)
 			{
 				k.push_back(curr->label);
-				v.push_back(1);
+				vector<int> v_i = {i};
+				v.push_back(v_i);
 				this->bucket_number[i] = 0;
 			}
 			flag = true;
 		}
+		
+		for (int i = 0; i < this->max_level+1; ++i)
+		{
+			cout << "level " << i << endl;			
+			cout << "keys: " << this->bucket_size_key[i] << endl;
+			cout << "values: " << this->bucket_size_value[i][0].size() << endl;
+		}
+		cout << this->bucket_number << endl;
+		
 	}
 
 	// get functions regarding buckets
-	int getBucketSize(int level, int label)
+	vector<int> getBucket(int level, int label)
 	{
 		vector<int> &k = this->bucket_size_key[level];
-		vector<int> &v = this->bucket_size_value[level];
+		vector<vector<int>> &v = this->bucket_size_value[level];
 		size_t sz = k.size();
 		for (size_t j = 0; j < sz; ++j)
-			if (k[j] == label) return v[j];
+		{
+			if (k[j] == label) 
+				return v[j];
+		}
 	}
 
 	int getBucketNumber(int id)
