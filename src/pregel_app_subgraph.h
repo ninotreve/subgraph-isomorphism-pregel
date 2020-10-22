@@ -3,12 +3,12 @@
 #include "utils/Query.h"
 using namespace std;
 
-/*
+
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
 #define DEBUG_MODE_PARTIAL_RESULT 1
 #define DEBUG_MODE_RESULT 1
-*/
+
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -204,6 +204,11 @@ public:
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
 	{
 		SIQuery* query = (SIQuery*)getQuery();
+		if (!this->id.partial_mapping.empty())
+		{
+			vote_to_halt();
+			return;
+		}
 
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
@@ -294,9 +299,7 @@ public:
 					if (!buckets[i].empty())
 						continue_mapping(buckets[i], b_u[i], params.filter);
 				}
-
 			}
-			
 		}
 		vote_to_halt();
 	}
