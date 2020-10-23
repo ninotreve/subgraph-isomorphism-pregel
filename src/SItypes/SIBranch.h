@@ -32,6 +32,15 @@ struct SIBranch
 
 		return v;
 	}
+
+	bool isValid()
+	{
+		for (int i = 0; i < this->branches.size(); i++)
+			if (this->branches[i].empty())
+				return false;
+		
+		return true;
+	}
 };
 
 vector<Mapping> crossJoin(vector<Mapping> v1, vector<SIBranch> &vecB)
