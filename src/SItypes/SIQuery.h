@@ -376,15 +376,18 @@ public:
 			}
 			flag = true;
 		}
-	/*	
+		/*
 		for (int i = 0; i < this->max_level+1; ++i)
 		{
 			cout << "level " << i << endl;			
 			cout << "keys: " << this->bucket_size_key[i] << endl;
-			cout << "values: " << this->bucket_size_value[i][0].size() << endl;
+			cout << "values: " << this->bucket_size_value[i].size() << endl;
+			
+			for (int j = 0; j < this->bucket_size_value[i].size(); j++)
+				cout << this->bucket_size_value[i][j][0] << endl;
 		}
 		cout << this->bucket_number << endl;
-	*/	
+		*/
 	}
 
 	// get functions regarding buckets

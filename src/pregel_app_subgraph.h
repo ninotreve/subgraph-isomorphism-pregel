@@ -3,12 +3,12 @@
 #include "utils/Query.h"
 using namespace std;
 
-
+/*
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
 #define DEBUG_MODE_PARTIAL_RESULT 1
 #define DEBUG_MODE_RESULT 1
-
+*/
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -26,7 +26,6 @@ using namespace std;
 //===============================================================
 
 typedef hash_map<int, hash_set<SIKey> > Candidate;
-typedef hash_map<int, vector<Mapping> > Result;
 // the first int for anc_u, the second int for curr_u's branch_num.
 typedef hash_map<int, map<int, vector<Mapping> > > mResult;
 
@@ -43,12 +42,10 @@ public:
 	// curr_u: vector<next_u>
 	hash_map<int, vector<int> > cand_map;
 
-	// used in the final step:
-	// key = query_vertex, value = vector of path mapping
-	int root_query_vertex;
+	vector<Mapping> bucket;
+	vector<vector<Mapping>> buckets;
 	int results_count = 0;
-	// typedef hash_map<int, vector<Mapping> > Result;
-	Result results;
+	bool manual_active = false;
 
 	void preprocess(MessageContainer & messages, bool bloom_filter)
 	{  // use bloom filter to store neighbors' edges.
@@ -134,7 +131,7 @@ public:
 		return true;
 	}
 
-	void continue_mapping(vector<Mapping> &mappings, int &curr_u, bool filter_flag)
+	bool continue_mapping(vector<Mapping> &mappings, int &curr_u, bool filter_flag)
 	{ // Add current vertex to mapping;
 		// Send messages to neighbors with right label.
 		// if add_flag, add a dummy vertex for each mapping.
@@ -148,11 +145,9 @@ public:
 		vector<int> next_us = query->getChildren(curr_u);
 		if (next_us.size() == 0)
 		{ // leaf query vertex
-			for (Mapping & mapping : mappings)
-			{
-				this->results[curr_u].push_back(mapping);
-				++this->results_count;
-			}
+			this->results_count += mappings.size();
+			this->manual_active = true;
+			return false; 
 		}
 		else
 		{
@@ -198,6 +193,7 @@ public:
 					}
 				}
 			}
+			return true;
 		}
 	}
 
@@ -221,39 +217,39 @@ public:
 			if (value().label == query->getLabel(curr_u))
 			{
 				Mapping mapping = {id};
-				vector<Mapping> bucket = {mapping};
+				bucket.push_back(mapping);
+				//add_flag
 				if (params.enumerate && query->isBranch(curr_u))
 				{
 					SIVertex* v = new SIVertex;
-					v->id = SIKey(id.vID, id.wID, mapping);
+					v->id = SIKey(curr_u, id.wID, mapping);
 					this->add_vertex(v);
 				}
-				continue_mapping(bucket, curr_u, params.filter);
+				if (continue_mapping(bucket, curr_u, params.filter))
+					bucket.clear();
 			}
 		}
 		else
 		{
 			//Decide the number of u to be mapped to
-			vector<int> b_u = query->getBucket(step_num()-1, value().label);
-			int n_u = b_u.size();
+			vector<int> vector_u = query->getBucket(step_num()-1, value().label);
+			int n_u = vector_u.size();
 			if (n_u == 1)
 			{
-				vector<Mapping> bucket;
-				int curr_u = query->getChildren(messages[0].value)[0];
 				//Loop through messages
 				for (SIMessage &msg : messages)
 				{
 					for (Mapping &mapping : msg.mappings)
 					{
-						if (check_feasibility(mapping, curr_u))
+						if (check_feasibility(mapping, vector_u[0]))
 						{
 							mapping.push_back(id);
 							bucket.push_back(mapping);
 							// add_flag
-							if (params.enumerate && query->isBranch(curr_u))
+							if (params.enumerate && query->isBranch(vector_u[0]))
 							{
 								SIVertex* v = new SIVertex;
-								v->id = SIKey(id.vID, id.wID, mapping);
+								v->id = SIKey(vector_u[0], id.wID, mapping);
 								this->add_vertex(v);
 							}
 						}
@@ -262,11 +258,11 @@ public:
 					
 				//Send bucket of mappings to every feasible neighbor
 				if (!bucket.empty())
-					continue_mapping(bucket, curr_u, params.filter);
+					if (continue_mapping(bucket, vector_u[0], params.filter))
+						bucket.clear();
 			}
 			else if (n_u > 1)
 			{
-				vector<vector<Mapping>> buckets;
 				buckets.resize(n_u);
 				//Loop through messages
 				for (SIMessage &msg : messages)
@@ -285,7 +281,7 @@ public:
 								if (params.enumerate && query->isBranch(curr_u))
 								{
 									SIVertex* v = new SIVertex;
-									v->id = SIKey(id.vID, id.wID, mapping);
+									v->id = SIKey(curr_u, id.wID, mapping);
 									this->add_vertex(v);
 								}
 							}
@@ -297,7 +293,8 @@ public:
 				for (int i = 0; i < n_u; i++)
 				{
 					if (!buckets[i].empty())
-						continue_mapping(buckets[i], b_u[i], params.filter);
+						if (continue_mapping(buckets[i], vector_u[i], params.filter))
+							buckets[i].clear();
 				}
 			}
 		}
@@ -421,18 +418,67 @@ public:
 		}
 	}
 
+	void continue_enum(SIBranch b, int curr_u, int anc_u)
+	{
+		SIQuery* query = (SIQuery*)getQuery();	
+		Mapping &m = b.p;
+		Mapping m1, m2;
+		int j;
+		SIKey to_key = m[query->getLevel(anc_u)];
+		for (j = 0; j <= query->getLevel(anc_u); j++)
+			m1.push_back(m[j]);
+		for (; j < (int) m.size(); j++)
+			m2.push_back(m[j]);
+		b.p = m2;
+		send_message(SIKey(anc_u, to_key.wID, m1), SIMessage(BRANCH, b, curr_u));
+#ifdef DEBUG_MODE_MSG
+		cout << "[DEBUG] Superstep " << step_num()
+		 	<< "\n\tMessage sent from (leaf) " << id.vID
+			<<	" to <" << to_key.vID << ", " << m1 << ">."
+			<< "\n\tType: BRANCH. "
+			<< "\n\tMapping: " << m2
+			<< ", curr_u: " << curr_u << endl;
+#endif
+	}
+
 	void enumerate_new(MessageContainer & messages)
 	{
-		// return the number of mappings
-		SIQuery* query = (SIQuery*)getQuery();
-		int num, curr_u, anc_u, j;
-		SIKey to_key;
+#ifdef DEBUG_MODE_ACTIVE
+		cout << "[DEBUG] STEP NUMBER " << step_num()
+			 << " ACTIVE Vertex ID " << id.vID << endl;
+#endif
+		SIQuery* query = (SIQuery*)getQuery();	
+		if (step_num() == 1 && !this->manual_active
+			|| step_num() > query->max_branch_number)
+		{
+			vote_to_halt();
+			return;
+		}	
 
 		// send mappings from leaves for supersteps [1, max_branch_number]
-		if (step_num() > 0 && step_num() <= query->max_branch_number)
+		// if (step_num() > 0 && step_num() <= query->max_branch_number)
+		if (step_num() == 1)
 		{
-			hash_set<int> delete_set; // hash map keys to be deleted
-			auto iend = this->results.end();
+			vector<int> vector_u = query->getBucket(query->max_level, value().label);
+			if (vector_u.size() == 1)
+			{
+				int curr_u = vector_u[0];
+				int anc_u = query->getNearestBranchingAncestor(curr_u);
+				for (int i = 0; i < this->bucket.size(); i++)
+					continue_enum(SIBranch(this->bucket[i]), curr_u, anc_u);
+			}
+			else
+			{
+				for (int b = 0; b < this->buckets.size(); b++)
+				{
+					int curr_u = vector_u[b];
+					int anc_u = query->getNearestBranchingAncestor(curr_u);
+					for (int i = 0; i < this->buckets[b].size(); i++)
+						continue_enum(SIBranch(this->buckets[b][i]), curr_u, anc_u);
+				}
+			}
+		}
+			/*
 			for (auto it = this->results.begin(); it != iend; ++it)
 			{
 				curr_u = it->first;
@@ -451,7 +497,7 @@ public:
 						for (; j < (int) m.size(); j++)
 							m2.push_back(m[j]);
 						SIBranch b = SIBranch(m2);
-						send_message(SIKey(to_key.vID, to_key.wID, m1),
+						send_message(SIKey(anc_u, to_key.wID, m1),
 							SIMessage(BRANCH, b, curr_u));
 #ifdef DEBUG_MODE_MSG
 					cout << "[DEBUG] Superstep " << step_num()
@@ -473,7 +519,40 @@ public:
 			}
 			this->results_count = 0;
 		}
+		*/
+		else
+		{
+			vector<int> children_u = query->getChildren(id.vID);
+			SIBranch b = SIBranch(id.partial_mapping);
+			b.branches.resize(children_u.size());
+			int i = 0, j = 0;
+			for (; i < messages.size(); i++)
+			{
+				SIMessage & msg = messages[i];
+				// find out where to store the branch
+				for (; j < children_u.size(); j++)
+					if (children_u[j] == msg.value) break;
+				b.branches[j].push_back(msg.branch);
+			}
+			
+			// make sure every child sends you result!
+			if (!b.isValid())
+			{
+				vote_to_halt();
+				return;
+			}
 
+			if (step_num() == query->max_branch_number + 1)
+			{
+				this->bucket = b.expand();
+				this->results_count += this->bucket.size();
+			}
+			else
+			{
+				continue_enum(b, id.vID, query->getNearestBranchingAncestor(id.vID));
+			}
+		}
+/*
 		// receive msg and join for supersteps [2, max_branch_number + 1]
 		// send msg to ancestor for supersteps [2, max_branch_number]
 		if (step_num() > 1 && step_num() <= query->max_branch_number + 1)
@@ -523,7 +602,7 @@ public:
 					for (it2 = it1->second.begin();
 							it2 != it1->second.end(); it2++)
 						b.addBranch(it2->second);
-					send_message(SIKey(to_key.vID, to_key.wID, m1),
+					send_message(SIKey(anc_u, to_key.wID, m1),
 							SIMessage(BRANCH, b, curr_u));
 #ifdef DEBUG_MODE_MSG
 				cout << "[DEBUG] Superstep " << step_num()
@@ -536,16 +615,19 @@ public:
 			}
 		}
 
-		if (step_num() >= query->max_branch_number 
-				|| this->results.empty())
+		if (step_num() >= query->max_branch_number)
 		{
 			vote_to_halt();
 		}
+*/
+
+		vote_to_halt();
 
 	}
 
 	void enumerate_old(MessageContainer & messages)
 	{
+		/*
 		// return the number of mappings
 		SIQuery* query = (SIQuery*)getQuery();
 
@@ -641,7 +723,7 @@ public:
 		}
 		else
 			vote_to_halt();
-
+		*/
 	}
 };
 
@@ -794,26 +876,22 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 		{
 			hash_map<int, vector<Mapping> >::iterator it;
 			SIQuery* query = (SIQuery*)getQuery();
-			for (it = v->results.begin(); it != v->results.end(); it++)
+			for (size_t i = 0; i < v->bucket.size(); i++)
 			{
-				vector<Mapping> & results = it->second;
-				for (size_t i = 0; i < results.size(); i++)
-				{
-					Mapping & mapping = results[i];
-					sprintf(buf, "# Match\n");
-					writer.write(buf);
+				Mapping & mapping = v->bucket[i];
+				sprintf(buf, "# Match\n");
+				writer.write(buf);
 
 #ifdef DEBUG_MODE_RESULT
-					cout << "[DEBUG] Worker ID: " << get_worker_id() << endl;
-					cout << "[DEBUG] Vertex ID: " << v->id.vID << endl;
-					cout << "[DEBUG] Result: " << mapping << endl;
+				cout << "[DEBUG] Worker ID: " << get_worker_id() << endl;
+				cout << "[DEBUG] Vertex ID: " << v->id.vID << endl;
+				cout << "[DEBUG] Result: " << mapping << endl;
 #endif
-					for (size_t j = 0; j < mapping.size(); j++)
-					{
-						sprintf(buf, "%d %d\n", 
-							query->getID(query->dfs_order[j]), mapping[j].vID);
-						writer.write(buf);
-					}
+				for (size_t j = 0; j < mapping.size(); j++)
+				{
+					sprintf(buf, "%d %d\n", 
+						query->getID(query->dfs_order[j]), mapping[j].vID);
+					writer.write(buf);
 				}
 			}
 		}
