@@ -25,7 +25,6 @@ using namespace std;
 
 //===============================================================
 
-typedef hash_map<int, hash_set<SIKey> > Candidate;
 // the first int for anc_u, the second int for curr_u's branch_num.
 typedef hash_map<int, map<int, vector<Mapping> > > mResult;
 
@@ -33,11 +32,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 public:
 	// used in the filtering step:
-	// typedef hash_map<int, hash_set<SIKey> > Candidate;
-	// candidates[curr_u][next_u] = vector<SIKey>
-	hash_map<int, Candidate> candidates;
-	// curr_u: vector<next_u>
-	hash_map<int, vector<int> > cand_map;
+	// candidates[neighbor_u] = hash_set<SIKey>
+	vector<int> cand_nbs;
+	vector<hash_set<SIKey>> candidates;
 
 	vector<Mapping> bucket;
 	vector<vector<Mapping>> buckets;
@@ -112,20 +109,26 @@ public:
 		{
 			if (filter_flag)
 			{ // with filtering
-				for (int next_u : next_us)
+				for (int i = 0; i < this->cand_nbs.size(); i++)
 				{
-					hash_set<SIKey> &keys = candidates[curr_u][next_u];
-					auto it = keys.begin(); auto iend = keys.end();
-					for (; it != iend; ++it)
+					for (int next_u : next_us)
 					{
-						SIMessage msg = SIMessage(MAPPING, mappings, curr_u);
-						send_message(*it, msg);
+						if (this->cand_nbs[i] == next_u)
+						{
+							hash_set<SIKey> &keys = candidates[i];
+							auto it = keys.begin(); auto iend = keys.end();
+							for (; it != iend; ++it)
+							{
+								SIMessage msg = SIMessage(MAPPING, mappings, curr_u);
+								send_message(*it, msg);
 #ifdef DEBUG_MODE_MSG
-						cout << "[DEBUG] Message sent from " << id.vID << " to "
-								<< it->vID << ". \n\t"
-								<< "Type: MAPPING. \n\t"
-								<< "Mapping: " << msg.mappings[0] << endl;
+								cout << "[DEBUG] Message sent from " << id.vID << " to "
+										<< it->vID << ". \n\t"
+										<< "Type: MAPPING. \n\t"
+										<< "Mapping: " << msg.mappings[0] << endl;
 #endif
+							}
+						}
 					}
 				}
 			}
@@ -173,19 +176,23 @@ public:
 		if (step_num() == 1)
 		{
 			int curr_u = query->root;
-			if (value().label == query->getLabel(curr_u))
+			if (!params.filter || this->manual_active)
 			{
-				Mapping mapping = {id};
-				bucket.push_back(mapping);
-				//add_flag
-				if (params.enumerate && query->isBranch(curr_u))
+				this->manual_active = false;
+				if (value().label == query->getLabel(curr_u))
 				{
-					SIVertex* v = new SIVertex;
-					v->id = SIKey(curr_u, id.wID, mapping);
-					this->add_vertex(v);
+					Mapping mapping = {id};
+					bucket.push_back(mapping);
+					//add_flag
+					if (params.enumerate && query->isBranch(curr_u))
+					{
+						SIVertex* v = new SIVertex;
+						v->id = SIKey(curr_u, id.wID, mapping);
+						this->add_vertex(v);
+					}
+					if (continue_mapping(bucket, curr_u, params.filter))
+						bucket.clear();
 				}
-				if (continue_mapping(bucket, curr_u, params.filter))
-					bucket.clear();
 			}
 		}
 		else
@@ -260,119 +267,82 @@ public:
 		vote_to_halt();
 	}
 
-	void check_candidates(hash_set<int> &invalid_set)
+	void check_candidates()
 	{
-		int u1, u2;
-		for (auto cand_it = cand_map.begin(); cand_it != cand_map.end();
-				cand_it ++)
+		for (int i = 0; i < this->cand_nbs.size(); i++)
 		{
-			u1 = cand_it->first;
-			for (int u : cand_it->second)
+			auto it = this->candidates[i].begin();
+			auto iend = this->candidates[i].end();
+			for (; it != iend; ++ it)
 			{
-				if (candidates[u1][u].empty())
-				{
-					invalid_set.insert(u1);
-					break;
-				}
-			}
-		}
-
-		for (hash_set<int>::iterator set_it = invalid_set.begin();
-				set_it != invalid_set.end(); set_it ++)
-		{
-			u1 = *set_it;
-			for (Candidate::iterator it = candidates[u1].begin();
-					it != candidates[u1].end(); it++)
-			{
-				u2 = it->first;
-				for (SIKey k : it->second)
-				{
-					SIMessage msg = SIMessage(CANDIDATE, id);
-					msg.add_int(u2);
-					msg.add_int(u1);
-					send_message(k, msg);
+				SIMessage msg = SIMessage(LABEL_INFOMATION, id, value().label);
+				send_message(*it, msg);
 #ifdef DEBUG_MODE_MSG
-					cout << "[DEBUG] Superstep " << step_num()
-							<< "\n\tMessage sent from " << id.vID
-							<<	" to " << k.vID << "."
-							<< "\n\tType: CANDIDATE. "
-							<< "\n\tv_int: " << msg.v_int << endl;
+				cout << "[DEBUG] Message sent from " << id.vID << " to "
+					<< it->vID << ". \n\t"
+					<< "Type: Label Info. \n\t";
 #endif
-				}
 			}
 		}
 	}
 
 	void filter(MessageContainer & messages)
 	{
+		// candidates[neighbor_u] = hash_set<SIKey>
+		// vector<int> cand_nbs;
+		// vector<hash_set<SIKey>> candidates;
+
+#ifdef DEBUG_MODE_ACTIVE
+		cout << "[DEBUG] STEP NUMBER " << step_num()
+			 << " ACTIVE Vertex ID " << id.vID << endl;
+#endif
+
 		SIQuery* query = (SIQuery*)getQuery();
-		vector<int> temp_vec;
 		int degree = value().nbs_vector.size();
 
 		if (step_num() == 1)
 		{ // initialize candidates
-			query->LDFFilter(value().label, degree, cand_map);
-			SIMessage msg = SIMessage(CANDIDATE, id);
-			for (auto cand_it = cand_map.begin(); cand_it != cand_map.end();
-					++ cand_it)
-				msg.add_int(cand_it->first);
-
-			if (!cand_map.empty())
+			this->manual_active = true;
+			if (query->LDFFilter(value().label, degree))
 			{
-				for (size_t i = 0; i < degree; ++i)
+				this->cand_nbs = query->getCandidateNeighbors(value().label);
+				int sz = this->cand_nbs.size();
+				this->candidates.resize(sz);
+				for (int i = 0; i < sz; i++)
 				{
-					send_message(value().nbs_vector[i].key, msg);
-#ifdef DEBUG_MODE_MSG
-					cout << "[DEBUG] Superstep " << step_num()
-							<< "\n\tMessage sent from " << id.vID
-							<<	" to " << value().nbs_vector[i].key.vID << "."
-							<< "\n\tType: CANDIDATE. "
-							<< "\n\tv_int: " << msg.v_int << endl;
-#endif
+					for (int j = 0; j < degree; j++)
+					{
+						KeyLabel &kl = value().nbs_vector[j];
+						if (query->getLabel(this->cand_nbs[i]) == kl.label)
+							candidates[i].insert(kl.key);
+					}
+					if (candidates[i].empty())
+						this->manual_active = false;
 				}
+				if (!this->manual_active)
+					check_candidates();
 			}
-			vote_to_halt();
-		}
-		else if (step_num() == 2)
-		{ // initialize candidates
-			for (size_t i = 0; i < messages.size(); i++)
+			else
 			{
-				SIMessage & msg = messages[i];
-				for (auto cand_it = cand_map.begin(); cand_it != cand_map.end();
-						++cand_it)
-				{
-					vector<int> &a = cand_it->second;
-					set_intersection(a.begin(), a.end(), msg.v_int.begin(),
-							msg.v_int.end(), back_inserter(temp_vec));
-					for (int u : temp_vec)
-						candidates[cand_it->first][u].insert(msg.key);
-
-					temp_vec.clear();
-				}
-			}
-
-			hash_set<int> invalid_set; // invalid candidates
-			check_candidates(invalid_set); // includes sending message
-
-			for (hash_set<int>::iterator set_it = invalid_set.begin();
-					set_it != invalid_set.end(); set_it ++)
-			{
-				candidates.erase(*set_it);
+				this->manual_active = false;
 			}
 			vote_to_halt();
 		}
 		else
 		{ // filter candidates recursively
-			for (SIMessage &msg : messages)
-				candidates[msg.v_int[0]][msg.v_int[1]].erase(msg.key);
-
-			hash_set<int> invalid_set; // invalid candidates
-			check_candidates(invalid_set); // includes sending message
-
-			for (auto set_it = invalid_set.begin();
-					set_it != invalid_set.end(); set_it ++)
-				candidates.erase(*set_it);
-
+			if (this->manual_active)
+			{
+				for (int i = 0; i < this->cand_nbs.size(); i++)
+				{
+					for (SIMessage &msg : messages)
+						if (query->getLabel(this->cand_nbs[i]) == msg.value)
+							candidates[i].erase(msg.key);
+					if (candidates[i].empty())
+						this->manual_active = false;
+				}
+				if (!this->manual_active)
+					check_candidates();
+			}
 			vote_to_halt();
 		}
 	}
@@ -404,7 +374,8 @@ public:
 	{
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
-			 << " ACTIVE Vertex ID " << id.vID << endl;
+			 << " ACTIVE Vertex ID " << id.vID 
+			 << " Manual active: " << manual_active << endl;
 #endif
 		SIQuery* query = (SIQuery*)getQuery();	
 		if (step_num() == 1 && !this->manual_active
@@ -632,6 +603,7 @@ public:
     {
     	if (type == FILTER)
     	{
+			/*
         	int u1, u2;
 			auto iend = v->candidates.end();
     		for (auto it = v->candidates.begin(); it != iend; ++it)
@@ -646,6 +618,7 @@ public:
     					agg_mat[u1][u2] += jt->second.size();
     			}
     		}
+			*/
     	}
     	else if (type == ENUMERATE)
     	{

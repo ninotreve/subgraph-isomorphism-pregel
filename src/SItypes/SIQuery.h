@@ -309,25 +309,30 @@ public:
 	// Query is read-only.
 	// get functions before dfs.
 	int getID(int id) { return this->nodes[id].id; }
+	int getLabel(int id) { return this->nodes[id].label; }
 	vector<int> getNbs(int id) { return this->nodes[id].nbs; }
 
-	// fill cand_map with right vertices
-	void LDFFilter(int label, size_t degree,
-			hash_map<int, vector<int> > &cand_map)
+	vector<int> getCandidateNeighbors(int label)
 	{
-		vector<int> nbs;
-		int curr_u, lab;
-		for (curr_u = 0; curr_u < this->nodes.size(); ++curr_u)
-		{
-			lab = this->nodes[curr_u].label;
-			nbs = this->nodes[curr_u].nbs;
-			if (lab == label && nbs.size() <= degree)
-				cand_map[curr_u] = nbs;
-		}
+		vector<int> cand_nbs;
+		for (int curr_u = 0; curr_u < this->nodes.size(); ++curr_u)
+			if (label == this->nodes[curr_u].label)
+				for (int next_u : this->getNbs(curr_u))
+					cand_nbs.push_back(next_u);
+		
+		return cand_nbs;
+	}
+
+	bool LDFFilter(int label, size_t degree)
+	{
+		for (int curr_u = 0; curr_u < this->nodes.size(); ++curr_u)
+			if (label == this->nodes[curr_u].label 
+				&& degree >= this->nodes[curr_u].nbs.size())
+				return true;
+		return false;
 	}
 
 	// get functions after dfs.
-	int getLabel(int id) { return this->nodes[id].label; }
 	int getLevel(int id) { return this->nodes[id].level; }
 	int getBranchNumber(int id) { return this->nodes[id].branch_number;	}
 	int getDFSNumber(int id) { return this->nodes[id].dfs_number; }

@@ -40,14 +40,14 @@ struct SIMessage
 	}
 
 	SIMessage(int type, Mapping mapping, uID next_u)
-	{ // for mapping or branch result
+	{ // for branch result
 		this->type = type;
 		this->mapping = mapping;
 		this->value = next_u; // or curr_u
 	}
 
 	SIMessage(int type, vector<Mapping> mappings, uID parent_u)
-	{ // for mapping or branch result
+	{ // for mapping
 		this->type = type;
 		this->mappings = mappings;
 		this->value = parent_u;
