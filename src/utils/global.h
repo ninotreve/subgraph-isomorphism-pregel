@@ -203,8 +203,19 @@ bool notContains(vector<T> & v, T x)
 template <class T>
 bool notContainsDuplicate(vector<T> & v)
 {
-	hash_set<T> s = hash_set<T>(v.begin(), v.end());
-	return (s.size() == v.size());
+    if (v.size() <= 20)
+    {
+        for (int i = 0; i < v.size(); i++)
+            for (int j = i+1; j < v.size(); j++)
+                if (v[i] == v[j])
+                    return false;
+        return v[2] != v[3];
+    }
+    else
+    {
+        hash_set<T> s = hash_set<T>(v.begin(), v.end());
+	    return (s.size() == v.size());
+    }
 }
 
 

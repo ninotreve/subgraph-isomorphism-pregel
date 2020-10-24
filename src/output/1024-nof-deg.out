@@ -7,13 +7,13 @@ Filter Method: 0
 Order Method: degree
 Enumerate Method: 1
 =================Start loading data graph ...=====================
-Load Graph Time : 7.024589 seconds
+Load Graph Time : 6.920481 seconds
 =================Start loading query...===================
 Worker 0: "hdfs://2f957c17abfd:9000/query/query.txt" loaded
-Communication Time : 0.000023 seconds
-- Serialization Time : 0.000011 seconds
-- Transfer Time : 0.000012 seconds
-Load Query Time : 0.055491 seconds
+Communication Time : 0.000031 seconds
+- Serialization Time : 0.000018 seconds
+- Transfer Time : 0.000013 seconds
+Load Query Time : 0.056149 seconds
 =================Start building query tree...===================
 this->nodes size: 5
 Node 2
@@ -51,46 +51,46 @@ Neighbors: [3]
 Backward neighbors: []
 Backward same labels: []
 It has 0 children.
-Build Query Tree Time : 0.000089 seconds
+Build Query Tree Time : 0.000140 seconds
 ================Start matching...======================
-Superstep 1 done.Time elapsed: 0.109027 seconds
+Superstep 1 done.Time elapsed: 0.089987 seconds
 #msgs: 18541
-Superstep 2 done.Time elapsed: 0.0738199 seconds
+Superstep 2 done.Time elapsed: 0.0792141 seconds
 #msgs: 9778
-Superstep 3 done.Time elapsed: 0.0260658 seconds
+Superstep 3 done.Time elapsed: 0.0271852 seconds
 #msgs: 0
 Subgraph matching done. 
-Communication Time : 0.024987 seconds
-- Serialization Time : 0.015898 seconds
-- Transfer Time : 0.009068 seconds
-Total Computational Time : 0.209007 seconds
+Communication Time : 0.025100 seconds
+- Serialization Time : 0.016020 seconds
+- Transfer Time : 0.009057 seconds
+Total Computational Time : 0.196480 seconds
 Total #msgs=28319, Total #vadd=43597
 ================Start enumerating...===================
-Superstep 1 done.Time elapsed: 0.100656 seconds
+Superstep 1 done.Time elapsed: 0.107637 seconds
 #msgs: 100085
-Superstep 2 done.Time elapsed: 0.011652 seconds
+Superstep 2 done.Time elapsed: 0.066304 seconds
 #msgs: 0
 Subgraph enumeration done. 
-Communication Time : 0.022231 seconds
-- Serialization Time : 0.014036 seconds
-- Transfer Time : 0.008085 seconds
-Total Computational Time : 0.123855 seconds
+Communication Time : 0.023627 seconds
+- Serialization Time : 0.014768 seconds
+- Transfer Time : 0.008751 seconds
+Total Computational Time : 0.185588 seconds
 Total #msgs=100085, Total #vadd=0
 =================Start dumping graph...===================
 output path: /output
-Dump Time : 0.119245 seconds
+Dump Time : 0.242432 seconds
 ================ Final Report ===============
-Mapping count: 100085
-Load time: 7.08008 s.
-Dump time: 0.119245 s.
-Compute time: 0.333006 s.
-Offline time: 7.89218 s.
-Online time: 0.581145 s.
+Mapping count: 238901
+Load time: 6.97663 s.
+Dump time: 0.242432 s.
+Compute time: 0.382264 s.
+Offline time: 7.74099 s.
+Online time: 0.736744 s.
 ============ Load Balance Report ==============
-Rank: 0 Sync_time: 5.00679e-05
+Rank: 0 Sync_time: 4.22001e-05
 ============ Load Balance Report ==============
-Rank: 1 Sync_time: 0.0216973
+Rank: 2 Sync_time: 0.020191
 ============ Load Balance Report ==============
-Rank: 3 Sync_time: 0.016607
+Rank: 3 Sync_time: 0.0158482
 ============ Load Balance Report ==============
-Rank: 2 Sync_time: 0.0203042
+Rank: 1 Sync_time: 0.021066

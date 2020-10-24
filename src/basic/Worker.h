@@ -176,7 +176,7 @@ public:
 				switch (type)
 				{
 				case PREPROCESS:
-					vertexes[i]->preprocess(v_msgbufs[i], params.preprocess);
+					vertexes[i]->preprocess(v_msgbufs[i]);
 					break;
                 case FILTER:
                 	vertexes[i]->filter(v_msgbufs[i]);
