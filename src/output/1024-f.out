@@ -7,38 +7,32 @@ Filter Method: 1
 Order Method: random
 Enumerate Method: 1
 =================Start loading data graph ...=====================
-Load Graph Time : 6.803265 seconds
+Load Graph Time : 4.529156 seconds
 =================Start loading query...===================
 Worker 0: "hdfs://2f957c17abfd:9000/query/query.txt" loaded
-Communication Time : 0.000025 seconds
-- Serialization Time : 0.000011 seconds
-- Transfer Time : 0.000014 seconds
-Load Query Time : 0.054497 seconds
+Communication Time : 0.000026 seconds
+- Serialization Time : 0.000014 seconds
+- Transfer Time : 0.000012 seconds
+Load Query Time : 0.067584 seconds
 ================Start filtering...=================
-Superstep 1 done.Time elapsed: 0.646977 seconds
-#msgs: 854703
-Superstep 2 done.Time elapsed: 0.305692 seconds
-#msgs: 24109
-Superstep 3 done.Time elapsed: 0.0375309 seconds
-#msgs: 2339
-Superstep 4 done.Time elapsed: 0.0125198 seconds
-#msgs: 674
-Superstep 5 done.Time elapsed: 0.00888991 seconds
-#msgs: 168
-Superstep 6 done.Time elapsed: 0.00802898 seconds
-#msgs: 79
-Superstep 7 done.Time elapsed: 0.00783205 seconds
-#msgs: 21
-Superstep 8 done.Time elapsed: 0.00770617 seconds
-#msgs: 1
-Superstep 9 done.Time elapsed: 0.0076561 seconds
+Superstep 1 done.Time elapsed: 0.0869889 seconds
+#msgs: 29845
+Superstep 2 done.Time elapsed: 0.0131211 seconds
+#msgs: 2159
+Superstep 3 done.Time elapsed: 0.00878 seconds
+#msgs: 355
+Superstep 4 done.Time elapsed: 0.00848985 seconds
+#msgs: 46
+Superstep 5 done.Time elapsed: 0.00835395 seconds
+#msgs: 13
+Superstep 6 done.Time elapsed: 0.00822592 seconds
 #msgs: 0
 Candidate filtering done.
-Communication Time : 0.099611 seconds
-- Serialization Time : 0.054253 seconds
-- Transfer Time : 0.044519 seconds
-Total Computational Time : 1.162490 seconds
-Total #msgs=882094, Total #vadd=0
+Communication Time : 0.003354 seconds
+- Serialization Time : 0.001956 seconds
+- Transfer Time : 0.001385 seconds
+Total Computational Time : 0.134626 seconds
+Total #msgs=32418, Total #vadd=0
 =================Start building query tree...===================
 this->nodes size: 5
 Node 0
@@ -76,48 +70,48 @@ Neighbors: [3]
 Backward neighbors: []
 Backward same labels: []
 It has 0 children.
-Build Query Tree Time : 0.000063 seconds
+Build Query Tree Time : 0.000073 seconds
 ================Start matching...======================
-Superstep 1 done.Time elapsed: 0.0524971 seconds
-#msgs: 2126
-Superstep 2 done.Time elapsed: 0.0170698 seconds
-#msgs: 2284
-Superstep 3 done.Time elapsed: 0.022722 seconds
-#msgs: 1604
-Superstep 4 done.Time elapsed: 0.118881 seconds
-#msgs: 3187
-Superstep 5 done.Time elapsed: 0.0403302 seconds
+Superstep 1 done.Time elapsed: 0.0265069 seconds
+#msgs: 2453
+Superstep 2 done.Time elapsed: 0.028295 seconds
+#msgs: 5104
+Superstep 3 done.Time elapsed: 0.030503 seconds
+#msgs: 1518
+Superstep 4 done.Time elapsed: 0.182519 seconds
+#msgs: 2826
+Superstep 5 done.Time elapsed: 0.061317 seconds
 #msgs: 0
 Subgraph matching done. 
-Communication Time : 0.052027 seconds
-- Serialization Time : 0.028836 seconds
-- Transfer Time : 0.023159 seconds
-Total Computational Time : 0.251602 seconds
-Total #msgs=9201, Total #vadd=0
+Communication Time : 0.075508 seconds
+- Serialization Time : 0.046561 seconds
+- Transfer Time : 0.028837 seconds
+Total Computational Time : 0.329272 seconds
+Total #msgs=11901, Total #vadd=0
 ================Start enumerating...===================
-Superstep 1 done.Time elapsed: 0.0168719 seconds
+Superstep 1 done.Time elapsed: 0.018007 seconds
 #msgs: 0
 Subgraph enumeration done. 
-Communication Time : 0.000032 seconds
+Communication Time : 0.000015 seconds
 - Serialization Time : 0.000005 seconds
-- Transfer Time : 0.000027 seconds
-Total Computational Time : 0.027682 seconds
+- Transfer Time : 0.000008 seconds
+Total Computational Time : 0.024837 seconds
 Total #msgs=0, Total #vadd=0
 =================Start dumping graph...===================
 output path: /output
-Dump Time : 0.191765 seconds
+Dump Time : 0.245665 seconds
 ================ Final Report ===============
-Mapping count: 238901
-Load time: 6.85776 s.
-Dump time: 0.191765 s.
-Compute time: 1.4419 s.
-Offline time: 7.70951 s.
-Online time: 1.74721 s.
+Mapping count: 445012
+Load time: 4.59674 s.
+Dump time: 0.245665 s.
+Compute time: 0.488867 s.
+Offline time: 5.35438 s.
+Online time: 0.873688 s.
 ============ Load Balance Report ==============
-Rank: 0 Sync_time: 2.6226e-05
+Rank: 0 Sync_time: 3.76701e-05
 ============ Load Balance Report ==============
-Rank: 2 Sync_time: 0.022438
+Rank: 2 Sync_time: 0.0459259
 ============ Load Balance Report ==============
-Rank: 1 Sync_time: 0.0205956
+Rank: 3 Sync_time: 0.0289109
 ============ Load Balance Report ==============
-Rank: 3 Sync_time: 0.0107613
+Rank: 1 Sync_time: 0.0434411
