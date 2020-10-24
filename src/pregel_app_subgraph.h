@@ -32,9 +32,6 @@ typedef hash_map<int, map<int, vector<Mapping> > > mResult;
 class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 public:
-	// used in the preprocessing step:
-	bloom_filter bfilter;
-
 	// used in the filtering step:
 	// typedef hash_map<int, hash_set<SIKey> > Candidate;
 	// candidates[curr_u][next_u] = vector<SIKey>
@@ -47,25 +44,19 @@ public:
 	int results_count = 0;
 	bool manual_active = false;
 
-	void preprocess(MessageContainer & messages, bool bloom_filter)
+	void preprocess(MessageContainer & messages)
 	{  // use bloom filter to store neighbors' edges.
 		size_t sz = value().nbs_vector.size();
 
 		if (step_num() == 1)
 		{ // send label and degree to neighbors
 			SIMessage msg1 = SIMessage(LABEL_INFOMATION, id, value().label);
-			SIMessage msg2 = SIMessage(DEGREE, id, value().degree);
 			for (size_t i = 0; i < sz; ++i)
 			{
 				send_message(value().nbs_vector[i].key, msg1);
-				if (bloom_filter)
-				{
-					send_message(value().nbs_vector[i].key, msg2);
-				}
 			}
 		}
-		
-		if (step_num() == 2)
+		else
 		{   // receive label and degree from neighbors, set up bloom filter
 			// send neighbors to neighbors
 			for (size_t i = 0; i < messages.size(); ++i)
@@ -79,39 +70,8 @@ public:
 							value().nbs_vector[i].label = msg.value;
 					}
 				}
-				else // DEGREE
-				{
-					bfilter.add_projected_element_count(msg.value);
-					bfilter.init(0.01, 0xA5A5A5A5);
-				}
 			}
-			if (!bloom_filter) vote_to_halt();
-		}
-
-		if (step_num() >= 2 && bloom_filter)
-		{ // fill in bloom filter and send one edge to neighbors
-			for (size_t i = 0; i < messages.size(); ++i)
-			{
-				SIMessage & msg = messages[i];
-				if (msg.type == NEIGHBOR_PAIR)
-					bfilter.insert(msg.p_int);
-			}
-			int index = step_num() - 2; // start from 0
-			if (index < sz)
-			{
-				int me = this->id.vID;
-				int nb = value().nbs_vector[index].key.vID;
-				for (size_t i = 0; i < sz; ++i)
-				{
-					if (i != index)
-					{
-						SIMessage msg = SIMessage(NEIGHBOR_PAIR, 
-							make_pair(me, nb));
-						send_message(value().nbs_vector[i].key, msg);
-					}
-				}
-			}
-			else vote_to_halt();
+			vote_to_halt();
 		}
 	}
 
@@ -145,7 +105,6 @@ public:
 		vector<int> next_us = query->getChildren(curr_u);
 		if (next_us.size() == 0)
 		{ // leaf query vertex
-			this->results_count += mappings.size();
 			this->manual_active = true;
 			return false; 
 		}
@@ -449,7 +408,7 @@ public:
 #endif
 		SIQuery* query = (SIQuery*)getQuery();	
 		if (step_num() == 1 && !this->manual_active
-			|| step_num() > query->max_branch_number)
+			|| step_num() > query->max_branch_number + 1)
 		{
 			vote_to_halt();
 			return;
@@ -462,86 +421,61 @@ public:
 			vector<int> vector_u = query->getBucket(query->max_level, value().label);
 			if (vector_u.size() == 1)
 			{
-				int curr_u = vector_u[0];
-				int anc_u = query->getNearestBranchingAncestor(curr_u);
-				for (int i = 0; i < this->bucket.size(); i++)
-					continue_enum(SIBranch(this->bucket[i]), curr_u, anc_u);
+				if (step_num() == query->max_branch_number + 1)
+				{
+					this->results_count += this->bucket.size();
+				}
+				else
+				{
+					int curr_u = vector_u[0];
+					int anc_u = query->getNearestBranchingAncestor(curr_u);
+					for (int i = 0; i < this->bucket.size(); i++)
+						continue_enum(SIBranch(this->bucket[i]), curr_u, anc_u);
+					this->bucket.clear();
+				}
 			}
 			else
 			{
 				for (int b = 0; b < this->buckets.size(); b++)
 				{
-					int curr_u = vector_u[b];
-					int anc_u = query->getNearestBranchingAncestor(curr_u);
-					for (int i = 0; i < this->buckets[b].size(); i++)
-						continue_enum(SIBranch(this->buckets[b][i]), curr_u, anc_u);
+					if (step_num() == query->max_branch_number + 1)
+					{
+						this->results_count += this->buckets[b].size();
+					}
+					else
+					{
+						int curr_u = vector_u[b];
+						int anc_u = query->getNearestBranchingAncestor(curr_u);
+						for (int i = 0; i < this->buckets[b].size(); i++)
+							continue_enum(SIBranch(this->buckets[b][i]), curr_u, anc_u);
+						
+						this->buckets[b].clear();
+					}
 				}
 			}
 		}
-			/*
-			for (auto it = this->results.begin(); it != iend; ++it)
-			{
-				curr_u = it->first;
-				num = query->getBranchNumber(curr_u);
-				if (num != 0 && num > query->max_branch_number - step_num()
-						&& !it->second.empty())
-				{ // non-empty to guarantee that query vertex is a leaf
-					anc_u = query->getNearestBranchingAncestor(curr_u);
-					for (size_t i = 0; i < it->second.size(); i++)
-					{
-						Mapping m1, m2;
-						Mapping & m = it->second[i];
-						to_key = m[query->getLevel(anc_u)];
-						for (j = 0; j <= query->getLevel(anc_u); j++)
-							m1.push_back(m[j]);
-						for (; j < (int) m.size(); j++)
-							m2.push_back(m[j]);
-						SIBranch b = SIBranch(m2);
-						send_message(SIKey(anc_u, to_key.wID, m1),
-							SIMessage(BRANCH, b, curr_u));
-#ifdef DEBUG_MODE_MSG
-					cout << "[DEBUG] Superstep " << step_num()
-							<< "\n\tMessage sent from (leaf) " << id.vID
-							<<	" to <" << to_key.vID << ", " << m1 << ">."
-							<< "\n\tType: BRANCH. "
-							<< "\n\tMapping: " << m2
-							<< ", curr_u: " << curr_u << endl;
-#endif
-					}
-					delete_set.insert(curr_u);
-				} // end of if
-			} // end of for loop
-
-			for (hash_set<int>::iterator it = delete_set.begin();
-					it != delete_set.end(); ++it)
-			{
-				this->results.erase(*it);
-			}
-			this->results_count = 0;
-		}
-		*/
 		else
 		{
-			vector<int> children_u = query->getChildren(id.vID);
 			SIBranch b = SIBranch(id.partial_mapping);
-			b.branches.resize(children_u.size());
-			int i = 0, j = 0;
-			for (; i < messages.size(); i++)
+			b.branches.resize(query->getChildren(id.vID).size());
+			int i, j;
+			vector<int> branch_u;
+			for (i = 0; i < messages.size(); i++)
 			{
 				SIMessage & msg = messages[i];
 				// find out where to store the branch
-				for (; j < children_u.size(); j++)
-					if (children_u[j] == msg.value) break;
+				for (j = 0; j < branch_u.size(); j++)
+					if (branch_u[j] == msg.value) break;
+				if (j == branch_u.size())
+					branch_u.push_back(msg.value);
 				b.branches[j].push_back(msg.branch);
 			}
-			
 			// make sure every child sends you result!
 			if (!b.isValid())
 			{
 				vote_to_halt();
 				return;
 			}
-
 			if (step_num() == query->max_branch_number + 1)
 			{
 				this->bucket = b.expand();
@@ -550,78 +484,10 @@ public:
 			else
 			{
 				continue_enum(b, id.vID, query->getNearestBranchingAncestor(id.vID));
+				this->bucket.clear();
 			}
 		}
-/*
-		// receive msg and join for supersteps [2, max_branch_number + 1]
-		// send msg to ancestor for supersteps [2, max_branch_number]
-		if (step_num() > 1 && step_num() <= query->max_branch_number + 1)
-		{
-			// hash_map<curr_u, map<chd_u's DFS number, vector<SIBranch> > >
-			hash_map<int, map<int, vector<SIBranch> > > u_children;
-			hash_map<int, map<int, vector<SIBranch> > >::iterator it1;
-			map<int, vector<SIBranch> >::iterator it2;
-			for (size_t i = 0; i < messages.size(); i++)
-			{
-				SIMessage & msg = messages[i];
-				curr_u = query->getNearestBranchingAncestor(msg.value);
-				num = query->getDFSNumber(msg.value);
-				u_children[curr_u][num].push_back(msg.branch);
-			}
-
-			for (it1 = u_children.begin(); it1 != u_children.end();
-					it1++)
-			{
-				Mapping m1, m2;
-				Mapping &m = id.partial_mapping;
-				curr_u = it1->first;
-
-				// make sure every child sends you result!
-				if ((int) it1->second.size() !=
-						query->getChildren(curr_u).size())
-					continue;
-
-				if (step_num() == query->max_branch_number + 1)
-				{
-					SIBranch b = SIBranch(m);
-					for (it2 = it1->second.begin();
-							it2 != it1->second.end(); it2++)
-						b.addBranch(it2->second);
-					this->results[curr_u] = b.expand();
-					this->results_count += this->results[curr_u].size();
-				}
-				else
-				{
-					anc_u = query->getNearestBranchingAncestor(curr_u);
-					to_key = m[query->getLevel(anc_u)];
-					for (j = 0; j <= query->getLevel(anc_u); j++)
-						m1.push_back(m[j]);
-					for (; j < (int) m.size(); j++)
-						m2.push_back(m[j]);
-					SIBranch b = SIBranch(m2);
-					for (it2 = it1->second.begin();
-							it2 != it1->second.end(); it2++)
-						b.addBranch(it2->second);
-					send_message(SIKey(anc_u, to_key.wID, m1),
-							SIMessage(BRANCH, b, curr_u));
-#ifdef DEBUG_MODE_MSG
-				cout << "[DEBUG] Superstep " << step_num()
-						<< "\n\tMessage sent from (branching) " << id.vID
-						<<	" to <" << to_key.vID << ", " << m1 << ">. \n\t"
-						<< "Type: BRANCH. \n\t"
-						<< "Mapping: " << m2 << endl;
-#endif
-				}
-			}
-		}
-
-		if (step_num() >= query->max_branch_number)
-		{
-			vote_to_halt();
-		}
-*/
-
-		vote_to_halt();
+ 		vote_to_halt();
 
 	}
 
