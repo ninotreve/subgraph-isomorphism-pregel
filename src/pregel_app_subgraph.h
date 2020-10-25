@@ -3,12 +3,12 @@
 #include "utils/Query.h"
 using namespace std;
 
-/*
+
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
 #define DEBUG_MODE_PARTIAL_RESULT 1
 #define DEBUG_MODE_RESULT 1
-*/
+
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -171,6 +171,7 @@ public:
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
 			 << " ACTIVE Vertex ID " << id.vID << endl;
+			 << " Manual active: " << manual_active << endl;
 #endif
 
 		if (step_num() == 1)
@@ -291,10 +292,12 @@ public:
 		// candidates[neighbor_u] = hash_set<SIKey>
 		// vector<int> cand_nbs;
 		// vector<hash_set<SIKey>> candidates;
+		// a bug in filter: must separate different u.
 
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
 			 << " ACTIVE Vertex ID " << id.vID << endl;
+			 << " Manual active: " << manual_active << endl;
 #endif
 
 		SIQuery* query = (SIQuery*)getQuery();

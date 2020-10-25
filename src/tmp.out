@@ -1,110 +1,146 @@
-Data graph path: /toyGraph/toy1/toy1.txt
-Query graph path: /toyQuery/query1/query1.txt
-Output graph path: /toyOutput
+Data graph path: /labeled.txt
+Query graph path: /query
+Output graph path: /output
 Partition Method: 
 Preprocess Method: 1
 Filter Method: 1
 Order Method: random
 Enumerate Method: 1
 =================Start loading data graph ...=====================
-Load Graph Time : 0.139201 seconds
+Load Graph Time : 0.111657 seconds
 ================Start preprocessing...=================
+Superstep 1 done.Time elapsed: 8.98838e-05 seconds
+#msgs: 54
+Superstep 2 done.Time elapsed: 5.00679e-06 seconds
+#msgs: 0
+Subgraph preprocessing done. 
 Communication Time : 0.000000 seconds
 - Serialization Time : 0.000000 seconds
 - Transfer Time : 0.000000 seconds
-Total Computational Time : 0.000050 seconds
-Total #msgs=38, Total #vadd=0
+Total Computational Time : 0.000147 seconds
+Total #msgs=54, Total #vadd=0
 =================Start loading query...===================
-Worker 0: "hdfs://2f957c17abfd:9000/toyQuery/query1/query1.txt" loaded
-Communication Time : 0.000024 seconds
-- Serialization Time : 0.000018 seconds
+Worker 0: "hdfs://2f957c17abfd:9000/query/query.txt" loaded
+Communication Time : 0.000009 seconds
+- Serialization Time : 0.000003 seconds
 - Transfer Time : 0.000005 seconds
-Load Query Time : 0.057077 seconds
+Load Query Time : 0.058258 seconds
 ================Start filtering...=================
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 1
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 2
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 3
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 4
+[DEBUG] Message sent from 3 to 2. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 3 to 4. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 3 to 2. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 3 to 4. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 3 to 13. 
+	Type: Label Info. 
+	[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 4
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 5
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 6
+[DEBUG] Message sent from 5 to 1. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 5 to 2. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 5 to 4. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 5 to 2. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 5 to 4. 
+	Type: Label Info. 
+	[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 6
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 7
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 8
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 9
-[DEBUG] Message sent from 9 to 2. 
+[DEBUG] Message sent from 9 to 4. 
 	Type: Label Info. 
-	[DEBUG] Message sent from 9 to 11. 
+	[DEBUG] Message sent from 9 to 4. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 9 to 6. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 9 to 8. 
+	Type: Label Info. 
+	[DEBUG] Message sent from 9 to 10. 
 	Type: Label Info. 
 	[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 10
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 11
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 12
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 2
-[DEBUG] Message sent from 2 to 8. 
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 13
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 14
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 15
+Superstep 1 done.Time elapsed: 0.000127077 seconds
+#msgs: 15
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 1
+[DEBUG] Message sent from 1 to 2. 
 	Type: Label Info. 
-	[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 11
-[DEBUG] Message sent from 11 to 8. 
+	[DEBUG] Message sent from 1 to 4. 
 	Type: Label Info. 
-	[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 8
-[DEBUG] Message sent from 8 to 6. 
+	[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 2
+[DEBUG] Message sent from 2 to 1. 
 	Type: Label Info. 
-	[DEBUG] Message sent from 8 to 7. 
+	[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 4
+[DEBUG] Message sent from 4 to 1. 
 	Type: Label Info. 
-	[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 6
-[DEBUG] Message sent from 6 to 1. 
-	Type: Label Info. 
-	[DEBUG] Message sent from 6 to 10. 
-	Type: Label Info. 
-	[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 7
-[DEBUG] Message sent from 7 to 1. 
-	Type: Label Info. 
-	[DEBUG] Message sent from 7 to 10. 
-	Type: Label Info. 
-	[DEBUG] STEP NUMBER 5 ACTIVE Vertex ID 1
-[DEBUG] STEP NUMBER 5 ACTIVE Vertex ID 10
-Communication Time : 0.000010 seconds
-- Serialization Time : 0.000003 seconds
-- Transfer Time : 0.000007 seconds
-Total Computational Time : 0.000295 seconds
-Total #msgs=10, Total #vadd=0
+	[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 6
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 8
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 10
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 13
+Superstep 2 done.Time elapsed: 2.88486e-05 seconds
+#msgs: 4
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 1
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 2
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 4
+Superstep 3 done.Time elapsed: 8.82149e-06 seconds
+#msgs: 0
+Candidate filtering done.
+Communication Time : 0.000007 seconds
+- Serialization Time : 0.000001 seconds
+- Transfer Time : 0.000005 seconds
+Total Computational Time : 0.000202 seconds
+Total #msgs=19, Total #vadd=0
 =================Start building query tree...===================
-this->nodes size: 4
+this->nodes size: 5
 Node 0
-Label: 1
+Label: 97
 Branch number: 0
 Neighbors: [1, 2]
 Backward neighbors: []
 Backward same labels: []
 It has 1 children.
 Node 1
-Label: 2
+Label: 98
 Branch number: 0
-Neighbors: [0, 2, 3]
+Neighbors: [0, 2]
 Backward neighbors: []
 Backward same labels: []
 It has 1 children.
 Node 2
-Label: 3
+Label: 99
 Branch number: 0
 Neighbors: [0, 1, 3]
 Backward neighbors: [0]
 Backward same labels: []
 It has 1 children.
 Node 3
-Label: 4
+Label: 98
 Branch number: 0
-Neighbors: [1, 2]
-Backward neighbors: [1]
+Neighbors: [2, 4]
+Backward neighbors: []
+Backward same labels: [1]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 0
+Neighbors: [3]
+Backward neighbors: []
 Backward same labels: []
 It has 0 children.
-Build Query Tree Time : 0.000182 seconds
+Build Query Tree Time : 0.000130 seconds
 ================Start matching...======================
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 1
-[Result] Current query vertex: 0 Partial mapping: [1]
-[DEBUG] Message sent from 1 to 3. 
-	Type: MAPPING. 
-	Mapping: [1]
-[DEBUG] Message sent from 1 to 4. 
-	Type: MAPPING. 
-	Mapping: [1]
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 2
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 3
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 4
@@ -115,29 +151,69 @@ Build Query Tree Time : 0.000182 seconds
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 9
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 10
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 11
+[Result] Current query vertex: 0 Partial mapping: [11]
+[DEBUG] Message sent from 11 to 12. 
+	Type: MAPPING. 
+	Mapping: [11]
+[DEBUG] Message sent from 11 to 14. 
+	Type: MAPPING. 
+	Mapping: [11]
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 12
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 3
-[Result] Current query vertex: 1 Partial mapping: [1, 3]
-[DEBUG] Message sent from 3 to 5. 
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 13
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 14
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 15
+Superstep 1 done.Time elapsed: 7.60555e-05 seconds
+#msgs: 2
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 12
+[Result] Current query vertex: 1 Partial mapping: [11, 12]
+[DEBUG] Message sent from 12 to 15. 
 	Type: MAPPING. 
-	Mapping: [1, 3]
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 4
-[Result] Current query vertex: 1 Partial mapping: [1, 4]
-[DEBUG] Message sent from 4 to 5. 
+	Mapping: [11, 12]
+[DEBUG] Message sent from 12 to 15. 
 	Type: MAPPING. 
-	Mapping: [1, 4]
-[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 5
-[Result] Current query vertex: 2 Partial mapping: [1, 3, 5]
-[DEBUG] Message sent from 5 to 10. 
+	Mapping: [11, 12]
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 14
+[Result] Current query vertex: 1 Partial mapping: [11, 14]
+[DEBUG] Message sent from 14 to 15. 
 	Type: MAPPING. 
-	Mapping: [1, 3, 5]
-[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 10
-[Result] Current query vertex: 3 Partial mapping: [1, 3, 5, 10]
-Communication Time : 0.000001 seconds
+	Mapping: [11, 14]
+[DEBUG] Message sent from 14 to 15. 
+	Type: MAPPING. 
+	Mapping: [11, 14]
+Superstep 2 done.Time elapsed: 3.69549e-05 seconds
+#msgs: 4
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 15
+[Result] Current query vertex: 2 Partial mapping: [11, 12, 15]
+[DEBUG] Message sent from 15 to 12. 
+	Type: MAPPING. 
+	Mapping: [11, 12, 15]
+[DEBUG] Message sent from 15 to 14. 
+	Type: MAPPING. 
+	Mapping: [11, 12, 15]
+Superstep 3 done.Time elapsed: 4.41074e-05 seconds
+#msgs: 2
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 12
+[Result] Current query vertex: 3 Partial mapping: [11, 14, 15, 12]
+[DEBUG] Message sent from 12 to 13. 
+	Type: MAPPING. 
+	Mapping: [11, 14, 15, 12]
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 14
+[Result] Current query vertex: 3 Partial mapping: [11, 12, 15, 14]
+[DEBUG] Message sent from 14 to 13. 
+	Type: MAPPING. 
+	Mapping: [11, 12, 15, 14]
+Superstep 4 done.Time elapsed: 3.69549e-05 seconds
+#msgs: 2
+[DEBUG] STEP NUMBER 5 ACTIVE Vertex ID 13
+[Result] Current query vertex: 4 Partial mapping: [11, 14, 15, 12, 13]
+Superstep 5 done.Time elapsed: 1.09673e-05 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 0.000000 seconds
 - Serialization Time : 0.000000 seconds
 - Transfer Time : 0.000000 seconds
-Total Computational Time : 0.000232 seconds
-Total #msgs=5, Total #vadd=0
+Total Computational Time : 0.000242 seconds
+Total #msgs=10, Total #vadd=0
 ================Start enumerating...===================
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 1 Manual active: 0
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 2 Manual active: 0
@@ -148,29 +224,41 @@ Total #msgs=5, Total #vadd=0
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 7 Manual active: 0
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 8 Manual active: 0
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 9 Manual active: 0
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 10 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 10 Manual active: 0
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 11 Manual active: 0
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 12 Manual active: 0
-Communication Time : 0.000004 seconds
-- Serialization Time : 0.000000 seconds
-- Transfer Time : 0.000002 seconds
-Total Computational Time : 0.000076 seconds
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 13 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 14 Manual active: 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 15 Manual active: 0
+Superstep 1 done.Time elapsed: 4.57764e-05 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.000002 seconds
+- Serialization Time : 0.000001 seconds
+- Transfer Time : 0.000000 seconds
+Total Computational Time : 0.000056 seconds
 Total #msgs=0, Total #vadd=0
 =================Start dumping graph...===================
-output path: /toyOutput
+output path: /output
 [DEBUG] Worker ID: 0
-[DEBUG] Vertex ID: 10
-[DEBUG] Result: [1, 3, 5, 10]
+[DEBUG] Vertex ID: 13
+[DEBUG] Result: [11, 14, 15, 12, 13]
 [DEBUG] Worker ID: 0
-[DEBUG] Vertex ID: 10
-[DEBUG] Result: [1, 4, 5, 10]
-Dump Time : 0.125822 seconds
+[DEBUG] Vertex ID: 13
+[DEBUG] Result: [11, 14, 15, 12, 13]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 13
+[DEBUG] Result: [11, 12, 15, 14, 13]
+[DEBUG] Worker ID: 0
+[DEBUG] Vertex ID: 13
+[DEBUG] Result: [11, 12, 15, 14, 13]
+Dump Time : 0.124002 seconds
 ================ Final Report ===============
-Mapping count: 2
-Load time: 0.196278 s.
-Dump time: 0.125822 s.
-Compute time: 0.00433087 s.
-Offline time: 0.960696 s.
-Online time: 0.254675 s.
+Mapping count: 4
+Load time: 0.169915 s.
+Dump time: 0.124002 s.
+Compute time: 0.000668049 s.
+Offline time: 0.903552 s.
+Online time: 0.257693 s.
 ============ Load Balance Report ==============
 Rank: 0 Sync_time: 0
