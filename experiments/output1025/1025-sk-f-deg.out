@@ -1,0 +1,178 @@
+Data graph path: /fdu-zyj/labelSK
+Query graph path: /fdu-zyj/query
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 0
+Filter Method: 1
+Order Method: degree
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 45.720475 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query/query.txt" loaded
+Communication Time : 0.000126 seconds
+- Serialization Time : 0.000029 seconds
+- Transfer Time : 0.000097 seconds
+Load Query Time : 0.579513 seconds
+================Start filtering...=================
+Superstep 1 done.Time elapsed: 0.331078 seconds
+#msgs: 111213
+Superstep 2 done.Time elapsed: 0.17056 seconds
+#msgs: 9307
+Superstep 3 done.Time elapsed: 0.24219 seconds
+#msgs: 1888
+Superstep 4 done.Time elapsed: 0.216922 seconds
+#msgs: 655
+Superstep 5 done.Time elapsed: 0.27072 seconds
+#msgs: 142
+Superstep 6 done.Time elapsed: 0.11701 seconds
+#msgs: 82
+Superstep 7 done.Time elapsed: 0.239571 seconds
+#msgs: 26
+Superstep 8 done.Time elapsed: 0.258047 seconds
+#msgs: 18
+Superstep 9 done.Time elapsed: 0.219678 seconds
+#msgs: 1
+Superstep 10 done.Time elapsed: 0.23811 seconds
+#msgs: 0
+Candidate filtering done.
+Communication Time : 0.939524 seconds
+- Serialization Time : 0.011041 seconds
+- Transfer Time : 0.928119 seconds
+Total Computational Time : 2.508929 seconds
+Total #msgs=123332, Total #vadd=0
+=================Start building query tree...===================
+this->nodes size: 5
+Node 2
+Label: 99
+Branch number: 1
+Neighbors: [0, 1, 3]
+Backward neighbors: []
+Backward same labels: []
+It has 2 children.
+Node 0
+Label: 97
+Branch number: 1
+Neighbors: [1, 2]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 1
+Neighbors: [0, 2]
+Backward neighbors: [0]
+Backward same labels: []
+It has 0 children.
+Node 3
+Label: 98
+Branch number: 1
+Neighbors: [2, 4]
+Backward neighbors: []
+Backward same labels: [2]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 1
+Neighbors: [3]
+Backward neighbors: []
+Backward same labels: []
+It has 0 children.
+Build Query Tree Time : 0.039294 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.23811 seconds
+#msgs: 21685
+Superstep 2 done.Time elapsed: 2.33062 seconds
+#msgs: 24920
+Superstep 3 done.Time elapsed: 0.454593 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 1.013727 seconds
+- Serialization Time : 0.336446 seconds
+- Transfer Time : 0.652195 seconds
+Total Computational Time : 3.152121 seconds
+Total #msgs=46605, Total #vadd=4543
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 1.54214 seconds
+#msgs: 2399788
+Superstep 2 done.Time elapsed: 1.49984 seconds
+#msgs: 0
+============ Load Balance Report ==============
+Rank: ============ Load Balance Report ==============
+Rank: 21 Sync_time: 0.389551
+============ Load Balance Report ==============
+Rank: 28 Sync_time: ============ Load Balance Report ==============
+Rank: 23 Sync_time: ============ Load Balance Report ========================== Load Balance Report ==============
+Rank: 16 Sync_time: 
+Rank: 15 Sync_time: ============ Load Balance Report ==============
+Rank: 17 Sync_time: 0.3726630.399316
+
+27 Sync_time: 0.203424
+0.223917
+0.420889
+Subgraph enumeration done. 
+Communication Time : 0.918654 seconds
+- Serialization Time : 0.281063 seconds
+- Transfer Time : 0.637067 seconds
+Total Computational Time : 3.217648 seconds
+Total #msgs=2399788, Total #vadd=0
+================ Final Report ===============
+Mapping count: 7549771
+Load time: 46.3 s.
+Dump time: 0.039294 s.
+Compute time: 8.91836 s.
+Offline time: 49.8639 s.
+Online time: 9.67356 s.
+============ Load Balance Report ==============
+Rank: 0 Sync_time: 0.134343
+============ Load Balance Report ==============
+Rank: 3 Sync_time: 0.236571
+============ Load Balance Report ==============
+Rank: 9 Sync_time: ============ Load Balance Report ==============
+Rank: 18 Sync_time: 0.391437
+============ Load Balance Report ==============
+Rank: 24 Sync_time: 0.359938
+============ Load Balance Report ==============
+Rank: 6 Sync_time: ============ Load Balance Report ==============
+Rank: 12 Sync_time: 0.420244
+0.380719============ Load Balance Report ==============
+Rank: 1 Sync_time: 0.224715
+============ Load Balance Report ==============
+Rank: 5 Sync_time: 0.237124
+============ Load Balance Report ==============
+Rank: 10 Sync_time: ============ Load Balance Report ==============
+Rank: 19 Sync_time: 0.388698
+============ Load Balance Report ==============
+Rank: 26 Sync_time: 0.205068
+============ Load Balance Report ==============
+Rank: 7 Sync_time: ============ Load Balance Report ==============
+Rank: 14 Sync_time: 0.388597
+
+0.415323
+============ Load Balance Report ==============
+Rank: 20 Sync_time: 0.428692
+============ Load Balance Report ========================== Load Balance Report ==============
+Rank: 8 Sync_time: 
+0.202587
+Rank: ============ Load Balance Report ==============
+Rank: 4 Sync_time: 0.258783
+0.442463
+============ Load Balance Report ==============
+Rank: 29 Sync_time: 0.216507
+250.195753
+============ Load Balance Report ==============
+Rank: 13 Sync_time: 0.39001
+============ Load Balance Report ==============
+Rank: 11 Sync_time: 0.422053
+ Sync_time: 0.372072
+0.203685
+============ Load Balance Report ==============
+Rank: 2 Sync_time: 0.207996
+============ Load Balance Report ==============
+Rank: 22 Sync_time: 0.430851
+============ Load Balance Report ==============
+Rank: 30 Sync_time: 0.195799
+============ Load Balance Report ==============
+Rank: 32 Sync_time: 0.22657
+============ Load Balance Report ==============
+Rank: 31 Sync_time: 0.220069
