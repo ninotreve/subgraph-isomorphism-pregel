@@ -92,6 +92,7 @@ public:
 	{ // Add current vertex to mapping;
 		// Send messages to neighbors with right label.
 		// if add_flag, add a dummy vertex for each mapping.
+		if (this->id.vID == 1) cout << "gg" << this->cand_us[0] << endl;
 		SIQuery* query = (SIQuery*)getQuery();
 
 #ifdef DEBUG_MODE_PARTIAL_RESULT
@@ -109,26 +110,25 @@ public:
 		{
 			if (filter_flag)
 			{ // with filtering
-				for (int i = 0; i < this->cand_nbs.size(); i++)
+				int i;
+				for (i = 0; this->cand_us[i] != curr_u; i++);
+				cout << this->cand_us.size() << endl;
+				cout << "gg" << this->cand_us[i] << endl;
+
+				for (int j = 0; j < this->candidates[i].size(); j++)
 				{
-					for (int next_u : next_us)
+					hash_set<SIKey> &keys = candidates[i][j];
+					auto it = keys.begin(); auto iend = keys.end();
+					for (; it != iend; ++it)
 					{
-						if (this->cand_nbs[i] == next_u)
-						{
-							hash_set<SIKey> &keys = candidates[i];
-							auto it = keys.begin(); auto iend = keys.end();
-							for (; it != iend; ++it)
-							{
-								SIMessage msg = SIMessage(MAPPING, mappings, curr_u);
-								send_message(*it, msg);
+						SIMessage msg = SIMessage(MAPPING, mappings, curr_u);
+						send_message(*it, msg);
 #ifdef DEBUG_MODE_MSG
-								cout << "[DEBUG] Message sent from " << id.vID << " to "
-										<< it->vID << ". \n\t"
-										<< "Type: MAPPING. \n\t"
-										<< "Mapping: " << msg.mappings[0] << endl;
+						cout << "[DEBUG] Message sent from " << id.vID << " to "
+								<< it->vID << ". \n\t"
+								<< "Type: MAPPING. \n\t"
+								<< "Mapping: " << msg.mappings[0] << endl;
 #endif
-							}
-						}
 					}
 				}
 			}
@@ -161,6 +161,7 @@ public:
 
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
 	{
+		if (this->id.vID == 1) cout << "gg" << this->cand_us[0] << endl;
 		SIQuery* query = (SIQuery*)getQuery();
 		if (!this->id.partial_mapping.empty())
 		{
@@ -170,7 +171,7 @@ public:
 
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
-			 << " ACTIVE Vertex ID " << id.vID << endl;
+			 << " ACTIVE Vertex ID " << id.vID
 			 << " Manual active: " << manual_active << endl;
 #endif
 
@@ -270,19 +271,24 @@ public:
 
 	void check_candidates(int u)
 	{
+		SIQuery* query = (SIQuery*)getQuery();
+		int curr_u = this->cand_us[u];
 		for (int i = 0; i < this->candidates[u].size(); i++)
 		{
+			int next_u = query->getNbs(curr_u)[i];
 			auto it = this->candidates[u][i].begin();
 			auto iend = this->candidates[u][i].end();
 			for (; it != iend; ++ it)
 			{
-				// change this
-				SIMessage msg = SIMessage(LABEL_INFOMATION, id, this->cand_us[u]);
+				SIMessage msg = SIMessage(CANDIDATE, id);
+				msg.add_int(curr_u);
+				msg.add_int(next_u);
 				send_message(*it, msg);
 #ifdef DEBUG_MODE_MSG
 				cout << "[DEBUG] Message sent from " << id.vID << " to "
 					<< it->vID << ". \n\t"
-					<< "Type: Bad candidate. \n\t";
+					<< "Type: Candidate. \n\t"
+					<< "curr_u: " << curr_u << "next_u" << next_u << endl;
 #endif
 			}
 		}
@@ -297,7 +303,7 @@ public:
 
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
-			 << " ACTIVE Vertex ID " << id.vID << endl;
+			 << " ACTIVE Vertex ID " << id.vID
 			 << " Manual active: " << manual_active << endl;
 #endif
 
@@ -313,6 +319,7 @@ public:
 
 			for (int u = 0; u < sz; u++)
 			{
+				bool check_flag = false;
 				int curr_u = this->cand_us[u];
 				vector<int> nbs_u = query->getNbs(curr_u);
 				int nsz = nbs_u.size();
@@ -323,37 +330,52 @@ public:
 					{
 						KeyLabel &kl = value().nbs_vector[j];
 						if (query->getLabel(nbs_u[i]) == kl.label)
+						{
 							candidates[u][i].insert(kl.key);
+							cout << "Insert candidates[u][i] (" << u << "," << i
+							<< ") kl.key " << kl.key.vID << endl;
+						}
 					}
 					if (candidates[u][i].empty())
-						this->manual_active = false;
+						check_flag = true;
 				}
-				if (!this->manual_active)
+				if (check_flag)
+				{
 					check_candidates(u);
+					this->cand_us[u] = -1;
+				}
 			}
-
-			vote_to_halt();
 		}
-		else if (this->manual_active)
+		else
 		{ // filter candidates recursively
 			for (SIMessage &msg : messages)
 			{
-				int curr_u = msg.value;
-				for (int i = 0; i < this->candidates[u].size(); i++)
-				{
+				int curr_u = msg.v_int[1];
+				int next_u = msg.v_int[0];
+				int i, j;
+				for (i = 0; this->cand_us[i] != curr_u; i++);
+				for (j = 0; query->getNbs(curr_u)[j] != next_u; j++);
+				if (i < candidates.size() && j < candidates[i].size())
+					candidates[i][j].erase(msg.key);
 			}
 
-					for (SIMessage &msg : messages)
-						if (query->getLabel(this->cand_nbs[i]) == msg.value)
-							candidates[i].erase(msg.key);
-					if (candidates[i].empty())
-						this->manual_active = false;
-				}
-				if (!this->manual_active)
-					check_candidates();
+			for (int i = 0; i < candidates.size() & cand_us[i] != -1; i++)
+			{
+				bool check_flag = false;
+				for (int j = 0; j < candidates[i].size(); j++)
+					if (candidates[i][j].empty())
+						check_flag = true;
+			
+				if (check_flag)
+					check_candidates(i);
 			}
-			vote_to_halt();
 		}
+		/* very much bug
+		bool flag;
+		for (int i = 0, flag = false; i < cand_us.size(); flag |= (cand_us[i] != -1));
+		this->manual_active = flag;
+		*/
+		vote_to_halt();
 	}
 
 	void continue_enum(SIBranch b, int curr_u, int anc_u)
@@ -606,28 +628,31 @@ public:
 			agg_mat[0].resize(1);
 			agg_mat[0][0] = 0;
 		}
+		
     }
 
     virtual void stepPartial(SIVertex* v, int type)
     {
-    	if (type == FILTER)
+    	if (type == FILTER && v->manual_active)
     	{
-			/*
+			SIQuery* query = (SIQuery*)getQuery();
         	int u1, u2;
-			auto iend = v->candidates.end();
-    		for (auto it = v->candidates.begin(); it != iend; ++it)
+    		for (int i = 0; i < v->cand_us.size(); i++)
     		{
-    			u1 = it->first;
-    			agg_mat[u1][u1] += 1;
-				auto jend = it->second.end();
-    			for (auto jt = it->second.begin(); jt != jend; ++jt)
-    			{
-    				u2 = jt->first;
-    				if (u1 > u2)
-    					agg_mat[u1][u2] += jt->second.size();
-    			}
+    			u1 = v->cand_us[i];
+				if (u1 != -1)
+				{
+					agg_mat[u1][u1] += 1;
+					vector<int> v_u = query->getNbs(u1);
+					for (int j = 0; j < v_u.size(); j++)
+					{
+						u2 = v_u[j];
+						if (u1 > u2)
+							agg_mat[u1][u2] += v->candidates[i][j].size();
+					}
+				}
     		}
-			*/
+			if (v->id.vID == 1) cout << "gg" << v->cand_us[0] << endl;
     	}
     	else if (type == ENUMERATE)
     	{

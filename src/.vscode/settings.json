@@ -4,6 +4,7 @@
         "vector": "cpp",
         "deque": "cpp",
         "string": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "hash_set": "cpp"
     }
 }
