@@ -312,24 +312,12 @@ public:
 	int getLabel(int id) { return this->nodes[id].label; }
 	vector<int> getNbs(int id) { return this->nodes[id].nbs; }
 
-	vector<int> getCandidateNeighbors(int label)
-	{
-		vector<int> cand_nbs;
-		for (int curr_u = 0; curr_u < this->nodes.size(); ++curr_u)
-			if (label == this->nodes[curr_u].label)
-				for (int next_u : this->getNbs(curr_u))
-					cand_nbs.push_back(next_u);
-		
-		return cand_nbs;
-	}
-
-	bool LDFFilter(int label, size_t degree)
+	bool LDFFilter(vector<int> &v_u, int label, size_t degree)
 	{
 		for (int curr_u = 0; curr_u < this->nodes.size(); ++curr_u)
 			if (label == this->nodes[curr_u].label 
 				&& degree >= this->nodes[curr_u].nbs.size())
-				return true;
-		return false;
+				v_u.push_back(curr_u);
 	}
 
 	// get functions after dfs.

@@ -32,9 +32,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 public:
 	// used in the filtering step:
-	// candidates[neighbor_u] = hash_set<SIKey>
-	vector<int> cand_nbs;
-	vector<hash_set<SIKey>> candidates;
+	// candidates[curr_u][neighbor_u] = hash_set<SIKey>
+	vector<int> cand_us;
+	vector<vector<hash_set<SIKey>>> candidates;
 
 	vector<Mapping> bucket;
 	vector<vector<Mapping>> buckets;
@@ -268,31 +268,32 @@ public:
 		vote_to_halt();
 	}
 
-	void check_candidates()
+	void check_candidates(int u)
 	{
-		for (int i = 0; i < this->cand_nbs.size(); i++)
+		for (int i = 0; i < this->candidates[u].size(); i++)
 		{
-			auto it = this->candidates[i].begin();
-			auto iend = this->candidates[i].end();
+			auto it = this->candidates[u][i].begin();
+			auto iend = this->candidates[u][i].end();
 			for (; it != iend; ++ it)
 			{
-				SIMessage msg = SIMessage(LABEL_INFOMATION, id, value().label);
+				// change this
+				SIMessage msg = SIMessage(LABEL_INFOMATION, id, this->cand_us[u]);
 				send_message(*it, msg);
 #ifdef DEBUG_MODE_MSG
 				cout << "[DEBUG] Message sent from " << id.vID << " to "
 					<< it->vID << ". \n\t"
-					<< "Type: Label Info. \n\t";
+					<< "Type: Bad candidate. \n\t";
 #endif
 			}
 		}
+		this->candidates[u].clear(); // candidates[u].size = 0
 	}
 
 	void filter(MessageContainer & messages)
 	{
-		// candidates[neighbor_u] = hash_set<SIKey>
-		// vector<int> cand_nbs;
-		// vector<hash_set<SIKey>> candidates;
-		// a bug in filter: must separate different u.
+		// candidates[curr_u][neighbor_u] = hash_set<SIKey>
+		// vector<int> cand_us;
+		// vector<vector<hash_set<SIKey>>> candidates;
 
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
@@ -305,38 +306,43 @@ public:
 
 		if (step_num() == 1)
 		{ // initialize candidates
-			this->manual_active = true;
-			if (query->LDFFilter(value().label, degree))
+			query->LDFFilter(this->cand_us, this->value().label, degree);
+			this->manual_active = !this->cand_us.empty();
+			int sz = this->cand_us.size();
+			this->candidates.resize(sz);
+
+			for (int u = 0; u < sz; u++)
 			{
-				this->cand_nbs = query->getCandidateNeighbors(value().label);
-				int sz = this->cand_nbs.size();
-				this->candidates.resize(sz);
-				for (int i = 0; i < sz; i++)
+				int curr_u = this->cand_us[u];
+				vector<int> nbs_u = query->getNbs(curr_u);
+				int nsz = nbs_u.size();
+				this->candidates[u].resize(nsz);
+				for (int i = 0; i < nsz; i++)
 				{
 					for (int j = 0; j < degree; j++)
 					{
 						KeyLabel &kl = value().nbs_vector[j];
-						if (query->getLabel(this->cand_nbs[i]) == kl.label)
-							candidates[i].insert(kl.key);
+						if (query->getLabel(nbs_u[i]) == kl.label)
+							candidates[u][i].insert(kl.key);
 					}
-					if (candidates[i].empty())
+					if (candidates[u][i].empty())
 						this->manual_active = false;
 				}
 				if (!this->manual_active)
-					check_candidates();
+					check_candidates(u);
 			}
-			else
-			{
-				this->manual_active = false;
-			}
+
 			vote_to_halt();
 		}
-		else
+		else if (this->manual_active)
 		{ // filter candidates recursively
-			if (this->manual_active)
+			for (SIMessage &msg : messages)
 			{
-				for (int i = 0; i < this->cand_nbs.size(); i++)
+				int curr_u = msg.value;
+				for (int i = 0; i < this->candidates[u].size(); i++)
 				{
+			}
+
 					for (SIMessage &msg : messages)
 						if (query->getLabel(this->cand_nbs[i]) == msg.value)
 							candidates[i].erase(msg.key);
