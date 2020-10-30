@@ -3,12 +3,12 @@
 #include "utils/Query.h"
 using namespace std;
 
-
+/*
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
 #define DEBUG_MODE_PARTIAL_RESULT 1
 #define DEBUG_MODE_RESULT 1
-
+*/
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -21,6 +21,7 @@ using namespace std;
 #include "SItypes/SIBranch.h"
 #include "SItypes/SIQuery.h"
 #include "SItypes/SIMessage.h"
+#include "SItypes/SICandidate.h"
 #include "SItypes/bloom_filter.h"
 
 //===============================================================
@@ -31,10 +32,7 @@ typedef hash_map<int, map<int, vector<Mapping> > > mResult;
 class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 public:
-	// used in the filtering step:
-	// candidates[curr_u][neighbor_u] = hash_set<SIKey>
-	vector<int> cand_us;
-	vector<vector<hash_set<SIKey>>> candidates;
+	SICandidate *candidate;
 
 	vector<Mapping> bucket;
 	vector<vector<Mapping>> buckets;
@@ -92,7 +90,6 @@ public:
 	{ // Add current vertex to mapping;
 		// Send messages to neighbors with right label.
 		// if add_flag, add a dummy vertex for each mapping.
-		if (this->id.vID == 1) cout << "gg" << this->cand_us[0] << endl;
 		SIQuery* query = (SIQuery*)getQuery();
 
 #ifdef DEBUG_MODE_PARTIAL_RESULT
@@ -110,14 +107,12 @@ public:
 		{
 			if (filter_flag)
 			{ // with filtering
-				int i;
-				for (i = 0; this->cand_us[i] != curr_u; i++);
-				cout << this->cand_us.size() << endl;
-				cout << "gg" << this->cand_us[i] << endl;
+				int i = this->candidate->getInverseIndex(curr_u);
 
-				for (int j = 0; j < this->candidates[i].size(); j++)
+				for (int next_u : next_us)
 				{
-					hash_set<SIKey> &keys = candidates[i][j];
+					int j = query->getInverseIndex(curr_u, next_u);
+					hash_set<SIKey> &keys = this->candidate->candidates[i][j];
 					auto it = keys.begin(); auto iend = keys.end();
 					for (; it != iend; ++it)
 					{
@@ -161,7 +156,6 @@ public:
 
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
 	{
-		if (this->id.vID == 1) cout << "gg" << this->cand_us[0] << endl;
 		SIQuery* query = (SIQuery*)getQuery();
 		if (!this->id.partial_mapping.empty())
 		{
@@ -269,15 +263,15 @@ public:
 		vote_to_halt();
 	}
 
-	void check_candidates(int u)
+	    void check_candidates(int u)
 	{
 		SIQuery* query = (SIQuery*)getQuery();
-		int curr_u = this->cand_us[u];
-		for (int i = 0; i < this->candidates[u].size(); i++)
+		int curr_u = this->candidate->cand_us[u];
+		for (int i = 0; i < this->candidate->candidates[u].size(); i++)
 		{
 			int next_u = query->getNbs(curr_u)[i];
-			auto it = this->candidates[u][i].begin();
-			auto iend = this->candidates[u][i].end();
+			auto it = this->candidate->candidates[u][i].begin();
+			auto iend = this->candidate->candidates[u][i].end();
 			for (; it != iend; ++ it)
 			{
 				SIMessage msg = SIMessage(CANDIDATE, id);
@@ -292,14 +286,85 @@ public:
 #endif
 			}
 		}
-		this->candidates[u].clear(); // candidates[u].size = 0
+		this->candidate->candidates[u].clear(); // candidates[u].size = 0
 	}
+
+    bool init_candidates()
+    {
+        SIQuery* query = (SIQuery*)getQuery();
+        query->LDFFilter(this->candidate->cand_us, value().label, value().degree);
+        int sz = this->candidate->cand_us.size();
+        if (sz == 0) return false;
+
+        this->candidate->candidates.resize(sz);
+        bool deactive_flag = true;
+
+        for (int u = 0; u < sz; u++)
+        {
+            bool check_flag = false;
+            int curr_u = this->candidate->cand_us[u];
+            vector<int> nbs_u = query->getNbs(curr_u);
+            int nsz = nbs_u.size();
+            this->candidate->candidates[u].resize(nsz);
+            for (int i = 0; i < nsz; i++)
+            {
+                for (int j = 0; j < value().degree; j++)
+                {
+                    KeyLabel &kl = value().nbs_vector[j];
+                    if (query->getLabel(nbs_u[i]) == kl.label)
+                    {
+                        this->candidate->candidates[u][i].insert(kl.key);
+                    }
+                }
+                if (this->candidate->candidates[u][i].empty())
+                    check_flag = true;
+            }
+            if (check_flag)
+            {
+                check_candidates(u);
+                this->candidate->cand_us[u] = -1;
+            }
+            deactive_flag &= check_flag;
+        }
+
+        return !deactive_flag;
+    }
+
+    bool recursive_filter(MessageContainer & messages)
+    {
+		SIQuery* query = (SIQuery*)getQuery();
+        int sz = this->candidate->cand_us.size();
+        for (SIMessage &msg : messages)
+        {
+            int curr_u = msg.v_int[1];
+            int next_u = msg.v_int[0];
+            int i, j;
+            for (i = 0; this->candidate->cand_us[i] != curr_u; i++);
+            for (j = 0; query->getNbs(curr_u)[j] != next_u; j++);
+            if (i < sz && j < this->candidate->candidates[i].size())
+                this->candidate->candidates[i][j].erase(msg.key);
+        }
+
+        bool deactive_flag = true;
+        for (int u = 0; u < sz & this->candidate->cand_us[u] != -1; u++)
+        {
+            bool check_flag = false;
+            for (int i = 0; i < this->candidate->candidates[u].size(); i++)
+                if (this->candidate->candidates[u][i].empty())
+                    check_flag = true;
+        
+            if (check_flag)
+            {
+                check_candidates(u);
+                this->candidate->cand_us[u] = -1;
+            }
+            deactive_flag &= check_flag;
+        }
+        return deactive_flag;
+    }
 
 	void filter(MessageContainer & messages)
 	{
-		// candidates[curr_u][neighbor_u] = hash_set<SIKey>
-		// vector<int> cand_us;
-		// vector<vector<hash_set<SIKey>>> candidates;
 
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
@@ -308,73 +373,18 @@ public:
 #endif
 
 		SIQuery* query = (SIQuery*)getQuery();
-		int degree = value().nbs_vector.size();
 
 		if (step_num() == 1)
 		{ // initialize candidates
-			query->LDFFilter(this->cand_us, this->value().label, degree);
-			this->manual_active = !this->cand_us.empty();
-			int sz = this->cand_us.size();
-			this->candidates.resize(sz);
-
-			for (int u = 0; u < sz; u++)
-			{
-				bool check_flag = false;
-				int curr_u = this->cand_us[u];
-				vector<int> nbs_u = query->getNbs(curr_u);
-				int nsz = nbs_u.size();
-				this->candidates[u].resize(nsz);
-				for (int i = 0; i < nsz; i++)
-				{
-					for (int j = 0; j < degree; j++)
-					{
-						KeyLabel &kl = value().nbs_vector[j];
-						if (query->getLabel(nbs_u[i]) == kl.label)
-						{
-							candidates[u][i].insert(kl.key);
-							cout << "Insert candidates[u][i] (" << u << "," << i
-							<< ") kl.key " << kl.key.vID << endl;
-						}
-					}
-					if (candidates[u][i].empty())
-						check_flag = true;
-				}
-				if (check_flag)
-				{
-					check_candidates(u);
-					this->cand_us[u] = -1;
-				}
-			}
+			this->candidate = new SICandidate();
+			this->manual_active = 
+				this->init_candidates();
 		}
-		else
+		else if (this->manual_active)
 		{ // filter candidates recursively
-			for (SIMessage &msg : messages)
-			{
-				int curr_u = msg.v_int[1];
-				int next_u = msg.v_int[0];
-				int i, j;
-				for (i = 0; this->cand_us[i] != curr_u; i++);
-				for (j = 0; query->getNbs(curr_u)[j] != next_u; j++);
-				if (i < candidates.size() && j < candidates[i].size())
-					candidates[i][j].erase(msg.key);
-			}
-
-			for (int i = 0; i < candidates.size() & cand_us[i] != -1; i++)
-			{
-				bool check_flag = false;
-				for (int j = 0; j < candidates[i].size(); j++)
-					if (candidates[i][j].empty())
-						check_flag = true;
-			
-				if (check_flag)
-					check_candidates(i);
-			}
+			this->manual_active =
+				this->recursive_filter(messages);
 		}
-		/* very much bug
-		bool flag;
-		for (int i = 0, flag = false; i < cand_us.size(); flag |= (cand_us[i] != -1));
-		this->manual_active = flag;
-		*/
 		vote_to_halt();
 	}
 
@@ -637,9 +647,9 @@ public:
     	{
 			SIQuery* query = (SIQuery*)getQuery();
         	int u1, u2;
-    		for (int i = 0; i < v->cand_us.size(); i++)
+    		for (int i = 0; i < v->candidate->getSize(); i++)
     		{
-    			u1 = v->cand_us[i];
+    			u1 = v->candidate->getCandidate(i);
 				if (u1 != -1)
 				{
 					agg_mat[u1][u1] += 1;
@@ -648,11 +658,10 @@ public:
 					{
 						u2 = v_u[j];
 						if (u1 > u2)
-							agg_mat[u1][u2] += v->candidates[i][j].size();
+							agg_mat[u1][u2] += v->candidate->getSize(i, j);
 					}
 				}
     		}
-			if (v->id.vID == 1) cout << "gg" << v->cand_us[0] << endl;
     	}
     	else if (type == ENUMERATE)
     	{

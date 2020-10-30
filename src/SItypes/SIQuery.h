@@ -311,6 +311,12 @@ public:
 	int getID(int id) { return this->nodes[id].id; }
 	int getLabel(int id) { return this->nodes[id].label; }
 	vector<int> getNbs(int id) { return this->nodes[id].nbs; }
+	int getInverseIndex(int id, int next_u)
+	{
+		int j;
+		for (j = 0; this->nodes[id].nbs[j] != next_u; j++);
+		return j;
+	}
 
 	bool LDFFilter(vector<int> &v_u, int label, size_t degree)
 	{
