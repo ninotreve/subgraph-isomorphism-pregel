@@ -7,30 +7,38 @@ Filter Method: 1
 Order Method: random
 Enumerate Method: 1
 =================Start loading data graph ...=====================
-Load Graph Time : 2.488481 seconds
+Load Graph Time : 4.456433 seconds
 =================Start loading query...===================
 Worker 0: "hdfs://2f957c17abfd:9000/query/query.txt" loaded
-Communication Time : 0.000007 seconds
+Communication Time : 0.000027 seconds
 - Serialization Time : 0.000004 seconds
-- Transfer Time : 0.000003 seconds
-Load Query Time : 0.053184 seconds
+- Transfer Time : 0.000022 seconds
+Load Query Time : 0.050850 seconds
 ================Start filtering...=================
-Superstep 1 done.Time elapsed: 0.326161 seconds
-#msgs: 26473
-Superstep 2 done.Time elapsed: 0.050456 seconds
-#msgs: 2150
-Superstep 3 done.Time elapsed: 0.0272532 seconds
-#msgs: 213
-Superstep 4 done.Time elapsed: 0.02566 seconds
-#msgs: 12
-Superstep 5 done.Time elapsed: 0.025681 seconds
+Superstep 1 done.Time elapsed: 0.880105 seconds
+#msgs: 854703
+Superstep 2 done.Time elapsed: 0.331966 seconds
+#msgs: 24109
+Superstep 3 done.Time elapsed: 0.0391269 seconds
+#msgs: 2339
+Superstep 4 done.Time elapsed: 0.012048 seconds
+#msgs: 674
+Superstep 5 done.Time elapsed: 0.00917602 seconds
+#msgs: 168
+Superstep 6 done.Time elapsed: 0.00835085 seconds
+#msgs: 79
+Superstep 7 done.Time elapsed: 0.00815606 seconds
+#msgs: 21
+Superstep 8 done.Time elapsed: 0.00799799 seconds
+#msgs: 1
+Superstep 9 done.Time elapsed: 0.00792098 seconds
 #msgs: 0
 Candidate filtering done.
-Communication Time : 0.000009 seconds
-- Serialization Time : 0.000002 seconds
-- Transfer Time : 0.000005 seconds
-Total Computational Time : 0.486812 seconds
-Total #msgs=28848, Total #vadd=0
+Communication Time : 0.133394 seconds
+- Serialization Time : 0.062479 seconds
+- Transfer Time : 0.069550 seconds
+Total Computational Time : 1.475848 seconds
+Total #msgs=882094, Total #vadd=0
 =================Start building query tree...===================
 this->nodes size: 5
 Node 0
@@ -68,25 +76,48 @@ Neighbors: [3]
 Backward neighbors: []
 Backward same labels: []
 It has 0 children.
-Build Query Tree Time : 0.000091 seconds
+Build Query Tree Time : 0.000073 seconds
 ================Start matching...======================
-#
-# A fatal error has been detected by the Java Runtime Environment:
-#
-#  SIGSEGV (0xb) at pc=0x00000000004268cf, pid=16552, tid=0x00007f9342490740
-#
-# JRE version: OpenJDK Runtime Environment (8.0_265-b01) (build 1.8.0_265-8u265-b01-0ubuntu2~16.04-b01)
-# Java VM: OpenJDK 64-Bit Server VM (25.265-b01 mixed mode linux-amd64 compressed oops)
-# Problematic frame:
-# C  [run+0x268cf]
-#
-# Core dump written. Default location: /root/subgraph-isomorphism-pregel/src/core or core.16552
-#
-# An error report file with more information is saved as:
-# /root/subgraph-isomorphism-pregel/src/hs_err_pid16552.log
-#
-# If you would like to submit a bug report, please visit:
-#   http://bugreport.java.com/bugreport/crash.jsp
-# The crash happened outside the Java Virtual Machine in native code.
-# See problematic frame for where to report the bug.
-#
+Superstep 1 done.Time elapsed: 0.053112 seconds
+#msgs: 2126
+Superstep 2 done.Time elapsed: 0.0172501 seconds
+#msgs: 2284
+Superstep 3 done.Time elapsed: 0.0236521 seconds
+#msgs: 1604
+Superstep 4 done.Time elapsed: 0.121441 seconds
+#msgs: 3187
+Superstep 5 done.Time elapsed: 0.0432429 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 0.049161 seconds
+- Serialization Time : 0.029011 seconds
+- Transfer Time : 0.020118 seconds
+Total Computational Time : 0.258821 seconds
+Total #msgs=9201, Total #vadd=0
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 0.0163841 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.000014 seconds
+- Serialization Time : 0.000003 seconds
+- Transfer Time : 0.000009 seconds
+Total Computational Time : 0.028870 seconds
+Total #msgs=0, Total #vadd=0
+=================Start dumping graph...===================
+output path: /output
+Dump Time : 0.164868 seconds
+================ Final Report ===============
+Mapping count: 238901
+Load time: 4.50728 s.
+Dump time: 0.164868 s.
+Compute time: 1.76369 s.
+Offline time: 5.34308 s.
+Online time: 2.04431 s.
+============ Load Balance Report ==============
+Rank: 0 Sync_time: 2.88486e-05
+============ Load Balance Report ==============
+Rank: 3 Sync_time: 0.0117297
+============ Load Balance Report ==============
+Rank: 1 Sync_time: 0.0219109
+============ Load Balance Report ==============
+Rank: 2 Sync_time: 0.023227

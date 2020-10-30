@@ -318,12 +318,20 @@ public:
 		return j;
 	}
 
-	bool LDFFilter(vector<int> &v_u, int label, size_t degree)
+	// fill cand_map with right vertices
+	void LDFFilter(int label, size_t degree, hash_map<int, vector<int> > &cand_map)
 	{
-		for (int curr_u = 0; curr_u < this->nodes.size(); ++curr_u)
-			if (label == this->nodes[curr_u].label 
-				&& degree >= this->nodes[curr_u].nbs.size())
-				v_u.push_back(curr_u);
+		vector<int> nbs;
+		int curr_u, lab;
+		for (curr_u = 0; curr_u < this->nodes.size(); ++curr_u)
+		{
+			lab = this->nodes[curr_u].label;
+			nbs = this->nodes[curr_u].nbs;
+			if (lab == label && nbs.size() <= degree)
+			{
+				cand_map[curr_u] = nbs;
+			}
+		}
 	}
 
 	// get functions after dfs.
