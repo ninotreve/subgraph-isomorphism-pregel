@@ -5,6 +5,7 @@
         "deque": "cpp",
         "string": "cpp",
         "ostream": "cpp",
-        "hash_set": "cpp"
+        "hash_set": "cpp",
+        "system_error": "cpp"
     }
 }
