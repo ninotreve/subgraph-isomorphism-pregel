@@ -32,7 +32,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 public:
 	SICandidate *candidate;
-
+	double timers[3][3];
 	vector<Mapping> bucket;
 	vector<vector<Mapping>> buckets;
 	int results_count = 0;
@@ -71,17 +71,19 @@ public:
 
 	bool check_feasibility(vector<SIKey> &mapping, int query_u)
 	{ // check vertex uniqueness and backward neighbors 
+		double t = get_current_time();
 		SIQuery* query = (SIQuery*)getQuery();
 		// check vertex uniqueness
 		for (int b_level : query->getBSameLabPos(query_u))
 			if (this->id == mapping[b_level])
 				return false;
 
+		this->timers[2][0] = get_current_time() - t;
 		// check backward neighbors
 		for (int b_level : query->getBNeighborsPos(query_u))
 			if (! this->value().hasNeighbor(mapping[b_level]))
 				return false;
-		
+		this->timers[2][1] = get_current_time() - t;
 		return true;
 	}
 
@@ -90,6 +92,7 @@ public:
 		// Send messages to neighbors with right label.
 		// if add_flag, add a dummy vertex for each mapping.
 		SIQuery* query = (SIQuery*)getQuery();
+		double t = get_current_time();
 
 #ifdef DEBUG_MODE_PARTIAL_RESULT
 		cout << "[Result] Current query vertex: " << curr_u << 
@@ -148,6 +151,7 @@ public:
 			}
 			return true;
 		}
+		this->timers[1][2] = get_current_time() - t;
 	}
 
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
@@ -165,16 +169,23 @@ public:
 			 << " Manual active: " << manual_active << endl;
 #endif
 
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+				this->timers[i][j] = 0.0;
+
 		if (step_num() == 1)
 		{
+			double t = get_current_time();
 			int curr_u = query->root;
 			if (!params.filter || this->manual_active)
 			{
 				this->manual_active = false;
 				if (value().label == query->getLabel(curr_u))
 				{
+					this->timers[0][0] = get_current_time() - t;
 					Mapping mapping = {id};
 					bucket.push_back(mapping);
+					this->timers[0][1] = get_current_time() - t;
 					//add_flag
 					if (params.enumerate && query->isBranch(curr_u))
 					{
@@ -182,13 +193,17 @@ public:
 						v->id = SIKey(curr_u, id.wID, mapping);
 						this->add_vertex(v);
 					}
+					this->timers[0][2] = get_current_time() - t;
 					if (continue_mapping(bucket, curr_u, params.filter))
 						bucket.clear();
+					this->timers[1][0] = get_current_time() - t;
 				}
 			}
+			this->timers[1][1] = get_current_time() - t;
 		}
 		else
 		{
+			double t = get_current_time();
 			//Decide the number of u to be mapped to
 			vector<int> vector_u = query->getBucket(step_num()-1, value().label);
 			int n_u = vector_u.size();
@@ -201,8 +216,11 @@ public:
 					{
 						if (check_feasibility(mapping, vector_u[0]))
 						{
+							double t1 = get_current_time();
 							mapping.push_back(id);
 							bucket.push_back(mapping);
+							this->timers[0][1] += get_current_time() - t1;
+							t1 = get_current_time();
 							// add_flag
 							if (params.enumerate && query->isBranch(vector_u[0]))
 							{
@@ -210,14 +228,18 @@ public:
 								v->id = SIKey(vector_u[0], id.wID, mapping);
 								this->add_vertex(v);
 							}
+							this->timers[0][2] += get_current_time() - t1;
 						}
 					}
 				}
-					
+
+				this->timers[0][0] = get_current_time() - t;
+				
 				//Send bucket of mappings to every feasible neighbor
 				if (!bucket.empty())
 					if (continue_mapping(bucket, vector_u[0], params.filter))
 						bucket.clear();
+				this->timers[1][0] = get_current_time() - t;
 			}
 			else if (n_u > 1)
 			{
@@ -231,10 +253,13 @@ public:
 						int bucket_num = query->getBucketNumber(curr_u);
 						for (Mapping &mapping : msg.mappings)
 						{
+							double t0 = get_current_time();
 							if (check_feasibility(mapping, curr_u))
 							{
+								double t1 = get_current_time();
 								mapping.push_back(id);
 								buckets[bucket_num].push_back(mapping);
+								this->timers[0][1] += get_current_time() - t1;
 								// add_flag
 								if (params.enumerate && query->isBranch(curr_u))
 								{
@@ -242,10 +267,12 @@ public:
 									v->id = SIKey(curr_u, id.wID, mapping);
 									this->add_vertex(v);
 								}
+								this->timers[0][2] += get_current_time() - t1;
 							}
 						}
 					}
 				}
+				this->timers[0][0] = get_current_time() - t;
 
 				//Send bucket of mappings to every feasible neighbor
 				for (int i = 0; i < n_u; i++)
@@ -254,7 +281,9 @@ public:
 						if (continue_mapping(buckets[i], vector_u[i], params.filter))
 							buckets[i].clear();
 				}
+				this->timers[1][0] = get_current_time() - t;
 			}
+			this->timers[1][1] = get_current_time() - t;
 		}
 		vote_to_halt();
 	}
@@ -372,6 +401,7 @@ public:
 
 	void continue_enum(SIBranch b, int curr_u, int anc_u)
 	{
+		double t = get_current_time();
 		SIQuery* query = (SIQuery*)getQuery();	
 		Mapping &m = b.p;
 		Mapping m1, m2;
@@ -391,6 +421,7 @@ public:
 			<< "\n\tMapping: " << m2
 			<< ", curr_u: " << curr_u << endl;
 #endif
+		this->timers[1][0] = get_current_time() - t;
 	}	
 
 	void enumerate_new(MessageContainer & messages)
@@ -401,15 +432,20 @@ public:
 			 << " Manual active: " << manual_active << endl;
 #endif
 		SIQuery* query = (SIQuery*)getQuery();	
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+				this->timers[i][j] = 0.0;
+
 		if (step_num() == 1 && !this->manual_active
 			|| step_num() > query->max_branch_number + 1)
 		{
 			vote_to_halt();
 			return;
-		}	
+		}
 
 		// send mappings from leaves for supersteps [1, max_branch_number]
 		// if (step_num() > 0 && step_num() <= query->max_branch_number)
+		double t = get_current_time();
 		if (step_num() == 1)
 		{
 			vector<int> vector_u = query->getBucket(query->max_level, value().label);
@@ -472,7 +508,9 @@ public:
 			}
 			if (step_num() == query->max_branch_number + 1)
 			{
+				double t0 = get_current_time();
 				this->bucket = b.expand();
+				this->timers[1][1] = get_current_time() - t0;
 				this->results_count += this->bucket.size();
 			}
 			else
@@ -482,7 +520,7 @@ public:
 			}
 		}
  		vote_to_halt();
-
+		this->timers[0][1] = get_current_time() - t;
 	}
 
 	void enumerate_old(MessageContainer & messages)
@@ -589,7 +627,7 @@ public:
 
 //=============================================================================
 
-typedef vector<vector<int>> AggMat;
+typedef vector<vector<double>> AggMat;
 
 class SIAgg : public Aggregator<SIVertex, AggMat, AggMat>
 {
@@ -611,14 +649,17 @@ public:
 			{
 				agg_mat[i].resize(i+1); // lower-triangular matrix
 				for (int j = 0; j <= i; ++j)
-					agg_mat[i][j] = 0;
+					agg_mat[i][j] = 0.0;
 			}
 		}
-		else if (type == ENUMERATE)
+		else if (type == ENUMERATE || type == MATCH)
 		{
-			agg_mat.resize(1);
-			agg_mat[0].resize(1);
-			agg_mat[0][0] = 0;
+			for (int i = 0; i < 3; ++i)
+			{
+				agg_mat[i].resize(3);
+				for (int j = 0; j < 3; ++j)
+					agg_mat[i][j] = 0.0;
+			}
 		}
 		
     }
@@ -645,6 +686,16 @@ public:
     	else if (type == ENUMERATE)
     	{
     		agg_mat[0][0] += v->results_count;
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					if (i != 0 && j != 0)
+						agg_mat[i][j] += v->timers[i][j];
+    	}
+		else
+    	{
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					agg_mat[i][j] += v->timers[i][j];
     	}
     }
     virtual void stepFinal(AggMat* part)
@@ -812,10 +863,26 @@ void pregel_subgraph(const WorkerParams & params)
 	wakeAll();
 	sync_time = worker.run_type(MATCH, params);
 
+	if (_my_rank == MASTER_RANK)
+	{
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+				cout << "[" << i << "][" << j << "]: " <<
+					(*((AggMat*)global_agg))[i][j] << endl;
+	}
+
 	wakeAll();
 	worker.run_type(ENUMERATE, params);
 	stop_timer(COMPUTE_TIMER);
 	compute_time = get_timer(COMPUTE_TIMER);
+
+	if (_my_rank == MASTER_RANK)
+	{
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+				cout << "[" << i << "][" << j << "]: " <<
+					(*((AggMat*)global_agg))[i][j] << endl;
+	}
 
 	time = worker.dump_graph(params.output_path, params.force_write);
 	dump_time += time;
