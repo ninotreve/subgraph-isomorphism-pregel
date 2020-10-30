@@ -7,24 +7,26 @@ Filter Method: 1
 Order Method: random
 Enumerate Method: 1
 =================Start loading data graph ...=====================
-Load Graph Time : 0.114914 seconds
+Load Graph Time : 0.115732 seconds
 =================Start loading query...===================
 Worker 0: "hdfs://2f957c17abfd:9000/query/query.txt" loaded
-Communication Time : 0.000009 seconds
-- Serialization Time : 0.000006 seconds
-- Transfer Time : 0.000003 seconds
-Load Query Time : 0.053743 seconds
+Communication Time : 0.000008 seconds
+- Serialization Time : 0.000005 seconds
+- Transfer Time : 0.000002 seconds
+Load Query Time : 0.061016 seconds
 ================Start filtering...=================
-Superstep 1 done.Time elapsed: 7.89165e-05 seconds
+Superstep 1 done.Time elapsed: 0.000126123 seconds
+#msgs: 54
+Superstep 2 done.Time elapsed: 0.000253916 seconds
 #msgs: 5
-Superstep 2 done.Time elapsed: 4.05312e-06 seconds
+Superstep 3 done.Time elapsed: 1.90735e-05 seconds
 #msgs: 0
 Candidate filtering done.
-Communication Time : 0.000005 seconds
+Communication Time : 0.000006 seconds
 - Serialization Time : 0.000001 seconds
 - Transfer Time : 0.000004 seconds
-Total Computational Time : 0.000139 seconds
-Total #msgs=5, Total #vadd=0
+Total Computational Time : 0.000471 seconds
+Total #msgs=59, Total #vadd=0
 =================Start building query tree...===================
 this->nodes size: 5
 Node 0
@@ -62,15 +64,15 @@ Neighbors: [3]
 Backward neighbors: []
 Backward same labels: []
 It has 0 children.
-Build Query Tree Time : 0.000134 seconds
+Build Query Tree Time : 0.000118 seconds
 ================Start matching...======================
-Superstep 1 done.Time elapsed: 1.50204e-05 seconds
+Superstep 1 done.Time elapsed: 1.78814e-05 seconds
 #msgs: 3
-Superstep 2 done.Time elapsed: 1.50204e-05 seconds
+Superstep 2 done.Time elapsed: 1.71661e-05 seconds
 #msgs: 4
-Superstep 3 done.Time elapsed: 1.69277e-05 seconds
+Superstep 3 done.Time elapsed: 2.19345e-05 seconds
 #msgs: 5
-Superstep 4 done.Time elapsed: 2.47955e-05 seconds
+Superstep 4 done.Time elapsed: 3.21865e-05 seconds
 #msgs: 6
 Superstep 5 done.Time elapsed: 5.96046e-06 seconds
 #msgs: 0
@@ -78,26 +80,26 @@ Subgraph matching done.
 Communication Time : 0.000000 seconds
 - Serialization Time : 0.000000 seconds
 - Transfer Time : 0.000000 seconds
-Total Computational Time : 0.000118 seconds
+Total Computational Time : 0.000127 seconds
 Total #msgs=18, Total #vadd=0
 ================Start enumerating...===================
-Superstep 1 done.Time elapsed: 1.90735e-06 seconds
+Superstep 1 done.Time elapsed: 2.14577e-06 seconds
 #msgs: 0
 Subgraph enumeration done. 
-Communication Time : 0.000002 seconds
+Communication Time : 0.000000 seconds
 - Serialization Time : 0.000000 seconds
-- Transfer Time : 0.000001 seconds
-Total Computational Time : 0.000012 seconds
+- Transfer Time : 0.000000 seconds
+Total Computational Time : 0.000011 seconds
 Total #msgs=0, Total #vadd=0
 =================Start dumping graph...===================
 output path: /output
-Dump Time : 0.138440 seconds
+Dump Time : 0.124606 seconds
 ================ Final Report ===============
 Mapping count: 7
-Load time: 0.168657 s.
-Dump time: 0.13844 s.
-Compute time: 0.00045085 s.
-Offline time: 0.933142 s.
-Online time: 0.259034 s.
+Load time: 0.176748 s.
+Dump time: 0.124606 s.
+Compute time: 0.000766039 s.
+Offline time: 0.948744 s.
+Online time: 0.260389 s.
 ============ Load Balance Report ==============
 Rank: 0 Sync_time: 0

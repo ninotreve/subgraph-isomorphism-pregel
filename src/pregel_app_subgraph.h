@@ -2,7 +2,6 @@
 #include "utils/type.h"
 #include "utils/Query.h"
 using namespace std;
-
 /*
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
@@ -298,6 +297,8 @@ public:
 
 		if (step_num() == 1)
 		{ // initialize candidates
+			this->candidate = new SICandidate();
+			this->manual_active = true;
 			query->LDFFilter(value().label, degree, candidate->cand_map);
 			SIMessage msg = SIMessage(CANDIDATE, id);
 			auto cand_it = candidate->cand_map.begin();
@@ -318,6 +319,7 @@ public:
 							<< "\n\tv_int: " << msg.v_int << endl;
 #endif
 				}
+
 			}
 			vote_to_halt();
 		}
@@ -333,7 +335,9 @@ public:
 					set_intersection(a.begin(), a.end(), msg.v_int.begin(),
 							msg.v_int.end(), back_inserter(temp_vec));
 					for (int u : temp_vec)
+					{
 						candidate->candidates[cand_it->first][u].insert(msg.key);
+					}
 
 					temp_vec.clear();
 				}
@@ -366,7 +370,28 @@ public:
 		}
 	}
 
-	
+	void continue_enum(SIBranch b, int curr_u, int anc_u)
+	{
+		SIQuery* query = (SIQuery*)getQuery();	
+		Mapping &m = b.p;
+		Mapping m1, m2;
+		int j;
+		SIKey to_key = m[query->getLevel(anc_u)];
+		for (j = 0; j <= query->getLevel(anc_u); j++)
+			m1.push_back(m[j]);
+		for (; j < (int) m.size(); j++)
+			m2.push_back(m[j]);
+		b.p = m2;
+		send_message(SIKey(anc_u, to_key.wID, m1), SIMessage(BRANCH, b, curr_u));
+#ifdef DEBUG_MODE_MSG
+		cout << "[DEBUG] Superstep " << step_num()
+		 	<< "\n\tMessage sent from (leaf) " << id.vID
+			<<	" to <" << to_key.vID << ", " << m1 << ">."
+			<< "\n\tType: BRANCH. "
+			<< "\n\tMapping: " << m2
+			<< ", curr_u: " << curr_u << endl;
+#endif
+	}	
 
 	void enumerate_new(MessageContainer & messages)
 	{
