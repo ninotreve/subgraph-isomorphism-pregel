@@ -164,6 +164,7 @@ public:
         active_count = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
+        AggregatorT* agg=(AggregatorT*)get_aggregator();
         for (size_t i = 0; i < vertexes.size(); i++) {
         	if (wakeAll == 1) vertexes[i]->activate();
 
@@ -183,15 +184,16 @@ public:
 					break;
 				case MATCH:
 					vertexes[i]->compute(v_msgbufs[i], params);
+                    agg->stepPartial(vertexes[i], type);
 					break;
 				case ENUMERATE:
 					if (params.enumerate)
 						vertexes[i]->enumerate_new(v_msgbufs[i]);
 					else
 						vertexes[i]->enumerate_old(v_msgbufs[i]);
+                    agg->stepPartial(vertexes[i], type);
 					break;
 				}
-
 				v_msgbufs[i].clear(); //clear used msgs
 				if (vertexes[i]->is_active())
 					active_count++;
@@ -485,7 +487,7 @@ public:
         long long global_msg_num = 0;
         long long global_vadd_num = 0;
         AggregatorT* agg = (AggregatorT*)get_aggregator();
-        if (type == FILTER || type == ENUMERATE)
+        if (type == FILTER)
             agg->init(type);
 
         while (true) {
@@ -504,9 +506,8 @@ public:
             } else
                 active_vnum() = get_vnum();
             //===================
-            //AggregatorT* agg = (AggregatorT*)get_aggregator();
-            //if (agg != NULL)
-                //agg->init();
+            if (type == ENUMERATE || type == MATCH)
+                agg->init(type);
             //===================
             clearBits();
             active_compute(type, params, wakeAll);
@@ -518,7 +519,7 @@ public:
                 global_vadd_num += step_vadd_num;
             }
             vector<VertexT*>& to_add = message_buffer->sync_messages();
-            //agg_sync();
+            agg_sync();
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);
             to_add.clear();
@@ -533,7 +534,7 @@ public:
                 cout << "#msgs: " << step_msg_num << endl;
             }
         } // end of while loop
-        if (type == FILTER || type == ENUMERATE)
+        if (type == FILTER)
         {
         	for (size_t i = 0; i < vertexes.size(); i++)
         	{
