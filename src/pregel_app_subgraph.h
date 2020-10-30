@@ -107,12 +107,9 @@ public:
 		{
 			if (filter_flag)
 			{ // with filtering
-				int i = this->candidate->getInverseIndex(curr_u);
-
 				for (int next_u : next_us)
 				{
-					int j = query->getInverseIndex(curr_u, next_u);
-					hash_set<SIKey> &keys = this->candidate->candidates[i][j];
+					hash_set<SIKey> &keys = candidate->candidates[curr_u][next_u];
 					auto it = keys.begin(); auto iend = keys.end();
 					for (; it != iend; ++it)
 					{
@@ -263,153 +260,113 @@ public:
 		vote_to_halt();
 	}
 
-	    void check_candidates(int u)
+	void check_candidates(hash_set<int> &invalid_set)
 	{
-		SIQuery* query = (SIQuery*)getQuery();
-		int curr_u = this->candidate->cand_us[u];
-		for (int i = 0; i < this->candidate->candidates[u].size(); i++)
+		int u1, u2;
+		candidate->fillInvalidSet(invalid_set);
+		for (auto set_it = invalid_set.begin();
+				set_it != invalid_set.end(); set_it ++)
 		{
-			int next_u = query->getNbs(curr_u)[i];
-			auto it = this->candidate->candidates[u][i].begin();
-			auto iend = this->candidate->candidates[u][i].end();
-			for (; it != iend; ++ it)
+			u1 = *set_it;
+			for (auto it = candidate->candidates[u1].begin();
+					it != candidate->candidates[u1].end(); it++)
 			{
-				SIMessage msg = SIMessage(CANDIDATE, id);
-				msg.add_int(curr_u);
-				msg.add_int(next_u);
-				send_message(*it, msg);
+				u2 = it->first;
+				for (SIKey k : it->second)
+				{
+					SIMessage msg = SIMessage(CANDIDATE, id);
+					msg.add_int(u2);
+					msg.add_int(u1);
+					send_message(k, msg);
 #ifdef DEBUG_MODE_MSG
-				cout << "[DEBUG] Message sent from " << id.vID << " to "
-					<< it->vID << ". \n\t"
-					<< "Type: Candidate. \n\t"
-					<< "curr_u: " << curr_u << "next_u" << next_u << endl;
+					cout << "[DEBUG] Superstep " << step_num()
+							<< "\n\tMessage sent from " << id.vID
+							<<	" to " << k.vID << "."
+							<< "\n\tType: CANDIDATE. "
+							<< "\n\tv_int: " << msg.v_int << endl;
 #endif
+				}
 			}
 		}
-		this->candidate->candidates[u].clear(); // candidates[u].size = 0
 	}
-
-    bool init_candidates()
-    {
-        SIQuery* query = (SIQuery*)getQuery();
-        query->LDFFilter(this->candidate->cand_us, value().label, value().degree);
-        int sz = this->candidate->cand_us.size();
-        if (sz == 0) return false;
-
-        this->candidate->candidates.resize(sz);
-        bool deactive_flag = true;
-
-        for (int u = 0; u < sz; u++)
-        {
-            bool check_flag = false;
-            int curr_u = this->candidate->cand_us[u];
-            vector<int> nbs_u = query->getNbs(curr_u);
-            int nsz = nbs_u.size();
-            this->candidate->candidates[u].resize(nsz);
-            for (int i = 0; i < nsz; i++)
-            {
-                for (int j = 0; j < value().degree; j++)
-                {
-                    KeyLabel &kl = value().nbs_vector[j];
-                    if (query->getLabel(nbs_u[i]) == kl.label)
-                    {
-                        this->candidate->candidates[u][i].insert(kl.key);
-                    }
-                }
-                if (this->candidate->candidates[u][i].empty())
-                    check_flag = true;
-            }
-            if (check_flag)
-            {
-                check_candidates(u);
-                this->candidate->cand_us[u] = -1;
-            }
-            deactive_flag &= check_flag;
-        }
-
-        return !deactive_flag;
-    }
-
-    bool recursive_filter(MessageContainer & messages)
-    {
-		SIQuery* query = (SIQuery*)getQuery();
-        int sz = this->candidate->cand_us.size();
-        for (SIMessage &msg : messages)
-        {
-            int curr_u = msg.v_int[1];
-            int next_u = msg.v_int[0];
-            int i, j;
-            for (i = 0; this->candidate->cand_us[i] != curr_u; i++);
-            for (j = 0; query->getNbs(curr_u)[j] != next_u; j++);
-            if (i < sz && j < this->candidate->candidates[i].size())
-                this->candidate->candidates[i][j].erase(msg.key);
-        }
-
-        bool deactive_flag = true;
-        for (int u = 0; u < sz & this->candidate->cand_us[u] != -1; u++)
-        {
-            bool check_flag = false;
-            for (int i = 0; i < this->candidate->candidates[u].size(); i++)
-                if (this->candidate->candidates[u][i].empty())
-                    check_flag = true;
-        
-            if (check_flag)
-            {
-                check_candidates(u);
-                this->candidate->cand_us[u] = -1;
-            }
-            deactive_flag &= check_flag;
-        }
-        return deactive_flag;
-    }
 
 	void filter(MessageContainer & messages)
 	{
-
-#ifdef DEBUG_MODE_ACTIVE
-		cout << "[DEBUG] STEP NUMBER " << step_num()
-			 << " ACTIVE Vertex ID " << id.vID
-			 << " Manual active: " << manual_active << endl;
-#endif
-
 		SIQuery* query = (SIQuery*)getQuery();
+		vector<int> temp_vec;
+		int degree = value().nbs_vector.size();
 
 		if (step_num() == 1)
 		{ // initialize candidates
-			this->candidate = new SICandidate();
-			this->manual_active = 
-				this->init_candidates();
+			query->LDFFilter(value().label, degree, candidate->cand_map);
+			SIMessage msg = SIMessage(CANDIDATE, id);
+			auto cand_it = candidate->cand_map.begin();
+			for (; cand_it != candidate->cand_map.end();
+					++ cand_it)
+				msg.add_int(cand_it->first);
+
+			if (!candidate->cand_map.empty())
+			{
+				for (size_t i = 0; i < degree; ++i)
+				{
+					send_message(value().nbs_vector[i].key, msg);
+#ifdef DEBUG_MODE_MSG
+					cout << "[DEBUG] Superstep " << step_num()
+							<< "\n\tMessage sent from " << id.vID
+							<<	" to " << value().nbs_vector[i].key.vID << "."
+							<< "\n\tType: CANDIDATE. "
+							<< "\n\tv_int: " << msg.v_int << endl;
+#endif
+				}
+			}
+			vote_to_halt();
+		}
+		else if (step_num() == 2)
+		{ // initialize candidates
+			for (size_t i = 0; i < messages.size(); i++)
+			{
+				SIMessage & msg = messages[i];
+				auto cand_it = candidate->cand_map.begin();
+				for (; cand_it != candidate->cand_map.end(); ++cand_it)
+				{
+					vector<int> &a = cand_it->second;
+					set_intersection(a.begin(), a.end(), msg.v_int.begin(),
+							msg.v_int.end(), back_inserter(temp_vec));
+					for (int u : temp_vec)
+						candidate->candidates[cand_it->first][u].insert(msg.key);
+
+					temp_vec.clear();
+				}
+			}
+
+			hash_set<int> invalid_set; // invalid candidates
+			check_candidates(invalid_set); // includes sending message
+
+			for (hash_set<int>::iterator set_it = invalid_set.begin();
+					set_it != invalid_set.end(); set_it ++)
+			{
+				candidate->candidates.erase(*set_it);
+			}
+			vote_to_halt();
 		}
 		else if (this->manual_active)
 		{ // filter candidates recursively
-			this->manual_active =
-				this->recursive_filter(messages);
+			for (SIMessage &msg : messages)
+				candidate->candidates[msg.v_int[0]][msg.v_int[1]].erase(msg.key);
+
+			hash_set<int> invalid_set; // invalid candidates
+			check_candidates(invalid_set); // includes sending message
+
+			for (auto set_it = invalid_set.begin();
+					set_it != invalid_set.end(); set_it ++)
+				candidate->candidates.erase(*set_it);
+
+			this->manual_active = candidate->hasCandidates();
+			vote_to_halt();
 		}
-		vote_to_halt();
 	}
 
-	void continue_enum(SIBranch b, int curr_u, int anc_u)
-	{
-		SIQuery* query = (SIQuery*)getQuery();	
-		Mapping &m = b.p;
-		Mapping m1, m2;
-		int j;
-		SIKey to_key = m[query->getLevel(anc_u)];
-		for (j = 0; j <= query->getLevel(anc_u); j++)
-			m1.push_back(m[j]);
-		for (; j < (int) m.size(); j++)
-			m2.push_back(m[j]);
-		b.p = m2;
-		send_message(SIKey(anc_u, to_key.wID, m1), SIMessage(BRANCH, b, curr_u));
-#ifdef DEBUG_MODE_MSG
-		cout << "[DEBUG] Superstep " << step_num()
-		 	<< "\n\tMessage sent from (leaf) " << id.vID
-			<<	" to <" << to_key.vID << ", " << m1 << ">."
-			<< "\n\tType: BRANCH. "
-			<< "\n\tMapping: " << m2
-			<< ", curr_u: " << curr_u << endl;
-#endif
-	}
+	
 
 	void enumerate_new(MessageContainer & messages)
 	{
@@ -645,22 +602,19 @@ public:
     {
     	if (type == FILTER && v->manual_active)
     	{
-			SIQuery* query = (SIQuery*)getQuery();
-        	int u1, u2;
-    		for (int i = 0; i < v->candidate->getSize(); i++)
+			int u1, u2;
+			auto iend = v->candidate->candidates.end();
+    		for (auto it = v->candidate->candidates.begin(); it != iend; ++it)
     		{
-    			u1 = v->candidate->getCandidate(i);
-				if (u1 != -1)
-				{
-					agg_mat[u1][u1] += 1;
-					vector<int> v_u = query->getNbs(u1);
-					for (int j = 0; j < v_u.size(); j++)
-					{
-						u2 = v_u[j];
-						if (u1 > u2)
-							agg_mat[u1][u2] += v->candidate->getSize(i, j);
-					}
-				}
+    			u1 = it->first;
+    			agg_mat[u1][u1] += 1;
+				auto jend = it->second.end();
+    			for (auto jt = it->second.begin(); jt != jend; ++jt)
+    			{
+    				u2 = jt->first;
+    				if (u1 > u2)
+    					agg_mat[u1][u2] += jt->second.size();
+    			}
     		}
     	}
     	else if (type == ENUMERATE)
