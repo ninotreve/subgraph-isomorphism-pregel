@@ -7,7 +7,7 @@
 // bucketnumber(u_1) = 0, bucketnumber(u_3) = 0, 
 // bucketnumber(u_5) = 1, bucketnumber(u_7) = 0.
 
-typedef vector<vector<int>> AggMat;
+typedef vector<vector<double>> AggMat;
 // define hash of pair
 
 namespace __gnu_cxx {
