@@ -2,6 +2,7 @@
 #include "utils/type.h"
 #include "utils/Query.h"
 using namespace std;
+
 /*
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
@@ -652,8 +653,9 @@ public:
 					agg_mat[i][j] = 0.0;
 			}
 		}
-		else if (type == ENUMERATE || type == MATCH)
+		else
 		{
+			agg_mat.resize(3);
 			for (int i = 0; i < 3; ++i)
 			{
 				agg_mat[i].resize(3);
