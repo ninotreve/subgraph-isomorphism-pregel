@@ -1,0 +1,96 @@
+Data graph path: /fdu-zyj/labelyou
+Query graph path: /fdu-zyj/query/queryd.txt
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 0
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 15.908232 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query/queryd.txt" loaded
+Communication Time : 0.000121 seconds
+- Serialization Time : 0.000008 seconds
+- Transfer Time : 0.000111 seconds
+Load Query Time : 0.339678 seconds
+=================Start building query tree...===================
+this->nodes size: 4
+Node 0
+Label: 97
+Branch number: 0
+Neighbors: [1, 2, 3]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 0
+Neighbors: [0, 2, 3]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 2
+Label: 99
+Branch number: 0
+Neighbors: [0, 1, 3]
+Backward neighbors: [0]
+Backward same labels: []
+It has 1 children.
+Node 3
+Label: 100
+Branch number: 0
+Neighbors: [0, 1, 2]
+Backward neighbors: [0, 1]
+Backward same labels: []
+It has 0 children.
+Build Query Tree Time : 0.000649 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.0366161 seconds
+#msgs: 8620
+Superstep 2 done.Time elapsed: 0.041466 seconds
+#msgs: 5023
+Superstep 3 done.Time elapsed: 0.033361 seconds
+#msgs: 2689
+Superstep 4 done.Time elapsed: 0.0125239 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 0.037288 seconds
+- Serialization Time : 0.006706 seconds
+- Transfer Time : 0.029410 seconds
+Total Computational Time : 0.136888 seconds
+Total #msgs=16332, Total #vadd=0
+[0][0]: 0.0555651
+[0][1]: 0.0220988
+[0][2]: 0.0247574
+[1][0]: 0.234097
+[1][1]: 0.363979
+[1][2]: 0
+[2][0]: 0.00866199
+[2][1]: 0.00215364
+[2][2]: 0.0243087
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 0.019145 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.006275 seconds
+- Serialization Time : 0.000117 seconds
+- Transfer Time : 0.006011 seconds
+Total Computational Time : 0.036458 seconds
+Total #msgs=0, Total #vadd=0
+[0][0]: 227
+[0][1]: 5.14984e-05
+[0][2]: 0
+[1][0]: 0
+[1][1]: 0
+[1][2]: 0
+[2][0]: 0
+[2][1]: 0
+[2][2]: 0.00617933
+================ Final Report ===============
+Mapping count: 227
+Load time: 16.2479 s.
+Dump time: 0 s.
+Compute time: 0.176635 s.
+Offline time: 19.206 s.
+Online time: 0.816861 s.
