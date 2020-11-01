@@ -79,12 +79,12 @@ public:
 			if (this->id == mapping[b_level])
 				return false;
 
-		this->timers[2][0] = get_current_time() - t;
+		this->timers[2][0] += get_current_time() - t;
 		// check backward neighbors
 		for (int b_level : query->getBNeighborsPos(query_u))
 			if (! this->value().hasNeighbor(mapping[b_level]))
 				return false;
-		this->timers[2][1] = get_current_time() - t;
+		this->timers[2][1] += get_current_time() - t;
 		return true;
 	}
 
@@ -152,17 +152,12 @@ public:
 			}
 			return true;
 		}
-		this->timers[1][2] = get_current_time() - t;
+		this->timers[1][2] += get_current_time() - t;
 	}
 
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
 	{
 		SIQuery* query = (SIQuery*)getQuery();
-		if (!this->id.partial_mapping.empty())
-		{
-			vote_to_halt();
-			return;
-		}
 
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
@@ -170,12 +165,12 @@ public:
 			 << " Manual active: " << manual_active << endl;
 #endif
 
-		for (int i = 0; i < 3; i++)
-			for (int j = 0; j < 3; j++)
-				this->timers[i][j] = 0.0;
-
 		if (step_num() == 1)
 		{
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					this->timers[i][j] = 0.0;
+
 			double t = get_current_time();
 			int curr_u = query->root;
 			if (!params.filter || this->manual_active)
@@ -183,10 +178,10 @@ public:
 				this->manual_active = false;
 				if (value().label == query->getLabel(curr_u))
 				{
-					this->timers[0][0] = get_current_time() - t;
+					this->timers[0][0] += get_current_time() - t;
 					Mapping mapping = {id};
 					bucket.push_back(mapping);
-					this->timers[0][1] = get_current_time() - t;
+					this->timers[0][1] += get_current_time() - t;
 					//add_flag
 					if (params.enumerate && query->isBranch(curr_u))
 					{
@@ -194,16 +189,25 @@ public:
 						v->id = SIKey(curr_u, id.wID, mapping);
 						this->add_vertex(v);
 					}
-					this->timers[0][2] = get_current_time() - t;
+					this->timers[0][2] += get_current_time() - t;
 					if (continue_mapping(bucket, curr_u, params.filter))
 						bucket.clear();
-					this->timers[1][0] = get_current_time() - t;
+					this->timers[1][0] += get_current_time() - t;
 				}
 			}
-			this->timers[1][1] = get_current_time() - t;
+			this->timers[1][1] += get_current_time() - t;
 		}
 		else
 		{
+			if (!this->id.partial_mapping.empty()) // dummy vertex
+			{
+				for (int i = 0; i < 3; i++)
+					for (int j = 0; j < 3; j++)
+						this->timers[i][j] = 0.0;
+				vote_to_halt();
+				return;
+			}
+
 			double t = get_current_time();
 			//Decide the number of u to be mapped to
 			vector<int> vector_u = query->getBucket(step_num()-1, value().label);
@@ -234,13 +238,13 @@ public:
 					}
 				}
 
-				this->timers[0][0] = get_current_time() - t;
+				this->timers[0][0] += get_current_time() - t;
 				
 				//Send bucket of mappings to every feasible neighbor
 				if (!bucket.empty())
 					if (continue_mapping(bucket, vector_u[0], params.filter))
 						bucket.clear();
-				this->timers[1][0] = get_current_time() - t;
+				this->timers[1][0] += get_current_time() - t;
 			}
 			else if (n_u > 1)
 			{
@@ -273,7 +277,7 @@ public:
 						}
 					}
 				}
-				this->timers[0][0] = get_current_time() - t;
+				this->timers[0][0] += get_current_time() - t;
 
 				//Send bucket of mappings to every feasible neighbor
 				for (int i = 0; i < n_u; i++)
@@ -282,9 +286,9 @@ public:
 						if (continue_mapping(buckets[i], vector_u[i], params.filter))
 							buckets[i].clear();
 				}
-				this->timers[1][0] = get_current_time() - t;
+				this->timers[1][0] += get_current_time() - t;
 			}
-			this->timers[1][1] = get_current_time() - t;
+			this->timers[1][1] += get_current_time() - t;
 		}
 		vote_to_halt();
 	}
@@ -422,7 +426,7 @@ public:
 			<< "\n\tMapping: " << m2
 			<< ", curr_u: " << curr_u << endl;
 #endif
-		this->timers[1][0] = get_current_time() - t;
+		this->timers[1][0] += get_current_time() - t;
 	}	
 
 	void enumerate_new(MessageContainer & messages)
@@ -433,12 +437,8 @@ public:
 			 << " Manual active: " << manual_active << endl;
 #endif
 		SIQuery* query = (SIQuery*)getQuery();	
-		for (int i = 0; i < 3; i++)
-			for (int j = 0; j < 3; j++)
-				this->timers[i][j] = 0.0;
 
-		if (step_num() == 1 && !this->manual_active
-			|| step_num() > query->max_branch_number + 1)
+		if (step_num() > query->max_branch_number + 1)
 		{
 			vote_to_halt();
 			return;
@@ -446,9 +446,19 @@ public:
 
 		// send mappings from leaves for supersteps [1, max_branch_number]
 		// if (step_num() > 0 && step_num() <= query->max_branch_number)
-		double t = get_current_time();
 		if (step_num() == 1)
 		{
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					this->timers[i][j] = 0.0;
+
+			if (!this->manual_active)
+			{
+				vote_to_halt();
+				return;
+			}
+
+			double t = get_current_time();
 			vector<int> vector_u = query->getBucket(query->max_level, value().label);
 			if (vector_u.size() == 1)
 			{
@@ -484,9 +494,11 @@ public:
 					}
 				}
 			}
+			this->timers[0][1] += get_current_time() - t;
 		}
 		else
 		{
+			double t = get_current_time();
 			SIBranch b = SIBranch(id.partial_mapping);
 			b.branches.resize(query->getChildren(id.vID).size());
 			int i, j;
@@ -511,7 +523,7 @@ public:
 			{
 				double t0 = get_current_time();
 				this->bucket = b.expand();
-				this->timers[1][1] = get_current_time() - t0;
+				this->timers[1][1] += get_current_time() - t0;
 				this->results_count += this->bucket.size();
 			}
 			else
@@ -519,9 +531,9 @@ public:
 				continue_enum(b, id.vID, query->getNearestBranchingAncestor(id.vID));
 				this->bucket.clear();
 			}
+			this->timers[0][1] += get_current_time() - t;
 		}
  		vote_to_halt();
-		this->timers[0][1] = get_current_time() - t;
 	}
 
 	void enumerate_old(MessageContainer & messages)
@@ -690,7 +702,7 @@ public:
     		agg_mat[0][0] += v->results_count;
 			for (int i = 0; i < 3; i++)
 				for (int j = 0; j < 3; j++)
-					if (i != 0 && j != 0)
+					if (i != 0 || j != 0)
 						agg_mat[i][j] += v->timers[i][j];
     	}
 		else
@@ -838,7 +850,7 @@ void pregel_subgraph(const WorkerParams & params)
 	worker.setAggregator(&agg);
 
 	double time, load_time = 0.0, compute_time = 0.0, dump_time = 0.0,
-			offline_time = 0.0, online_time = 0.0, sync_time;
+			offline_time = 0.0, online_time = 0.0;
 
 	time = worker.load_data(params);
 	load_time += time;
@@ -863,7 +875,7 @@ void pregel_subgraph(const WorkerParams & params)
 	time = worker.build_query_tree(params.order);
 
 	wakeAll();
-	sync_time = worker.run_type(MATCH, params);
+	worker.run_type(MATCH, params);
 
 	if (_my_rank == MASTER_RANK)
 	{
@@ -904,7 +916,4 @@ void pregel_subgraph(const WorkerParams & params)
 		cout << "Offline time: " << offline_time << " s." << endl;
 		cout << "Online time: " << online_time << " s." << endl;
 	}
-
-	cout << "============ Load Balance Report ==============" << endl;
-	cout << "Rank: " << _my_rank << " Sync_time: " << sync_time << endl;
 }
