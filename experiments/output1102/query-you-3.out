@@ -1,0 +1,128 @@
+Data graph path: /fdu-zyj/labelyou
+Query graph path: /fdu-zyj/query/query.txt
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 0
+Filter Method: 1
+Order Method: candidate
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 16.416786 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query/query.txt" loaded
+Communication Time : 0.000158 seconds
+- Serialization Time : 0.000025 seconds
+- Transfer Time : 0.000132 seconds
+Load Query Time : 0.332834 seconds
+================Start filtering...=================
+Superstep 1 done.Time elapsed: 0.543775 seconds
+#msgs: 854703
+Superstep 2 done.Time elapsed: 0.125452 seconds
+#msgs: 24109
+Superstep 3 done.Time elapsed: 0.0214291 seconds
+#msgs: 2339
+Superstep 4 done.Time elapsed: 0.011888 seconds
+#msgs: 674
+Superstep 5 done.Time elapsed: 0.0098691 seconds
+#msgs: 168
+Superstep 6 done.Time elapsed: 0.00976491 seconds
+#msgs: 79
+Superstep 7 done.Time elapsed: 0.00944996 seconds
+#msgs: 21
+Superstep 8 done.Time elapsed: 0.00912189 seconds
+#msgs: 1
+Superstep 9 done.Time elapsed: 0.00944495 seconds
+#msgs: 0
+Candidate filtering done.
+Communication Time : 0.140231 seconds
+- Serialization Time : 0.046644 seconds
+- Transfer Time : 0.082131 seconds
+Total Computational Time : 0.819027 seconds
+Total #msgs=882094, Total #vadd=0
+=================Start building query tree...===================
+this->nodes size: 5
+Node 2
+Label: 99
+Branch number: 1
+Neighbors: [0, 1, 3]
+Backward neighbors: []
+Backward same labels: []
+It has 2 children.
+Node 0
+Label: 97
+Branch number: 1
+Neighbors: [1, 2]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 1
+Neighbors: [0, 2]
+Backward neighbors: [0]
+Backward same labels: []
+It has 0 children.
+Node 3
+Label: 98
+Branch number: 1
+Neighbors: [2, 4]
+Backward neighbors: []
+Backward same labels: [2]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 1
+Neighbors: [3]
+Backward neighbors: []
+Backward same labels: []
+It has 0 children.
+Build Query Tree Time : 0.000696 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.067318 seconds
+#msgs: 4738
+Superstep 2 done.Time elapsed: 0.027391 seconds
+#msgs: 5939
+Superstep 3 done.Time elapsed: 0.01302 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 0.019658 seconds
+- Serialization Time : 0.003035 seconds
+- Transfer Time : 0.016121 seconds
+Total Computational Time : 0.119033 seconds
+Total #msgs=10677, Total #vadd=41067
+[0][0]: 0.060704
+[0][1]: 0.0441339
+[0][2]: 0.0825129
+[1][0]: 0.757651
+[1][1]: 0.934947
+[1][2]: 0
+[2][0]: 0.00439119
+[2][1]: 0.00702286
+[2][2]: 0.03092
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 0.0361111 seconds
+#msgs: 39592
+Superstep 2 done.Time elapsed: 0.0883939 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.016566 seconds
+- Serialization Time : 0.004251 seconds
+- Transfer Time : 0.011189 seconds
+Total Computational Time : 0.136877 seconds
+Total #msgs=39592, Total #vadd=0
+[0][0]: 238901
+[0][1]: 0.326187
+[0][2]: 0
+[1][0]: 0.0899477
+[1][1]: 0.197975
+[1][2]: 0
+[2][0]: 0
+[2][1]: 0
+[2][2]: 0.0133567
+================ Final Report ===============
+Mapping count: 238901
+Load time: 16.7496 s.
+Dump time: 0 s.
+Compute time: 1.07615 s.
+Offline time: 19.3753 s.
+Online time: 1.5864 s.
