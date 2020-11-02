@@ -1,0 +1,132 @@
+Data graph path: /fdu-zyj/labelSK
+Query graph path: /fdu-zyj/query/querys.txt
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 0
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 38.035668 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query/querys.txt" loaded
+Communication Time : 0.000135 seconds
+- Serialization Time : 0.000028 seconds
+- Transfer Time : 0.000107 seconds
+Load Query Time : 0.657048 seconds
+=================Start building query tree...===================
+this->nodes size: 4
+Node 0
+Label: 97
+Branch number: 1
+Neighbors: [1, 2, 3]
+Backward neighbors: []
+Backward same labels: []
+It has 3 children.
+Node 1
+Label: 98
+Branch number: 1
+Neighbors: [0]
+Backward neighbors: []
+Backward same labels: []
+It has 0 children.
+Node 2
+Label: 99
+Branch number: 1
+Neighbors: [0]
+Backward neighbors: []
+Backward same labels: []
+It has 0 children.
+Node 3
+Label: 100
+Branch number: 1
+Neighbors: [0]
+Backward neighbors: []
+Backward same labels: []
+It has 0 children.
+Build Query Tree Time : 0.000568 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.273527 seconds
+#msgs: 101225
+Superstep 2 done.Time elapsed: 0.0706489 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 0.101287 seconds
+- Serialization Time : 0.038058 seconds
+- Transfer Time : 0.057259 seconds
+Total Computational Time : 0.381638 seconds
+Total #msgs=101225, Total #vadd=64780
+[0][0]: 0.145608
+[0][1]: 0.0998209
+[0][2]: 0.210595
+[1][0]: 0.659389
+[1][1]: 0.868618
+[1][2]: 0
+[2][0]: 0.00595999
+[2][1]: 0.017586
+[2][2]: 0.275443
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 0.156535 seconds
+#msgs: 101225
+terminate called after throwing an instance of 'std::bad_alloc'
+  what():  std::bad_alloc
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7fff97083dc8, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffd9690e398, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffcffca36e8, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffefa3cf9e8, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffd8134d198, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffeae37bfd8, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7fffa947fd08, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffe52e15698, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffe23ccc1c8, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffc137380c8, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffe714f3648, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7fffa63c8b48, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffd76f9c2b8, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7fff29aa1008, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7fffac734058, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffc4adacf18, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffcc3295468, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffd561ed548, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffcd30c5c48, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
+Fatal error in PMPI_Recv: Unknown error class, error stack:
+PMPI_Recv(171)........................: MPI_Recv(buf=0x7ffc2ed075d8, count=8, MPI_CHAR, src=0, tag=0, MPI_COMM_WORLD, status=0x1) failed
+MPIDU_Complete_posted_with_error(1137): Process failed
