@@ -70,7 +70,7 @@ public:
 		}
 	}
 
-	bool check_feasibility(vector<SIKey> &mapping, int query_u)
+	bool check_feasibility(SIKey *mapping, int query_u)
 	{ // check vertex uniqueness and backward neighbors 
 		double t = get_current_time();
 		SIQuery* query = (SIQuery*)getQuery();
@@ -98,8 +98,8 @@ public:
 		return true;
 	}
 
-	bool continue_mapping(vector<Mapping> &mappings, int &curr_u, bool filter_flag)
-	{ // Add current vertex to mapping;
+	bool continue_mapping(SIKey *p, int nrow, int ncol, int curr_u, bool filter_flag)
+	{
 		// Send messages to neighbors with right label.
 		// if add_flag, add a dummy vertex for each mapping.
 		SIQuery* query = (SIQuery*)getQuery();
@@ -189,10 +189,7 @@ public:
 				if (value().label == query->getLabel(curr_u))
 				{
 					this->timers[0][0] += get_current_time() - t;
-					double t0 = get_current_time();
-					Mapping mapping = {id};
-					bucket.push_back(mapping);
-					this->timers[0][1] += get_current_time() - t0;
+					
 					//add_flag
 					t0 = get_current_time();
 					if (params.enumerate && query->isBranch(curr_u))
@@ -203,8 +200,7 @@ public:
 					}
 					this->timers[0][2] += get_current_time() - t0;
 					t0 = get_current_time();
-					if (continue_mapping(bucket, curr_u, params.filter))
-						bucket.clear();
+					continue_mapping(&id, 1, 1, curr_u, params.filter);
 					this->timers[1][0] += get_current_time() - t0;
 				}
 			}
@@ -227,18 +223,20 @@ public:
 			int n_u = vector_u.size();
 			if (n_u == 1)
 			{
+				int curr_u = vector_u[0];
 				//Loop through messages
 				for (SIMessage &msg : messages)
 				{
-					for (Mapping &mapping : msg.mappings)
+					int nrow = msg.ints[0];
+					int ncol = msg.ints[1];
+					for (int i = 0; i < nrow; i++)
 					{
-						if (check_feasibility(mapping, vector_u[0]))
+						if (check_feasibility(msg.keys[i*ncol], curr_u))
 						{
 							double t1 = get_current_time();
-							mapping.push_back(id);
-							bucket.push_back(mapping);
+							msg.keys[i*ncol + ncol-1] = id;
 							this->timers[0][1] += get_current_time() - t1;
-							// add_flag
+							// add_flag, need to be modified.
 							t1 = get_current_time();
 							if (params.enumerate && query->isBranch(vector_u[0]))
 							{
