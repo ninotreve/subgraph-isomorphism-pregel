@@ -161,6 +161,8 @@ public:
 
     void active_compute(int type, WorkerParams params, int wakeAll)
     {
+        double timers[4] = {0.0, 0.0, 0.0, 0.0};
+        double t0 = get_current_time();
         active_count = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
@@ -169,11 +171,12 @@ public:
         	if (wakeAll == 1) vertexes[i]->activate();
 
             if  (
-            	(v_msgbufs[i].size() == 0 && vertexes[i]->is_active())
+            	(vertexes[i]->is_active() && v_msgbufs[i].size() == 0)
             	||
             	(v_msgbufs[i].size() != 0)
             	)
             {
+                double t = get_current_time();
 				switch (type)
 				{
 				case PREPROCESS:
@@ -192,11 +195,20 @@ public:
 						vertexes[i]->enumerate_old(v_msgbufs[i]);
 					break;
 				}
+                timers[0] += get_current_time() - t;
+                t = get_current_time();
 				v_msgbufs[i].clear(); //clear used msgs
+                timers[1] += get_current_time() - t;
+                t = get_current_time();
 				if (vertexes[i]->is_active())
 					active_count++;
+                timers[2] += get_current_time() - t;
             }
         }
+        timers[3] = get_current_time() - t0;
+        if (_my_rank == MASTER_RANK)
+            cout << "*" << timers[3] << ": [" << timers[0] << ", " << timers[1] 
+                 << ", " << timers[2] << "]" << endl;
     }
 
     inline void add_vertex(VertexT* vertex)
@@ -489,6 +501,8 @@ public:
 
         while (true) {
             global_step_num++;
+            if (_my_rank == MASTER_RANK && !params.report)
+                cout << "Superstep " << global_step_num << ":" << endl;
             ResetTimer(4);
             // stopping criteria for MATCH and ENUMRATE
             char bits_bor = all_bor(global_bor_bitmap);
@@ -507,7 +521,11 @@ public:
             //    agg->init(type);
             //===================
             clearBits();
+
+            StartTimer(ACTIVE_COMPUTE_TIMER);
             active_compute(type, params, wakeAll);
+            StopTimer(ACTIVE_COMPUTE_TIMER);
+            
             message_buffer->combine();
             step_msg_num = master_sum_LL(message_buffer->get_total_msg());
             step_vadd_num = master_sum_LL(message_buffer->get_total_vadd());
@@ -515,7 +533,11 @@ public:
                 global_msg_num += step_msg_num;
                 global_vadd_num += step_vadd_num;
             }
+           
+            StartTimer(SYNC_MESSAGE_TIMER);
             vector<VertexT*>& to_add = message_buffer->sync_messages();
+            StopTimer(SYNC_MESSAGE_TIMER);
+
             agg_sync();
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);
@@ -560,10 +582,13 @@ public:
     		}
     	}
 
-        PrintTimer("Communication Time", COMMUNICATION_TIMER);
-        PrintTimer("- Serialization Time", SERIALIZATION_TIMER);
-        PrintTimer("- Transfer Time", TRANSFER_TIMER);
         PrintTimer("Total Computational Time", WORKER_TIMER);
+        PrintTimer(" - Active Compute Time", ACTIVE_COMPUTE_TIMER);
+        PrintTimer(" - Sync Message Time", SYNC_MESSAGE_TIMER);
+        PrintTimer(" - Communication Time", COMMUNICATION_TIMER);
+        PrintTimer("    - Serialization Time", SERIALIZATION_TIMER);
+        PrintTimer("    - Transfer Time", TRANSFER_TIMER);
+        
         if (_my_rank == MASTER_RANK)
         {
             cout << "Total #msgs=" << global_msg_num << ", "
