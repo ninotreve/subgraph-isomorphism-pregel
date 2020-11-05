@@ -14,6 +14,9 @@
 struct SIMessage
 {
 	int type;
+	int* ints;
+	SIKey* keys;
+
 	SIKey key;
 	int value;
 	vector<int> v_int;
@@ -46,11 +49,13 @@ struct SIMessage
 		this->value = next_u; // or curr_u
 	}
 
-	SIMessage(int type, vector<Mapping> mappings, uID parent_u)
+	SIMessage(int type, int nrow, int ncol, SIKey *pKey)
 	{ // for mapping
 		this->type = type;
-		this->mappings = mappings;
-		this->value = parent_u;
+		this->ints = new int[2];
+		this->ints[0] = nrow;
+		this->ints[1] = ncol;
+		this->keys = pKey;
 	}
 
 	SIMessage(int type, SIBranch branch, uID curr_u)
@@ -80,7 +85,7 @@ struct SIMessage
 
 enum MESSAGE_TYPES {
 	LABEL_INFOMATION = 0,
-	MAPPING = 1,
+	MAPPING = 1, // 1105
 	BRANCH_RESULT = 2,
 	BRANCH = 3,
 	MAPPING_COUNT = 4,
@@ -102,7 +107,10 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 		m << v.p_int.first << v.p_int.second;
 		break;
 	case MESSAGE_TYPES::MAPPING:
-		m << v.mappings << v.value;
+		m << v.ints[0];
+		m << v.ints[1];
+		for (int i = 0; i < v.ints[0] * v.ints[1]; i++)
+			m << v.keys[i];
 		break;
 	case MESSAGE_TYPES::BRANCH_RESULT:
 		m << v.mapping << v.value;
@@ -133,7 +141,15 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 		m >> v.p_int.first >> v.p_int.second;
 		break;
 	case MESSAGE_TYPES::MAPPING:
-		m >> v.mappings >> v.value;
+		int nrow, ncol;
+		m >> nrow >> ncol;
+		ncol ++; //add one column
+		v.keys = new SIKey[nrow*ncol];
+		for (int i = 0; i < nrow; i++)
+			for (int j = 0; j < ncol - 1; i++)
+				m >> v.keys[i*ncol+j];
+		v.ints[0] = nrow;
+		v.ints[1] = ncol;	
 		break;	
 	case MESSAGE_TYPES::BRANCH_RESULT:
 		m >> v.mapping >> v.value;
