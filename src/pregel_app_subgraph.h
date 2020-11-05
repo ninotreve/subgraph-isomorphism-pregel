@@ -76,14 +76,24 @@ public:
 		SIQuery* query = (SIQuery*)getQuery();
 		// check vertex uniqueness
 		for (int b_level : query->getBSameLabPos(query_u))
+		{
 			if (this->id == mapping[b_level])
+			{
+				this->timers[2][0] += get_current_time() - t;
 				return false;
+			}
+		}
 
 		this->timers[2][0] += get_current_time() - t;
 		// check backward neighbors
 		for (int b_level : query->getBNeighborsPos(query_u))
+		{
 			if (! this->value().hasNeighbor(mapping[b_level]))
+			{
+				this->timers[2][1] += get_current_time() - t;
 				return false;
+			}
+		}
 		this->timers[2][1] += get_current_time() - t;
 		return true;
 	}
@@ -150,9 +160,9 @@ public:
 					}
 				}
 			}
-			return true;
 		}
 		this->timers[1][2] += get_current_time() - t;
+		return true;
 	}
 
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
@@ -179,20 +189,23 @@ public:
 				if (value().label == query->getLabel(curr_u))
 				{
 					this->timers[0][0] += get_current_time() - t;
+					double t0 = get_current_time();
 					Mapping mapping = {id};
 					bucket.push_back(mapping);
-					this->timers[0][1] += get_current_time() - t;
+					this->timers[0][1] += get_current_time() - t0;
 					//add_flag
+					t0 = get_current_time();
 					if (params.enumerate && query->isBranch(curr_u))
 					{
 						SIVertex* v = new SIVertex;
 						v->id = SIKey(curr_u, id.wID, mapping);
 						this->add_vertex(v);
 					}
-					this->timers[0][2] += get_current_time() - t;
+					this->timers[0][2] += get_current_time() - t0;
+					t0 = get_current_time();
 					if (continue_mapping(bucket, curr_u, params.filter))
 						bucket.clear();
-					this->timers[1][0] += get_current_time() - t;
+					this->timers[1][0] += get_current_time() - t0;
 				}
 			}
 			this->timers[1][1] += get_current_time() - t;
@@ -225,8 +238,8 @@ public:
 							mapping.push_back(id);
 							bucket.push_back(mapping);
 							this->timers[0][1] += get_current_time() - t1;
-							t1 = get_current_time();
 							// add_flag
+							t1 = get_current_time();
 							if (params.enumerate && query->isBranch(vector_u[0]))
 							{
 								SIVertex* v = new SIVertex;
@@ -237,14 +250,13 @@ public:
 						}
 					}
 				}
-
-				this->timers[0][0] += get_current_time() - t;
 				
+				double t2 = get_current_time();
 				//Send bucket of mappings to every feasible neighbor
 				if (!bucket.empty())
 					if (continue_mapping(bucket, vector_u[0], params.filter))
 						bucket.clear();
-				this->timers[1][0] += get_current_time() - t;
+				this->timers[1][0] += get_current_time() - t2;
 			}
 			else if (n_u > 1)
 			{
@@ -258,7 +270,6 @@ public:
 						int bucket_num = query->getBucketNumber(curr_u);
 						for (Mapping &mapping : msg.mappings)
 						{
-							double t0 = get_current_time();
 							if (check_feasibility(mapping, curr_u))
 							{
 								double t1 = get_current_time();
@@ -266,6 +277,7 @@ public:
 								buckets[bucket_num].push_back(mapping);
 								this->timers[0][1] += get_current_time() - t1;
 								// add_flag
+								t1 = get_current_time();
 								if (params.enumerate && query->isBranch(curr_u))
 								{
 									SIVertex* v = new SIVertex;
@@ -277,8 +289,8 @@ public:
 						}
 					}
 				}
-				this->timers[0][0] += get_current_time() - t;
 
+				double t2 = get_current_time();
 				//Send bucket of mappings to every feasible neighbor
 				for (int i = 0; i < n_u; i++)
 				{
@@ -286,7 +298,7 @@ public:
 						if (continue_mapping(buckets[i], vector_u[i], params.filter))
 							buckets[i].clear();
 				}
-				this->timers[1][0] += get_current_time() - t;
+				this->timers[1][0] += get_current_time() - t2;
 			}
 			this->timers[1][1] += get_current_time() - t;
 		}
@@ -879,10 +891,25 @@ void pregel_subgraph(const WorkerParams & params)
 
 	if (_my_rank == MASTER_RANK)
 	{
-		for (int i = 0; i < 3; i++)
-			for (int j = 0; j < 3; j++)
-				cout << "[" << i << "][" << j << "]: " <<
-					(*((AggMat*)global_agg))[i][j] << endl;
+		auto mat = *((AggMat*)global_agg);
+		cout << "From start to end: total time: " <<
+			mat[1][1] << " s" << endl;
+		cout << "1. To be selected in the first step: " <<
+			mat[0][0] << " s" << endl;
+		cout << "1. To be selected (check feasibility): " <<
+			mat[2][1] << " s" << endl;
+		cout << " - Check label uniqueness: " <<
+			mat[2][0] << " s" << endl;
+		cout << " - Check backward neighbors: " <<
+			mat[2][1] - mat[2][0] << " s" << endl;
+		cout << "2. Append current vertex id: " <<
+			mat[0][1] << " s" << endl;
+		cout << "3. Add dummy vertex: " <<
+			mat[0][2] << " s" << endl;	
+		cout << "4. Continue mapping and clear bucket: " <<
+			mat[1][0] << " s" << endl;
+		cout << " - Continue mapping: " <<
+			mat[1][2] << " s" << endl;
 	}
 
 	wakeAll();
@@ -892,10 +919,14 @@ void pregel_subgraph(const WorkerParams & params)
 
 	if (_my_rank == MASTER_RANK)
 	{
-		for (int i = 0; i < 3; i++)
-			for (int j = 0; j < 3; j++)
-				cout << "[" << i << "][" << j << "]: " <<
-					(*((AggMat*)global_agg))[i][j] << endl;
+		auto mat = *((AggMat*)global_agg);
+		cout << "From start to end: total time: " <<
+			mat[0][1] << " s" << endl;
+		cout << " - continue enumerating: " <<
+			mat[1][0] << " s" << endl;
+		cout << " - expand time: " <<
+			mat[1][1] << " s" << endl;
+
 	}
 
 	time = worker.dump_graph(params.output_path, params.force_write);
