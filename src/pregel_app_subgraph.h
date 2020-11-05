@@ -910,6 +910,8 @@ void pregel_subgraph(const WorkerParams & params)
 			mat[1][0] << " s" << endl;
 		cout << " - Continue mapping: " <<
 			mat[1][2] << " s" << endl;
+		cout << "5. Sync Time: " <<
+			mat[2][2] << " s" << endl;
 	}
 
 	wakeAll();
@@ -926,7 +928,8 @@ void pregel_subgraph(const WorkerParams & params)
 			mat[1][0] << " s" << endl;
 		cout << " - expand time: " <<
 			mat[1][1] << " s" << endl;
-
+		cout << "Sync Time: " <<
+			mat[2][2] << " s" << endl;
 	}
 
 	time = worker.dump_graph(params.output_path, params.force_write);
@@ -940,7 +943,7 @@ void pregel_subgraph(const WorkerParams & params)
 	{
 		cout << "================ Final Report ===============" << endl;
 		cout << "Mapping count: " <<
-				(*((AggMat*)global_agg))[0][0] << endl;
+				(long) (*((AggMat*)global_agg))[0][0] << endl;
 		cout << "Load time: " << load_time << " s." << endl;
 		cout << "Dump time: " << dump_time << " s." << endl;
 		cout << "Compute time: " << compute_time << " s." << endl;
