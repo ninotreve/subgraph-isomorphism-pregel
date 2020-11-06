@@ -79,12 +79,11 @@ public:
 		{
 			if (this->id == mapping[b_level])
 			{
-				this->timers[2][0] += get_current_time() - t;
+				this->timers[2][1] += get_current_time() - t;
 				return false;
 			}
 		}
 
-		this->timers[2][0] += get_current_time() - t;
 		// check backward neighbors
 		for (int b_level : query->getBNeighborsPos(query_u))
 		{
@@ -98,7 +97,7 @@ public:
 		return true;
 	}
 
-	bool continue_mapping(vector<Mapping> &mappings, int &curr_u, bool filter_flag)
+	bool continue_mapping(vector<Mapping> *mappings, int &curr_u, bool filter_flag)
 	{ // Add current vertex to mapping;
 		// Send messages to neighbors with right label.
 		// if add_flag, add a dummy vertex for each mapping.
@@ -107,7 +106,7 @@ public:
 
 #ifdef DEBUG_MODE_PARTIAL_RESULT
 		cout << "[Result] Current query vertex: " << curr_u << 
-		" Partial mapping: " << mappings[0] << endl;
+		" Partial mapping: " << (*mappings)[0] << endl;
 #endif
 
 		vector<int> next_us = query->getChildren(curr_u);
@@ -132,7 +131,7 @@ public:
 						cout << "[DEBUG] Message sent from " << id.vID << " to "
 								<< it->vID << ". \n\t"
 								<< "Type: MAPPING. \n\t"
-								<< "Mapping: " << msg.mappings[0] << endl;
+								<< "Mapping: " << (*msg.mappings)[0] << endl;
 #endif
 					}
 				}
@@ -154,7 +153,7 @@ public:
 							cout << "[DEBUG] Message sent from " << id.vID << " to "
 								<< kl.key.vID << ". \n\t"
 								<< "Type: MAPPING. \n\t"
-								<< "Mapping: " << msg.mappings[0] << endl;
+								<< "Mapping: " << (*msg.mappings)[0] << endl;
 #endif
 						}
 					}
@@ -174,6 +173,8 @@ public:
 			 << " ACTIVE Vertex ID " << id.vID
 			 << " Manual active: " << manual_active << endl;
 #endif
+		this->bucket.clear();
+		this->buckets.clear();
 
 		if (step_num() == 1)
 		{
@@ -188,7 +189,7 @@ public:
 				this->manual_active = false;
 				if (value().label == query->getLabel(curr_u))
 				{
-					this->timers[0][0] += get_current_time() - t;
+					//this->timers[0][0] += get_current_time() - t;
 					double t0 = get_current_time();
 					Mapping mapping = {id};
 					bucket.push_back(mapping);
@@ -203,12 +204,13 @@ public:
 					}
 					this->timers[0][2] += get_current_time() - t0;
 					t0 = get_current_time();
-					if (continue_mapping(bucket, curr_u, params.filter))
-						bucket.clear();
+					continue_mapping(&bucket, curr_u, params.filter);
+						//bucket.clear();
 					this->timers[1][0] += get_current_time() - t0;
 				}
 			}
 			this->timers[1][1] += get_current_time() - t;
+			this->timers[2][0] += get_current_time() - t; // only first step
 		}
 		else
 		{
@@ -230,7 +232,7 @@ public:
 				//Loop through messages
 				for (SIMessage &msg : messages)
 				{
-					for (Mapping &mapping : msg.mappings)
+					for (Mapping mapping : (*msg.mappings)) // remove &
 					{
 						if (check_feasibility(mapping, vector_u[0]))
 						{
@@ -250,12 +252,13 @@ public:
 						}
 					}
 				}
+				this->timers[0][0] += get_current_time() - t;
 				
 				double t2 = get_current_time();
 				//Send bucket of mappings to every feasible neighbor
 				if (!bucket.empty())
-					if (continue_mapping(bucket, vector_u[0], params.filter))
-						bucket.clear();
+					continue_mapping(&bucket, vector_u[0], params.filter);
+						//bucket.clear();
 				this->timers[1][0] += get_current_time() - t2;
 			}
 			else if (n_u > 1)
@@ -268,7 +271,7 @@ public:
 					for (int curr_u : children)
 					{
 						int bucket_num = query->getBucketNumber(curr_u);
-						for (Mapping &mapping : msg.mappings)
+						for (Mapping mapping : (*msg.mappings)) //remove &
 						{
 							if (check_feasibility(mapping, curr_u))
 							{
@@ -289,14 +292,15 @@ public:
 						}
 					}
 				}
+				this->timers[0][0] += get_current_time() - t;
 
 				double t2 = get_current_time();
 				//Send bucket of mappings to every feasible neighbor
 				for (int i = 0; i < n_u; i++)
 				{
 					if (!buckets[i].empty())
-						if (continue_mapping(buckets[i], vector_u[i], params.filter))
-							buckets[i].clear();
+						continue_mapping(&buckets[i], vector_u[i], params.filter);
+							//buckets[i].clear();
 				}
 				this->timers[1][0] += get_current_time() - t2;
 			}
@@ -894,14 +898,12 @@ void pregel_subgraph(const WorkerParams & params)
 		auto mat = *((AggMat*)global_agg);
 		cout << "From start to end: total time: " <<
 			mat[1][1] << " s" << endl;
-		cout << "1. To be selected in the first step: " <<
+		cout << "Loop through messages " <<
 			mat[0][0] << " s" << endl;
+		cout << "Time of first step: " <<
+			mat[2][0] << " s" << endl;
 		cout << "1. To be selected (check feasibility): " <<
 			mat[2][1] << " s" << endl;
-		cout << " - Check label uniqueness: " <<
-			mat[2][0] << " s" << endl;
-		cout << " - Check backward neighbors: " <<
-			mat[2][1] - mat[2][0] << " s" << endl;
 		cout << "2. Append current vertex id: " <<
 			mat[0][1] << " s" << endl;
 		cout << "3. Add dummy vertex: " <<
