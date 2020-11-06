@@ -1,0 +1,98 @@
+Data graph path: /g-thinker/newdata/youtube_f.txt
+Query graph path: /fdu-zyj/query/query.txt
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 0
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 18.731636 seconds
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query/query.txt" loaded
+Communication Time : 0.000107 seconds
+- Serialization Time : 0.000008 seconds
+- Transfer Time : 0.000098 seconds
+Load Query Time : 0.394774 seconds
+=================Start building query tree...===================
+this->nodes size: 5
+Node 0
+Label: 97
+Branch number: 0
+Neighbors: [1, 2]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 0
+Neighbors: [0, 2]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 2
+Label: 99
+Branch number: 0
+Neighbors: [0, 1, 3]
+Backward neighbors: [0]
+Backward same labels: []
+It has 1 children.
+Node 3
+Label: 98
+Branch number: 0
+Neighbors: [2, 4]
+Backward neighbors: []
+Backward same labels: [1]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 0
+Neighbors: [3]
+Backward neighbors: []
+Backward same labels: []
+It has 0 children.
+Build Query Tree Time : 0.000622 seconds
+================Start matching...======================
+Superstep 1 done.Time elapsed: 0.173949 seconds
+#msgs: 122246
+Superstep 2 done.Time elapsed: 1.40877 seconds
+#msgs: 87234
+Superstep 3 done.Time elapsed: 2.01867 seconds
+#msgs: 59339
+Superstep 4 done.Time elapsed: 12.1464 seconds
+#msgs: 71457
+Superstep 5 done.Time elapsed: 8.46795 seconds
+#msgs: 0
+Subgraph matching done. 
+Communication Time : 13.543003 seconds
+- Serialization Time : 3.564131 seconds
+- Transfer Time : 9.952457 seconds
+Total Computational Time : 24.236518 seconds
+Total #msgs=340276, Total #vadd=0
+From start to end: total time: 134.958 s
+Loop through messages 134.257 s
+Time of first step: 0.48888 s
+1. To be selected (check feasibility): 9.20495 s
+2. Append current vertex id: 67.5961 s
+3. Add dummy vertex: 7.02113 s
+4. Continue mapping and clear bucket: 0.458029 s
+ - Continue mapping: 0.407981 s
+================Start enumerating...===================
+Superstep 1 done.Time elapsed: 0.0228701 seconds
+#msgs: 0
+Subgraph enumeration done. 
+Communication Time : 0.004070 seconds
+- Serialization Time : 0.000100 seconds
+- Transfer Time : 0.003877 seconds
+Total Computational Time : 0.040332 seconds
+Total #msgs=0, Total #vadd=0
+From start to end: total time: 0.00705886 s
+ - continue enumerating: 0 s
+ - expand time: 0 s
+================ Final Report ===============
+Mapping count: 1.00402e+08
+Load time: 19.1264 s.
+Dump time: 0 s.
+Compute time: 24.2778 s.
+Offline time: 23.0482 s.
+Online time: 24.9881 s.
