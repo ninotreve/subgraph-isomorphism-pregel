@@ -69,6 +69,13 @@ public:
         vecs[hash(key)].push_back(item);
     }
 
+    // newly added function
+    void append_by_wID(const int wID, const MessageT msg)
+    {
+        msgpair<KeyT, MessageT> item(NULL, msg);
+        vecs[wID].push_back(item);
+    }
+
     Vec& getBuf(int pos)
     {
         return vecs[pos];

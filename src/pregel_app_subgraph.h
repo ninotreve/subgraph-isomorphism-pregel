@@ -3,6 +3,11 @@
 #include "utils/Query.h"
 using namespace std;
 
+#define NROW msg.nrow
+#define NCOL step_num()-1
+#define START_TIMING(T) (T) = get_current_time();
+#define STOP_TIMING(T, X, Y) this->timers[(X)][(Y)] += get_current_time() - (T);
+
 /*
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
@@ -34,8 +39,6 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 public:
 	SICandidate *candidate;
 	double timers[3][3];
-	vector<Mapping> bucket;
-	vector<vector<Mapping>> buckets;
 	int results_count = 0;
 	bool manual_active = false;
 
@@ -98,76 +101,10 @@ public:
 		return true;
 	}
 
-	bool continue_mapping(SIKey *p, int nrow, int ncol, int curr_u, bool filter_flag)
-	{
-		// Send messages to neighbors with right label.
-		// if add_flag, add a dummy vertex for each mapping.
-		SIQuery* query = (SIQuery*)getQuery();
-		double t = get_current_time();
-
-#ifdef DEBUG_MODE_PARTIAL_RESULT
-		cout << "[Result] Current query vertex: " << curr_u << 
-		" Partial mapping: " << mappings[0] << endl;
-#endif
-
-		vector<int> next_us = query->getChildren(curr_u);
-		if (next_us.size() == 0)
-		{ // leaf query vertex
-			this->manual_active = true;
-			return false; 
-		}
-		else
-		{
-			if (filter_flag)
-			{ // with filtering
-				for (int next_u : next_us)
-				{
-					hash_set<SIKey> &keys = candidate->candidates[curr_u][next_u];
-					auto it = keys.begin(); auto iend = keys.end();
-					for (; it != iend; ++it)
-					{
-						SIMessage msg = SIMessage(MAPPING, mappings, curr_u);
-						send_message(*it, msg);
-#ifdef DEBUG_MODE_MSG
-						cout << "[DEBUG] Message sent from " << id.vID << " to "
-								<< it->vID << ". \n\t"
-								<< "Type: MAPPING. \n\t"
-								<< "Mapping: " << msg.mappings[0] << endl;
-#endif
-					}
-				}
-			}
-			else
-			{ // without filtering
-				int next_label;
-				for (int i = 0; i < value().degree; ++i)
-				{
-					KeyLabel &kl = value().nbs_vector[i];
-					for (int next_u : next_us)
-					{		
-						next_label = query->getLabel(next_u);							
-						if (kl.label == next_label)
-						{ // check for label and uniqueness
-							SIMessage msg = SIMessage(MAPPING, mappings, curr_u);
-							send_message(kl.key, msg);
-#ifdef DEBUG_MODE_MSG
-							cout << "[DEBUG] Message sent from " << id.vID << " to "
-								<< kl.key.vID << ". \n\t"
-								<< "Type: MAPPING. \n\t"
-								<< "Mapping: " << msg.mappings[0] << endl;
-#endif
-						}
-					}
-				}
-			}
-		}
-		this->timers[1][2] += get_current_time() - t;
-		return true;
-	}
-
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
 	{
 		SIQuery* query = (SIQuery*)getQuery();
+		double t, t1;
 
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
@@ -175,131 +112,124 @@ public:
 			 << " Manual active: " << manual_active << endl;
 #endif
 
-		if (step_num() == 1)
+		// initiate timing
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+				this->timers[i][j] = 0.0;
+
+		if (!this->id.partial_mapping.empty()) //dummy vertex
 		{
 			for (int i = 0; i < 3; i++)
 				for (int j = 0; j < 3; j++)
 					this->timers[i][j] = 0.0;
+			vote_to_halt();
+			return;
+		}
 
-			double t = get_current_time();
+		// arrange messages
+		START_TIMING(t);
+		vector<vector<int>> messages_classifier;
+		int n_u = 1;
+		if (step_num() == 1 && this->manual_active)
+		{
+			this->manual_active = false;
 			int curr_u = query->root;
-			if (!params.filter || this->manual_active)
-			{
-				this->manual_active = false;
-				if (value().label == query->getLabel(curr_u))
-				{
-					this->timers[0][0] += get_current_time() - t;
-					
-					//add_flag
-					t0 = get_current_time();
-					if (params.enumerate && query->isBranch(curr_u))
-					{
-						SIVertex* v = new SIVertex;
-						v->id = SIKey(curr_u, id.wID, mapping);
-						this->add_vertex(v);
-					}
-					this->timers[0][2] += get_current_time() - t0;
-					t0 = get_current_time();
-					continue_mapping(&id, 1, 1, curr_u, params.filter);
-					this->timers[1][0] += get_current_time() - t0;
-				}
-			}
-			this->timers[1][1] += get_current_time() - t;
+			if ((!params.filter) && (value().label != query->getLabel(curr_u)))
+				return;
 		}
 		else
 		{
-			if (!this->id.partial_mapping.empty()) // dummy vertex
-			{
-				for (int i = 0; i < 3; i++)
-					for (int j = 0; j < 3; j++)
-						this->timers[i][j] = 0.0;
-				vote_to_halt();
-				return;
-			}
-
-			double t = get_current_time();
 			//Decide the number of u to be mapped to
-			vector<int> vector_u = query->getBucket(step_num()-1, value().label);
-			int n_u = vector_u.size();
-			if (n_u == 1)
+			vector<int> vector_u = query->getBucket(NCOL, value().label);
+			n_u = vector_u.size();
+			messages_classifier.resize(n_u);
+			for (int i = 0; i < messages.size(); i++)
 			{
-				int curr_u = vector_u[0];
-				//Loop through messages
-				for (SIMessage &msg : messages)
-				{
-					int nrow = msg.ints[0];
-					int ncol = msg.ints[1];
-					for (int i = 0; i < nrow; i++)
-					{
-						if (check_feasibility(msg.keys[i*ncol], curr_u))
-						{
-							double t1 = get_current_time();
-							msg.keys[i*ncol + ncol-1] = id;
-							this->timers[0][1] += get_current_time() - t1;
-							// add_flag, need to be modified.
-							t1 = get_current_time();
-							if (params.enumerate && query->isBranch(vector_u[0]))
-							{
-								SIVertex* v = new SIVertex;
-								v->id = SIKey(vector_u[0], id.wID, mapping);
-								this->add_vertex(v);
-							}
-							this->timers[0][2] += get_current_time() - t1;
-						}
-					}
-				}
-				
-				double t2 = get_current_time();
-				//Send bucket of mappings to every feasible neighbor
-				if (!bucket.empty())
-					if (continue_mapping(bucket, vector_u[0], params.filter))
-						bucket.clear();
-				this->timers[1][0] += get_current_time() - t2;
+				int bucket_num = query->getBucketNumber(messages[i].curr_u);
+				messages_classifier[bucket_num].push_back(i);
 			}
-			else if (n_u > 1)
-			{
-				buckets.resize(n_u);
-				//Loop through messages
-				for (SIMessage &msg : messages)
-				{
-					vector<int> children = query->getChildren(msg.value);
-					for (int curr_u : children)
-					{
-						int bucket_num = query->getBucketNumber(curr_u);
-						for (Mapping &mapping : msg.mappings)
-						{
-							if (check_feasibility(mapping, curr_u))
-							{
-								double t1 = get_current_time();
-								mapping.push_back(id);
-								buckets[bucket_num].push_back(mapping);
-								this->timers[0][1] += get_current_time() - t1;
-								// add_flag
-								t1 = get_current_time();
-								if (params.enumerate && query->isBranch(curr_u))
-								{
-									SIVertex* v = new SIVertex;
-									v->id = SIKey(curr_u, id.wID, mapping);
-									this->add_vertex(v);
-								}
-								this->timers[0][2] += get_current_time() - t1;
-							}
-						}
-					}
-				}
-
-				double t2 = get_current_time();
-				//Send bucket of mappings to every feasible neighbor
-				for (int i = 0; i < n_u; i++)
-				{
-					if (!buckets[i].empty())
-						if (continue_mapping(buckets[i], vector_u[i], params.filter))
-							buckets[i].clear();
-				}
-				this->timers[1][0] += get_current_time() - t2;
-			}
-			this->timers[1][1] += get_current_time() - t;
 		}
+		STOP_TIMING(t, 0, 0);
+
+		// main computation
+		START_TIMING(t);
+		for (int bucket_num = 0; bucket_num < n_u; bucket_num ++)
+		{
+			int curr_u = vector_u[bucket_num];
+			//Loop through messages and check feasibilities
+			START_TIMING(t1);
+			vector<int*>* passed_mappings = new vector<int*>();
+			for (int msgi : messages_classifier[bucket_num])
+			{
+				SIMessage &msg = messages[msgi];
+				for (int i = 0; i < NROW; i++)
+				{
+					if (check_feasibility(msg.keys[i*NCOL], curr_u))
+					{
+						passed_mappings->push_back(msg.keys[i*NCOL]);
+						/* add_flag, need to be modified.
+						if (params.enumerate && query->isBranch(vector_u[0]))
+						{
+							SIVertex* v = new SIVertex;
+							v->id = SIKey(vector_u[0], id.wID, mapping);
+							this->add_vertex(v);
+						}
+						*/
+					}
+				}
+			}
+			STOP_TIMING(t1, 0, 1);
+
+			//Continue mapping
+			vector<int> next_us = query->getChildren(curr_u);
+			if (!passed_mappings.empty() || step_num() == 1)
+			{
+				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
+				for (int next_u : next_us)
+				{ 
+					//Construct neighbors_map: 
+				  	//Loop through neighbors and select out ones with right labels
+				    START_TIMING(t1);
+					if (filter_flag)
+					{ //With filtering
+						hash_set<SIKey> &keys = candidate->candidates[curr_u][next_u];
+						auto it = keys.begin(); auto iend = keys.end();
+						for (; it != iend; ++it)
+							neighbors_map[it->wID].push_back(it->vID);
+					}
+					else
+					{ //Without filtering
+						int next_label = query->getLabel(next_u);;
+						for (int i = 0; i < value().degree; ++i)
+						{
+							KeyLabel &kl = value().nbs_vector[i];
+							if (kl.label == next_label)
+								neighbors_map[kl.key.wID].push_back(kl.key.vID);
+						}
+					}
+					STOP_TIMING(t1, 0, 2);
+
+					//Update out_message_buffer
+					START_TIMING(t1);
+					for (int wID = 0; wID < get_num_workers(); i++)
+						if (!neighbors_map[wID].empty())
+							send_messages(wID, 
+								SIMessage(MAPPING, id.vID, next_u, 
+									neighbors_map[wID], passed_mappings));
+					STOP_TIMING(t1, 1, 0);
+
+					//Clear neighbors_map
+					START_TIMING(t1);
+					neighbors_map.clear();
+					STOP_TIMING(t1, 1, 1);
+				}
+				if (next_us.size() == 0)
+				{ //Leaf query vertex
+					this->manual_active = true;
+				}
+			}
+		}
+		STOP_TIMING(t, 1, 2);
 		vote_to_halt();
 	}
 
@@ -890,26 +820,22 @@ void pregel_subgraph(const WorkerParams & params)
 	if (_my_rank == MASTER_RANK)
 	{
 		auto mat = *((AggMat*)global_agg);
-		cout << "From start to end: total time: " <<
-			mat[1][1] << " s" << endl;
-		cout << "1. To be selected in the first step: " <<
+		cout << "1. Arrange messages: " <<
 			mat[0][0] << " s" << endl;
-		cout << "1. To be selected (check feasibility): " <<
-			mat[2][1] << " s" << endl;
-		cout << " - Check label uniqueness: " <<
-			mat[2][0] << " s" << endl;
-		cout << " - Check backward neighbors: " <<
-			mat[2][1] - mat[2][0] << " s" << endl;
-		cout << "2. Append current vertex id: " <<
+		cout << "2. Check feasibility: " <<
 			mat[0][1] << " s" << endl;
-		cout << "3. Add dummy vertex: " <<
-			mat[0][2] << " s" << endl;	
-		cout << "4. Continue mapping and clear bucket: " <<
+		cout << "\t - Check vertex uniqueness: " <<
+			mat[2][0] << " s" << endl;
+		cout << "\t - Check non-tree edge: " <<
+			mat[2][1] << " s" << endl;
+		cout << "3. Construct neighbor map: " <<
+			mat[0][2] << " s" << endl;
+		cout << "4. Update out messages buffer: " <<
 			mat[1][0] << " s" << endl;
-		cout << " - Continue mapping: " <<
+		cout << "5. Clear out neighbor map: " <<
+			mat[1][1] << " s" << endl;
+		cout << "Main Computation: " <<
 			mat[1][2] << " s" << endl;
-		cout << "5. Sync Time: " <<
-			mat[2][2] << " s" << endl;
 	}
 
 	wakeAll();
