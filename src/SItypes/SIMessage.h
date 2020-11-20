@@ -14,6 +14,12 @@
 struct SIMessage
 {
 	int type;
+
+	int value; //id
+	int curr_u;
+	int nrow;
+	int *mappings;
+	/*
 	int* ints;
 	SIKey* keys;
 
@@ -81,6 +87,7 @@ struct SIMessage
 	{
 		this->v_int.push_back(i);
 	}
+	*/
 };
 
 enum MESSAGE_TYPES {

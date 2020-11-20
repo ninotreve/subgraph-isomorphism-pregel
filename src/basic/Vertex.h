@@ -98,6 +98,12 @@ public:
         ((MessageBufT*)get_message_buffer())->add_message(id, msg);
     }
 
+    // newly added function
+    void send_messages(const int& wID, const MessageT& msg)
+    {
+        ((MessageBufT*)get_message_buffer())->out_messages.append_by_wID(wID, msg);
+    }
+
     void add_vertex(VertexT* v)
     {
         ((MessageBufT*)get_message_buffer())->add_vertex(v);
