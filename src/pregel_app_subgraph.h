@@ -216,7 +216,7 @@ public:
 					for (int wID = 0; wID < get_num_workers(); i++)
 					{
 						if (wID = _my_rank)
-							// copy it!
+							// copy it!!!
 						if (!neighbors_map[wID].empty())
 							send_messages(wID, neighbors_map[wID],
 								SIMessage(MAPPING, id.vID, next_u, 
