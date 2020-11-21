@@ -159,7 +159,8 @@ public:
 		}
 		*/
 
-    void active_compute(int type, WorkerParams params, int wakeAll)
+    void active_compute(int type, WorkerParams params, int wakeAll,
+        vector<MessageT> &delete_messages)
     {
         double timers[4] = {0.0, 0.0, 0.0, 0.0};
         double t0 = get_current_time();
@@ -196,9 +197,14 @@ public:
 					break;
 				}
                 timers[0] += get_current_time() - t;
+
+				//clear used msgs
                 t = get_current_time();
-				v_msgbufs[i].clear(); //clear used msgs
+                for (int j = 0; j < v_msgbufs[i].size(); j++)
+                    delete_messages.push_back(v_msgbufs[i][j]);
+                v_msgbufs[i].clear(); 
                 timers[1] += get_current_time() - t;
+
                 t = get_current_time();
 				if (vertexes[i]->is_active())
 					active_count++;
@@ -323,6 +329,9 @@ public:
 
     //user-defined graphDumper ==============================
     virtual void toline(VertexT* v, BufferedWriter& writer) = 0; //this is what user specifies!!!!!!
+
+    //user-defined message clearer ==========================
+    virtual void clear_messages(vector<MessageT> &delete_messages) = 0;
 
     void dump_partition(const char* outpath)
     {
@@ -523,7 +532,8 @@ public:
             clearBits();
 
             StartTimer(ACTIVE_COMPUTE_TIMER);
-            active_compute(type, params, wakeAll);
+            vector<MessageT> delete_messages;
+            active_compute(type, params, wakeAll, delete_messages);
             StopTimer(ACTIVE_COMPUTE_TIMER);
             
             message_buffer->combine();
@@ -536,6 +546,7 @@ public:
            
             StartTimer(SYNC_MESSAGE_TIMER);
             vector<VertexT*>& to_add = message_buffer->sync_messages();
+            clear_messages(delete_messages);
             StopTimer(SYNC_MESSAGE_TIMER);
 
             agg_sync();
