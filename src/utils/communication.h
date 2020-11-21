@@ -166,47 +166,45 @@ void all_to_all_cat(std::vector<T>& to_exchange1, std::vector<T1>& to_exchange2)
     int me = get_worker_id();
     for (int i = 0; i < np; i++) {
         int partner = (i - me + np) % np;
-        if (me != partner) {
-        	if (me < partner) {
-                StartTimer(SERIALIZATION_TIMER);
-                //send
-                ibinstream m;
-                m << to_exchange1[partner];
-                m << to_exchange2[partner];
-                StopTimer(SERIALIZATION_TIMER);
-                StartTimer(TRANSFER_TIMER);
-                send_ibinstream(m, partner);
-                StopTimer(TRANSFER_TIMER);
-                //receive
-                StartTimer(TRANSFER_TIMER);
-                obinstream um = recv_obinstream(partner);
-                StopTimer(TRANSFER_TIMER);
-                StartTimer(SERIALIZATION_TIMER);
-                um >> to_exchange1[partner];
-                um >> to_exchange2[partner];
-                StopTimer(SERIALIZATION_TIMER);
-            } else {
-                StartTimer(TRANSFER_TIMER);
-                //receive
-                obinstream um = recv_obinstream(partner);
-                StopTimer(TRANSFER_TIMER);
-                StartTimer(SERIALIZATION_TIMER);
-                T received1;
-                T1 received2;
-                um >> received1;
-                um >> received2;
-                //send
-                ibinstream m;
-                m << to_exchange1[partner];
-                m << to_exchange2[partner];
-                StopTimer(SERIALIZATION_TIMER);
-                StartTimer(TRANSFER_TIMER);
-                send_ibinstream(m, partner);
-                StopTimer(TRANSFER_TIMER);
-                to_exchange1[partner] = received1;
-                to_exchange2[partner] = received2;
-            }
-        }
+        if (me < partner) {
+            StartTimer(SERIALIZATION_TIMER);
+            //send
+            ibinstream m;
+            m << to_exchange1[partner];
+            m << to_exchange2[partner];
+            StopTimer(SERIALIZATION_TIMER);
+            StartTimer(TRANSFER_TIMER);
+            send_ibinstream(m, partner);
+            StopTimer(TRANSFER_TIMER);
+            //receive
+            StartTimer(TRANSFER_TIMER);
+            obinstream um = recv_obinstream(partner);
+            StopTimer(TRANSFER_TIMER);
+            StartTimer(SERIALIZATION_TIMER);
+            um >> to_exchange1[partner];
+            um >> to_exchange2[partner];
+            StopTimer(SERIALIZATION_TIMER);
+        } else if (me > partner) {
+            StartTimer(TRANSFER_TIMER);
+            //receive
+            obinstream um = recv_obinstream(partner);
+            StopTimer(TRANSFER_TIMER);
+            StartTimer(SERIALIZATION_TIMER);
+            T received1;
+            T1 received2;
+            um >> received1;
+            um >> received2;
+            //send
+            ibinstream m;
+            m << to_exchange1[partner];
+            m << to_exchange2[partner];
+            StopTimer(SERIALIZATION_TIMER);
+            StartTimer(TRANSFER_TIMER);
+            send_ibinstream(m, partner);
+            StopTimer(TRANSFER_TIMER);
+            to_exchange1[partner] = received1;
+            to_exchange2[partner] = received2;
+        } 
     }
     StopTimer(COMMUNICATION_TIMER);
 }

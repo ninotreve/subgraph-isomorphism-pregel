@@ -44,6 +44,7 @@ public:
 
 	void preprocess(MessageContainer & messages)
 	{  // use bloom filter to store neighbors' edges.
+	/*
 		size_t sz = value().nbs_vector.size();
 
 		if (step_num() == 1)
@@ -71,6 +72,7 @@ public:
 			}
 			vote_to_halt();
 		}
+		*/
 	}
 
 	bool check_feasibility(SIKey *mapping, int query_u)
@@ -212,10 +214,14 @@ public:
 					//Update out_message_buffer
 					START_TIMING(t1);
 					for (int wID = 0; wID < get_num_workers(); i++)
+					{
+						if (wID = _my_rank)
+							// copy it!
 						if (!neighbors_map[wID].empty())
-							send_messages(wID, 
+							send_messages(wID, neighbors_map[wID],
 								SIMessage(MAPPING, id.vID, next_u, 
-									neighbors_map[wID], passed_mappings));
+									passed_mappings));
+					}
 					STOP_TIMING(t1, 1, 0);
 
 					//Clear neighbors_map
@@ -235,6 +241,7 @@ public:
 
 	void check_candidates(hash_set<int> &invalid_set)
 	{
+		/*
 		int u1, u2;
 		candidate->fillInvalidSet(invalid_set);
 		for (auto set_it = invalid_set.begin();
@@ -261,10 +268,12 @@ public:
 				}
 			}
 		}
+		*/
 	}
 
 	void filter(MessageContainer & messages)
 	{
+		/*
 		SIQuery* query = (SIQuery*)getQuery();
 		vector<int> temp_vec;
 		int degree = value().nbs_vector.size();
@@ -342,10 +351,12 @@ public:
 			this->manual_active = candidate->hasCandidates();
 			vote_to_halt();
 		}
+		*/
 	}
 
 	void continue_enum(SIBranch b, int curr_u, int anc_u)
 	{
+		/*
 		double t = get_current_time();
 		SIQuery* query = (SIQuery*)getQuery();	
 		Mapping &m = b.p;
@@ -367,10 +378,12 @@ public:
 			<< ", curr_u: " << curr_u << endl;
 #endif
 		this->timers[1][0] += get_current_time() - t;
+		*/
 	}	
 
 	void enumerate_new(MessageContainer & messages)
 	{
+		/*
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
 			 << " ACTIVE Vertex ID " << id.vID 
@@ -473,7 +486,9 @@ public:
 			}
 			this->timers[0][1] += get_current_time() - t;
 		}
+		*/
  		vote_to_halt();
+		 
 	}
 
 	void enumerate_old(MessageContainer & messages)
@@ -759,6 +774,14 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 						query->getID(query->dfs_order[j]), mapping[j].vID);
 					writer.write(buf);
 				}
+			}
+		}
+
+		virtual void clear_messages(vector<SIMessage> &delete_messages)
+		{
+			for (SIMessage &msg : delete_messages)
+			{
+				delete[] msg.mappings;
 			}
 		}
 };

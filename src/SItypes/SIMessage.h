@@ -15,10 +15,11 @@ struct SIMessage
 {
 	int type;
 
-	int value; //id
+	int id;
 	int curr_u;
 	int nrow;
 	int *mappings;
+	vector<int*>* passed_mappings;
 	/*
 	int* ints;
 	SIKey* keys;
@@ -30,11 +31,11 @@ struct SIMessage
 	Mapping mapping;
 	vector<Mapping> mappings;
 	SIBranch branch;
-
+	*/
 	SIMessage()
 	{
 	}
-
+/*
 	SIMessage(int type, SIKey vertex, int value)
 	{ // for degree or label information
 		this->type = type;
@@ -88,11 +89,19 @@ struct SIMessage
 		this->v_int.push_back(i);
 	}
 	*/
+
+	SIMessage(int type, int id, int next_u, vector<int*>* passed_mappings)
+	{ // for mapping
+		this->type = type;
+		this->id = id;
+		this->curr_u = next_u;
+		this->passed_mappings = passed_mappings;
+	}
 };
 
 enum MESSAGE_TYPES {
 	LABEL_INFOMATION = 0,
-	MAPPING = 1, // 1105
+	MAPPING = 1, // 1121
 	BRANCH_RESULT = 2,
 	BRANCH = 3,
 	MAPPING_COUNT = 4,
@@ -106,19 +115,30 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 	m << v.type;
 	switch (v.type)
 	{
+		/*
 	case MESSAGE_TYPES::LABEL_INFOMATION:
 	case MESSAGE_TYPES::DEGREE:
 		m << v.key << v.value;
 		break;
 	case MESSAGE_TYPES::NEIGHBOR_PAIR:
 		m << v.p_int.first << v.p_int.second;
-		break;
+		break;*/
 	case MESSAGE_TYPES::MAPPING:
-		m << v.ints[0];
-		m << v.ints[1];
-		for (int i = 0; i < v.ints[0] * v.ints[1]; i++)
-			m << v.keys[i];
+		m << v.id;
+		m << v.curr_u;
+
+		int nrow = v.passed_mappings->size();
+		int ncol = step_num()-1;
+		if (ncol == 0) ncol = 1; //for the first step
+		m << nrow;
+		for (int i = 0; i < nrow; i++)
+		{
+			int *p = (*v.passed_mappings)[i];
+			for (int j = 0; j < ncol; j++)
+				m << p[j];
+		}
 		break;
+		/*
 	case MESSAGE_TYPES::BRANCH_RESULT:
 		m << v.mapping << v.value;
 		break;
@@ -131,6 +151,7 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 	case MESSAGE_TYPES::CANDIDATE:
 		m << v.key << v.v_int;
 		break;
+		*/
 	}
 	return m;
 }
@@ -140,6 +161,7 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 	m >> v.type;
 	switch (v.type)
 	{
+		/*
 	case MESSAGE_TYPES::LABEL_INFOMATION:
 	case MESSAGE_TYPES::DEGREE:
 		m >> v.key >> v.value;
@@ -147,17 +169,22 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 	case MESSAGE_TYPES::NEIGHBOR_PAIR:
 		m >> v.p_int.first >> v.p_int.second;
 		break;
+		*/
 	case MESSAGE_TYPES::MAPPING:
-		int nrow, ncol;
-		m >> nrow >> ncol;
-		ncol ++; //add one column
-		v.keys = new SIKey[nrow*ncol];
-		for (int i = 0; i < nrow; i++)
+		int vID;
+		m >> vId;
+		m >> v.curr_u;
+
+		int ncol = step_num();
+		m >> v.nrow;
+		v.mappings = new int[v.nrow * ncol];
+		for (int i = 0; i < v.nrow * ncol; i++)
 			for (int j = 0; j < ncol - 1; i++)
-				m >> v.keys[i*ncol+j];
-		v.ints[0] = nrow;
-		v.ints[1] = ncol;	
+				m >> v.mappings[i];
+			v.mappings[i] = vID;
+
 		break;	
+		/*
 	case MESSAGE_TYPES::BRANCH_RESULT:
 		m >> v.mapping >> v.value;
 		break;
@@ -170,6 +197,7 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 	case MESSAGE_TYPES::CANDIDATE:
 		m >> v.key >> v.v_int;
 		break;
+		*/
 	}
 	return m;
 }

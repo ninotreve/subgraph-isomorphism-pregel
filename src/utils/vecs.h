@@ -7,39 +7,39 @@
 #include <vector>
 using namespace std;
 
-template <class KeyT, class MessageT>
+template <class MessageT>
 struct msgpair {
-    KeyT key;
+    vector<int> keys;
     MessageT msg;
 
     msgpair()
     {
     }
 
-    msgpair(KeyT v1, MessageT v2)
+    msgpair(vector<int> v1, MessageT v2)
     {
-        key = v1;
+        keys = v1;
         msg = v2;
     }
 
     inline bool operator<(const msgpair& rhs) const
     {
-        return key < rhs.key;
+        return keys[0] < rhs.keys[0];
     }
 };
 
-template <class KeyT, class MessageT>
-ibinstream& operator<<(ibinstream& m, const msgpair<KeyT, MessageT>& v)
+template <class MessageT>
+ibinstream& operator<<(ibinstream& m, const msgpair<vector<int>, MessageT>& v)
 {
-    m << v.key;
+    m << v.keys;
     m << v.msg;
     return m;
 }
 
-template <class KeyT, class MessageT>
-obinstream& operator>>(obinstream& m, msgpair<KeyT, MessageT>& v)
+template <class MessageT>
+obinstream& operator>>(obinstream& m, msgpair<vector<int>, MessageT>& v)
 {
-    m >> v.key;
+    m >> v.keys;
     m >> v.msg;
     return m;
 }
@@ -49,7 +49,7 @@ obinstream& operator>>(obinstream& m, msgpair<KeyT, MessageT>& v)
 template <class KeyT, class MessageT, class HashT>
 class Vecs {
 public:
-    typedef vector<msgpair<KeyT, MessageT> > Vec;
+    typedef vector<msgpair<vector<int>, MessageT> > Vec;
     typedef vector<Vec> VecGroup;
 
     int np;
@@ -65,14 +65,16 @@ public:
 
     void append(const KeyT key, const MessageT msg)
     {
+        /*
         msgpair<KeyT, MessageT> item(key, msg);
         vecs[hash(key)].push_back(item);
+        */
     }
 
     // newly added function
-    void append_by_wID(const int wID, const MessageT msg)
+    void append_by_wID(const int wID, const vector<int> keys, const MessageT msg)
     {
-        msgpair<KeyT, MessageT> item(NULL, msg);
+        msgpair<vector<int>, MessageT> item(keys, msg);
         vecs[wID].push_back(item);
     }
 
@@ -98,6 +100,7 @@ public:
 
     void combine()
     {
+        /*
         Combiner<MessageT>* combiner = (Combiner<MessageT>*)get_combiner();
         for (int i = 0; i < np; i++) {
             sort(vecs[i].begin(), vecs[i].end());
@@ -118,6 +121,7 @@ public:
             }
             newVec.swap(vecs[i]);
         }
+        */
     }
 
     long long get_total_msg()

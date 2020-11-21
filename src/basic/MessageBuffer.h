@@ -106,12 +106,18 @@ public:
         // gather all messages
         for (int i = 0; i < np; i++) {
             Vec& msgBuf = out_messages.getBuf(i);
-            for (size_t i = 0; i < msgBuf.size(); i++) {
+            for (size_t i = 0; i < msgBuf.size(); i++) 
+            {
+                /*
                 MapIter it = in_messages.find(msgBuf[i].key);
                 if (it != in_messages.end()) //filter out msgs to non-existent vertices
                     v_msg_bufs[it->second].push_back(msgBuf[i].msg); //CHANGED FOR VADD
+                */
+                for (int key : msgBuf[i].keys)
+                    v_msg_bufs[key].push_back(msgBuf[i].msg);
             }
         }
+
         //clear out-msg-buf
         out_messages.clear();
 
