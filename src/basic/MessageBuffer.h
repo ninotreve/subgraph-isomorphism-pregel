@@ -114,7 +114,10 @@ public:
                     v_msg_bufs[it->second].push_back(msgBuf[i].msg); //CHANGED FOR VADD
                 */
                 for (int key : msgBuf[i].keys)
+                {
+                    cout << "[--] Vertex " << key << " receives a message." << endl;
                     v_msg_bufs[key].push_back(msgBuf[i].msg);
+                }
             }
         }
 

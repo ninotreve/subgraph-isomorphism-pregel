@@ -397,17 +397,17 @@ public:
 		*/
 	}
 
-	// get functions regarding buckets
-	vector<int> &getBucket(int level, int label)
+	// get functions regarding buckets &&&
+	vector<int> getBucket(int level, int label)
 	{
 		vector<int> &k = this->bucket_size_key[level];
-		vector<vector<int>> &v = this->bucket_size_value[level];
 		size_t sz = k.size();
 		for (size_t j = 0; j < sz; ++j)
 		{
 			if (k[j] == label) 
-				return v[j];
+				return this->bucket_size_value[level][j];
 		}
+		return vector<int>();
 	}
 
 	int getBucketNumber(int id)

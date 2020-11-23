@@ -508,6 +508,8 @@ public:
         AggregatorT* agg = (AggregatorT*)get_aggregator();
         agg->init(type);
 
+        vector<MessageT> delete_messages;
+        
         while (true) {
             global_step_num++;
             if (_my_rank == MASTER_RANK && !params.report)
@@ -534,7 +536,6 @@ public:
             clearBits();
 
             StartTimer(ACTIVE_COMPUTE_TIMER);
-            vector<MessageT> delete_messages;
             active_compute(type, params, wakeAll, delete_messages);
             StopTimer(ACTIVE_COMPUTE_TIMER);
             

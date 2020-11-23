@@ -33,22 +33,11 @@ struct SIValue
 	int label;
 	int degree;
 	vector<KeyLabel> nbs_vector;
-	hash_set<SIKey> nbs_set; // only used when vector size > 20
+	hash_set<int> nbs_set;
 
-	bool hasNeighbor(SIKey &k)
+	inline bool hasNeighbor(int &vID)
 	{
-		if (degree > 20)
-		{
-			return nbs_set.find(k) != nbs_set.end();
-		}
-		else
-		{
-			for (int i = 0; i < degree; ++i)
-			{
-				if (nbs_vector[i].key == k) return true;
-			}
-			return false;
-		}
+		return nbs_set.find(vID) != nbs_set.end();
 	}
 };
 

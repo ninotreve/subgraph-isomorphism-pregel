@@ -1,5 +1,5 @@
-Data graph path: /labelyou
-Query graph path: /query
+Data graph path: /data/labeled.txt
+Query graph path: /query/query.txt
 Output graph path: /output
 Partition Method: 
 Preprocess Method: 0
@@ -7,13 +7,13 @@ Filter Method: 0
 Order Method: random
 Enumerate Method: 1
 =================Start loading data graph ...=====================
-Load Graph Time : 4.506156 seconds
+Load Graph Time : 0.150772 seconds
 =================Start loading query...===================
-Worker 0: "hdfs://2f957c17abfd:9000/query/query.txt" loaded
-Communication Time : 0.000027 seconds
-- Serialization Time : 0.000014 seconds
-- Transfer Time : 0.000011 seconds
-Load Query Time : 0.048816 seconds
+Worker 0: "hdfs://36279a66fe8e:9000/query/query.txt" loaded
+Communication Time : 0.000006 seconds
+- Serialization Time : 0.000004 seconds
+- Transfer Time : 0.000002 seconds
+Load Query Time : 0.057317 seconds
 =================Start building query tree...===================
 this->nodes size: 5
 Node 0
@@ -51,72 +51,81 @@ Neighbors: [3]
 Backward neighbors: []
 Backward same labels: []
 It has 0 children.
-Build Query Tree Time : 0.000110 seconds
+Build Query Tree Time : 0.000085 seconds
 ================Start matching...======================
 Superstep 1:
-*0.107513: [0.0659189, 0.00667739, 0.00645018]
-Superstep 1 done.Time elapsed: 0.112233 seconds
-#msgs: 8620
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 1 Manual active: 1
+[---] vector_u: [0]
+[---] STEP NUMBER 1 ACTIVE Vertex ID 1
+[---] neighbors_map: [5]
+[---] Message: 
+nrow: 1
+mappings: [1,]
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 2 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 3 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 4 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 5 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 6 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 7 Manual active: 1
+[---] vector_u: [0]
+[---] STEP NUMBER 1 ACTIVE Vertex ID 7
+[---] neighbors_map: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 8 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 9 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 10 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 11 Manual active: 1
+[---] vector_u: [0]
+[---] STEP NUMBER 1 ACTIVE Vertex ID 11
+[---] neighbors_map: [12, 14]
+[---] Message: 
+nrow: 1
+mappings: [11,]
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 12 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 13 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 14 Manual active: 1
+[---] vector_u: []
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 15 Manual active: 1
+[---] vector_u: []
+*9.10759e-05: [8.79765e-05, 0, 0]
+[--] Vertex 5 receives a message.
+[--] Vertex 12 receives a message.
+[--] Vertex 14 receives a message.
+Superstep 1 done.Time elapsed: 0.000138998 seconds
+#msgs: 2
 Superstep 2:
-*0.0285492: [0.0203543, 0.000406981, 3.05176e-05]
-Superstep 2 done.Time elapsed: 0.047127 seconds
-#msgs: 5023
-Superstep 3:
-*0.027391: [0.0186844, 0.00117302, 1.04904e-05]
-Superstep 3 done.Time elapsed: 0.039572 seconds
-#msgs: 2798
-Superstep 4:
-*0.052918: [0.0447855, 0.000557899, 1.78814e-05]
-Superstep 4 done.Time elapsed: 0.103523 seconds
-#msgs: 3187
-Superstep 5:
-*0.042073: [0.0324852, 0.00226712, 8.10623e-06]
-Superstep 5 done.Time elapsed: 0.04216 seconds
-#msgs: 0
-Superstep 6:
-Subgraph matching done. 
-Total Computational Time : 0.361166 seconds
- - Active Compute Time : 0.258590 seconds
- - Sync Message Time : 0.085256 seconds
- - Communication Time : 0.055012 seconds
-    - Serialization Time : 0.035129 seconds
-    - Transfer Time : 0.019695 seconds
-Total #msgs=19628, Total #vadd=0
-From start to end: total time: 0.458933 s
-1. To be selected in the first step: 0.00300813 s
-1. To be selected (check feasibility): 0.0327914 s
- - Check label uniqueness: 0.0120101 s
- - Check backward neighbors: 0.0207813 s
-2. Append current vertex id: 0.0904596 s
-3. Add dummy vertex: 0.0141406 s
-4. Continue mapping and clear bucket: 0.223496 s
- - Continue mapping: 0.217089 s
-5. Sync Time: 0.000103712 s
-================Start enumerating...===================
-Superstep 1:
-*0.0662801: [0.0287147, 0.00596666, 0.00603032]
-Superstep 1 done.Time elapsed: 0.0663431 seconds
-#msgs: 0
-Superstep 2:
-Subgraph enumeration done. 
-Total Computational Time : 0.083655 seconds
- - Active Compute Time : 0.066304 seconds
- - Sync Message Time : 0.000009 seconds
- - Communication Time : 0.000025 seconds
-    - Serialization Time : 0.000008 seconds
-    - Transfer Time : 0.000010 seconds
-Total #msgs=0, Total #vadd=0
-From start to end: total time: 0.000296354 s
- - continue enumerating: 0 s
- - expand time: 0 s
-Sync Time: 5.72205e-06 s
-=================Start dumping graph...===================
-output path: /output
-Dump Time : 0.204977 seconds
-================ Final Report ===============
-Mapping count: 238901
-Load time: 4.55497 s.
-Dump time: 0.204977 s.
-Compute time: 0.445018 s.
-Offline time: 5.39224 s.
-Online time: 0.765599 s.
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 6 Manual active: 0
+[---] Message 0
+curr_u: 1
+nrow: 1
+[1702195503,]
+[---] vector_u: []
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  SIGSEGV (0xb) at pc=0x000000000041df60, pid=83253, tid=0x00007ff33b8d6740
+#
+# JRE version: OpenJDK Runtime Environment (8.0_275-b01) (build 1.8.0_275-8u275-b01-0ubuntu1~16.04-b01)
+# Java VM: OpenJDK 64-Bit Server VM (25.275-b01 mixed mode linux-amd64 compressed oops)
+# Problematic frame:
+# C  [run+0x1df60]
+#
+# Core dump written. Default location: /root/subgraph-isomorphism-pregel/src/core or core.83253
+#
+# An error report file with more information is saved as:
+# /root/subgraph-isomorphism-pregel/src/hs_err_pid83253.log
+#
+# If you would like to submit a bug report, please visit:
+#   http://bugreport.java.com/bugreport/crash.jsp
+# The crash happened outside the Java Virtual Machine in native code.
+# See problematic frame for where to report the bug.
+#

@@ -40,7 +40,7 @@ public:
 	SICandidate *candidate;
 	double timers[3][3];
 	int results_count = 0;
-	bool manual_active = false;
+	bool manual_active = true;
 
 	vector<int*>* final_results;
 
@@ -77,14 +77,14 @@ public:
 		*/
 	}
 
-	bool check_feasibility(SIKey *mapping, int query_u)
+	bool check_feasibility(int *mapping, int query_u)
 	{ // check vertex uniqueness and backward neighbors 
 		double t = get_current_time();
 		SIQuery* query = (SIQuery*)getQuery();
 		// check vertex uniqueness
 		for (int b_level : query->getBSameLabPos(query_u))
 		{
-			if (this->id == mapping[b_level])
+			if (this->id.vID == mapping[b_level])
 			{
 				this->timers[2][0] += get_current_time() - t;
 				return false;
@@ -115,6 +115,15 @@ public:
 			 << " ACTIVE Vertex ID " << id.vID
 			 << " Manual active: " << manual_active << endl;
 #endif
+		for (int i = 0; i < messages.size(); i++)
+		{
+			cout << "[---] Message " << i << "\n"
+					<< "curr_u: " << messages[i].curr_u << "\n"
+					<< "nrow: " << messages[i].nrow << "\n[";
+			for (int j = 0; j < messages[i].nrow * NCOL; j++)
+				cout << messages[i].mappings[j] << ",";
+			cout << "]" << endl;
+		}
 
 		// initiate timing
 		for (int i = 0; i < 3; i++)
@@ -132,33 +141,26 @@ public:
 
 		// arrange messages
 		START_TIMING(t);
-		vector<vector<int>> messages_classifier;
-		vector<int> &vector_u = query->getBucket(NCOL, value().label);
+		vector<int> vector_u = query->getBucket(NCOL, value().label);
 		cout << "[---] vector_u: " << vector_u << endl;
-		int n_u = 1;
+		int n_u = vector_u.size();
+		vector<vector<int>> messages_classifier = vector<vector<int>>(n_u);
 		if (step_num() == 1 && this->manual_active)
 		{
 			this->manual_active = false;
 			if ((!params.filter) && 
 				(value().label != query->getLabel(query->root)))
+			{
+				vote_to_halt();
 				return;
+			}
 		}
 		else
 		{
-			//Decide the number of u to be mapped to
-			n_u = vector_u.size();
-			messages_classifier.resize(n_u);
 			for (int i = 0; i < messages.size(); i++)
 			{
 				int bucket_num = query->getBucketNumber(messages[i].curr_u);
 				messages_classifier[bucket_num].push_back(i);
-
-				cout << "[---] Message " << i << "\n"
-					 << "curr_u: " << messages[i].curr_u << "\n"
-					 << "nrow: " << messages[i].nrow << "\n[";
-				for (int j = 0; j < messages[i].nrow * NCOL; j++)
-					cout << messages[i].mappings[j] << ",";
-				cout << "]" << endl;
 			}
 		}
 		STOP_TIMING(t, 0, 0);
@@ -180,14 +182,14 @@ public:
 				SIMessage &msg = messages[msgi];
 				for (int i = 0; i < NROW; i++)
 				{
-					if (check_feasibility(msg.mappings[i*NCOL], curr_u))
+					if (check_feasibility(msg.mappings + i*NCOL, curr_u))
 					{
 						cout << "[---] check passed: [" << endl;
 						for (int k = 0; k < NCOL; k++)
 							cout << msg.mappings[i*NCOL+k] << ",";
 						cout << endl;
 
-						passed_mappings->push_back(msg.mappings[i*NCOL]);
+						passed_mappings->push_back(msg.mappings + i*NCOL);
 						/* add_flag, need to be modified.
 						if (params.enumerate && query->isBranch(vector_u[0]))
 						{
@@ -231,13 +233,16 @@ public:
 					STOP_TIMING(t1, 0, 2);
 
 					for (int i = 0; i < get_num_workers(); i++)
-						cout << "[---] neighbors_map" << neighbors_map[i] << endl;
+						cout << "[---] neighbors_map: " << neighbors_map[i] << endl;
 
 					//Update out_message_buffer
 					START_TIMING(t1);
 					for (int wID = 0; wID < get_num_workers(); wID++)
 					{
-						if (wID = get_worker_id())
+						if (neighbors_map[wID].empty())
+							continue;
+
+						if (wID == get_worker_id())
 						{
 							int nrow = (NCOL != 0) ? passed_mappings->size() : 1;
 							int *mappings = new int[nrow * (NCOL+1)];
@@ -249,8 +254,14 @@ public:
 							}
 							send_messages(wID, neighbors_map[wID],
 								SIMessage(MAPPING, next_u, nrow, mappings));
+							cout << "[---] Message: \n"
+							     << "nrow: " << nrow << "\n"
+								 << "mappings: [";
+							for (int i = 0; i < nrow * (NCOL+1); i++)
+								cout << mappings[i] << ",";
+							cout << "]" << endl;
 						}
-						else if (!neighbors_map[wID].empty())
+						else
 							send_messages(wID, neighbors_map[wID],
 								SIMessage(MAPPING, id.vID, next_u, 
 									passed_mappings));
@@ -689,7 +700,7 @@ public:
     	}
     	else if (type == ENUMERATE)
     	{
-    		agg_mat[0][0] += v->results_count;
+    		agg_mat[0][0] += v->final_results->size();
 			for (int i = 0; i < 3; i++)
 				for (int j = 0; j < 3; j++)
 					if (i != 0 || j != 0)
@@ -755,8 +766,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 					id = atoi(pch);
 					key = SIKey(id, id % _num_workers);
 					v->value().nbs_vector.push_back(KeyLabel(key, 0));
-					if (num > 20)
-						v->value().nbs_set.insert(key);
+					v->value().nbs_set.insert(id);
 				}
 			}
 			else
@@ -776,37 +786,35 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 					key = SIKey(id, id % _num_workers);
 					pch = strtok(NULL, " ");
 					v->value().nbs_vector.push_back(KeyLabel(key, (int) *pch));
+					v->value().nbs_set.insert(id);
 				}
 				size_t sz = v->value().nbs_vector.size();
 				v->value().degree = sz;
-				if (sz > 20)
-				{
-					for (size_t i = 0; i < sz; ++i)
-						v->value().nbs_set.insert(v->value().nbs_vector[i].key);
-				}
 			}
 			return v;
 		}
 
 		virtual void toline(SIVertex* v, BufferedWriter & writer)
 		{
-			hash_map<int, vector<Mapping> >::iterator it;
 			SIQuery* query = (SIQuery*)getQuery();
-			for (size_t i = 0; i < v->bucket.size(); i++)
+			int ncol = query->num;
+			for (size_t i = 0; i < v->final_results->size(); i++)
 			{
-				Mapping & mapping = v->bucket[i];
+				int* mapping = (*v->final_results)[i];
 				sprintf(buf, "# Match\n");
 				writer.write(buf);
 
 #ifdef DEBUG_MODE_RESULT
 				cout << "[DEBUG] Worker ID: " << get_worker_id() << endl;
 				cout << "[DEBUG] Vertex ID: " << v->id.vID << endl;
-				cout << "[DEBUG] Result: " << mapping << endl;
+				cout << "[DEBUG] Result: [";
+				for (size_t j = 0; j < ncol; j++)
+					cout << mapping[j] << endl;
 #endif
-				for (size_t j = 0; j < mapping.size(); j++)
+				for (size_t j = 0; j < ncol; j++)
 				{
 					sprintf(buf, "%d %d\n", 
-						query->getID(query->dfs_order[j]), mapping[j].vID);
+						query->getID(query->dfs_order[j]), mapping[j]);
 					writer.write(buf);
 				}
 			}
