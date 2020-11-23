@@ -29,7 +29,7 @@ struct msgpair {
 };
 
 template <class MessageT>
-ibinstream& operator<<(ibinstream& m, const msgpair<vector<int>, MessageT>& v)
+ibinstream& operator<<(ibinstream& m, const msgpair<MessageT>& v)
 {
     m << v.keys;
     m << v.msg;
@@ -37,7 +37,7 @@ ibinstream& operator<<(ibinstream& m, const msgpair<vector<int>, MessageT>& v)
 }
 
 template <class MessageT>
-obinstream& operator>>(obinstream& m, msgpair<vector<int>, MessageT>& v)
+obinstream& operator>>(obinstream& m, msgpair<MessageT>& v)
 {
     m >> v.keys;
     m >> v.msg;
@@ -49,7 +49,7 @@ obinstream& operator>>(obinstream& m, msgpair<vector<int>, MessageT>& v)
 template <class KeyT, class MessageT, class HashT>
 class Vecs {
 public:
-    typedef vector<msgpair<vector<int>, MessageT> > Vec;
+    typedef vector<msgpair<MessageT> > Vec;
     typedef vector<Vec> VecGroup;
 
     int np;
@@ -74,7 +74,7 @@ public:
     // newly added function
     void append_by_wID(const int wID, const vector<int> keys, const MessageT msg)
     {
-        msgpair<vector<int>, MessageT> item(keys, msg);
+        msgpair<MessageT> item(keys, msg);
         vecs[wID].push_back(item);
     }
 

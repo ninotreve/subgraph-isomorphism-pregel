@@ -101,6 +101,7 @@ public:
     // newly added function
     void send_messages(const int& wID, const vector<int>& keys, const MessageT& msg)
     {
+        hasMsg();
         ((MessageBufT*)get_message_buffer())->out_messages.append_by_wID(wID, keys, msg);
     }
 
