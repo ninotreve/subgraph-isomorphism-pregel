@@ -89,9 +89,16 @@ struct SIMessage
 		this->v_int.push_back(i);
 	}
 	*/
+	SIMessage(int type, int curr_u, int nrow, int *mappings)
+	{ // for this worker
+		this->type = type;
+		this->curr_u = curr_u;
+		this->nrow = nrow;
+		this->mappings = mappings;
+	}
 
 	SIMessage(int type, int id, int next_u, vector<int*>* passed_mappings)
-	{ // for mapping
+	{ // for other workers
 		this->type = type;
 		this->id = id;
 		this->curr_u = next_u;
@@ -129,14 +136,11 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 
 		int nrow = v.passed_mappings->size();
 		int ncol = step_num()-1;
-		if (ncol == 0) ncol = 1; //for the first step
+		if (ncol == 0) nrow = 1; //for the first step
 		m << nrow;
 		for (int i = 0; i < nrow; i++)
-		{
-			int *p = (*v.passed_mappings)[i];
 			for (int j = 0; j < ncol; j++)
-				m << p[j];
-		}
+				m << (*v.passed_mappings)[i][j];
 		break;
 		/*
 	case MESSAGE_TYPES::BRANCH_RESULT:
@@ -172,18 +176,19 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 		*/
 	case MESSAGE_TYPES::MAPPING:
 		int vID;
-		m >> vId;
+		m >> vID;
 		m >> v.curr_u;
 
 		int ncol = step_num();
 		m >> v.nrow;
 		v.mappings = new int[v.nrow * ncol];
 		for (int i = 0; i < v.nrow * ncol; i++)
+		{
 			for (int j = 0; j < ncol - 1; i++)
 				m >> v.mappings[i];
 			v.mappings[i] = vID;
-
-		break;	
+		}
+		break;
 		/*
 	case MESSAGE_TYPES::BRANCH_RESULT:
 		m >> v.mapping >> v.value;

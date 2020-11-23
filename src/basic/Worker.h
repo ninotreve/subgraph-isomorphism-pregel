@@ -202,7 +202,7 @@ public:
                 t = get_current_time();
                 for (int j = 0; j < v_msgbufs[i].size(); j++)
                     delete_messages.push_back(v_msgbufs[i][j]);
-                v_msgbufs[i].clear(); 
+                v_msgbufs[i].clear();
                 timers[1] += get_current_time() - t;
 
                 t = get_current_time();
@@ -523,6 +523,8 @@ public:
                 active_vnum() = all_sum(active_count);
                 if (active_vnum() == 0 && getBit(HAS_MSG_ORBIT, bits_bor) == 0)
                     break; //all_halt AND no_msg
+                else
+                    clear_messages(delete_messages); //free memory
             } else
                 active_vnum() = get_vnum();
             //===================
@@ -545,8 +547,13 @@ public:
             }
            
             StartTimer(SYNC_MESSAGE_TIMER);
+            vector<vector<msgpair<MessageT>>> &out_messages = 
+                message_buffer->out_messages.getBufs();
+            for (int i = 0; i < out_messages.size(); i++)
+                for (int j = 0; j < out_messages[i].size(); j++)
+                    delete_messages.push_back(out_messages[i][j].msg);
+
             vector<VertexT*>& to_add = message_buffer->sync_messages();
-            clear_messages(delete_messages);
             StopTimer(SYNC_MESSAGE_TIMER);
 
             agg_sync();

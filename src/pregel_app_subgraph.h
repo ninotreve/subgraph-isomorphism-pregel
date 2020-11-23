@@ -8,12 +8,12 @@ using namespace std;
 #define START_TIMING(T) (T) = get_current_time();
 #define STOP_TIMING(T, X, Y) this->timers[(X)][(Y)] += get_current_time() - (T);
 
-/*
+
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
 #define DEBUG_MODE_PARTIAL_RESULT 1
 #define DEBUG_MODE_RESULT 1
-*/
+
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -41,6 +41,8 @@ public:
 	double timers[3][3];
 	int results_count = 0;
 	bool manual_active = false;
+
+	vector<int*>* final_results;
 
 	void preprocess(MessageContainer & messages)
 	{  // use bloom filter to store neighbors' edges.
@@ -131,27 +133,39 @@ public:
 		// arrange messages
 		START_TIMING(t);
 		vector<vector<int>> messages_classifier;
+		vector<int> &vector_u = query->getBucket(NCOL, value().label);
+		cout << "[---] vector_u: " << vector_u << endl;
 		int n_u = 1;
 		if (step_num() == 1 && this->manual_active)
 		{
 			this->manual_active = false;
-			int curr_u = query->root;
-			if ((!params.filter) && (value().label != query->getLabel(curr_u)))
+			if ((!params.filter) && 
+				(value().label != query->getLabel(query->root)))
 				return;
 		}
 		else
 		{
 			//Decide the number of u to be mapped to
-			vector<int> vector_u = query->getBucket(NCOL, value().label);
 			n_u = vector_u.size();
 			messages_classifier.resize(n_u);
 			for (int i = 0; i < messages.size(); i++)
 			{
 				int bucket_num = query->getBucketNumber(messages[i].curr_u);
 				messages_classifier[bucket_num].push_back(i);
+
+				cout << "[---] Message " << i << "\n"
+					 << "curr_u: " << messages[i].curr_u << "\n"
+					 << "nrow: " << messages[i].nrow << "\n[";
+				for (int j = 0; j < messages[i].nrow * NCOL; j++)
+					cout << messages[i].mappings[j] << ",";
+				cout << "]" << endl;
 			}
 		}
 		STOP_TIMING(t, 0, 0);
+
+		if (step_num() == 1)
+			cout << "[---] STEP NUMBER " << step_num()
+				<< " ACTIVE Vertex ID " << id.vID << endl;
 
 		// main computation
 		START_TIMING(t);
@@ -166,9 +180,14 @@ public:
 				SIMessage &msg = messages[msgi];
 				for (int i = 0; i < NROW; i++)
 				{
-					if (check_feasibility(msg.keys[i*NCOL], curr_u))
+					if (check_feasibility(msg.mappings[i*NCOL], curr_u))
 					{
-						passed_mappings->push_back(msg.keys[i*NCOL]);
+						cout << "[---] check passed: [" << endl;
+						for (int k = 0; k < NCOL; k++)
+							cout << msg.mappings[i*NCOL+k] << ",";
+						cout << endl;
+
+						passed_mappings->push_back(msg.mappings[i*NCOL]);
 						/* add_flag, need to be modified.
 						if (params.enumerate && query->isBranch(vector_u[0]))
 						{
@@ -183,16 +202,16 @@ public:
 			STOP_TIMING(t1, 0, 1);
 
 			//Continue mapping
-			vector<int> next_us = query->getChildren(curr_u);
-			if (!passed_mappings.empty() || step_num() == 1)
+			vector<int> &next_us = query->getChildren(curr_u);
+			if (!passed_mappings->empty() || step_num() == 1)
 			{
 				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
 				for (int next_u : next_us)
-				{ 
+				{
 					//Construct neighbors_map: 
 				  	//Loop through neighbors and select out ones with right labels
 				    START_TIMING(t1);
-					if (filter_flag)
+					if (params.filter)
 					{ //With filtering
 						hash_set<SIKey> &keys = candidate->candidates[curr_u][next_u];
 						auto it = keys.begin(); auto iend = keys.end();
@@ -201,7 +220,7 @@ public:
 					}
 					else
 					{ //Without filtering
-						int next_label = query->getLabel(next_u);;
+						int next_label = query->getLabel(next_u);
 						for (int i = 0; i < value().degree; ++i)
 						{
 							KeyLabel &kl = value().nbs_vector[i];
@@ -211,13 +230,27 @@ public:
 					}
 					STOP_TIMING(t1, 0, 2);
 
+					for (int i = 0; i < get_num_workers(); i++)
+						cout << "[---] neighbors_map" << neighbors_map[i] << endl;
+
 					//Update out_message_buffer
 					START_TIMING(t1);
-					for (int wID = 0; wID < get_num_workers(); i++)
+					for (int wID = 0; wID < get_num_workers(); wID++)
 					{
-						if (wID = _my_rank)
-							// copy it!!!
-						if (!neighbors_map[wID].empty())
+						if (wID = get_worker_id())
+						{
+							int nrow = (NCOL != 0) ? passed_mappings->size() : 1;
+							int *mappings = new int[nrow * (NCOL+1)];
+							for (int i = 0; i < nrow; i++)
+							{
+								for (int j = 0; j < NCOL; j++)
+									mappings[i*NCOL+j] = (*passed_mappings)[i][j];
+								mappings[(i+1)*NCOL] = id.vID;
+							}
+							send_messages(wID, neighbors_map[wID],
+								SIMessage(MAPPING, next_u, nrow, mappings));
+						}
+						else if (!neighbors_map[wID].empty())
 							send_messages(wID, neighbors_map[wID],
 								SIMessage(MAPPING, id.vID, next_u, 
 									passed_mappings));
@@ -226,12 +259,14 @@ public:
 
 					//Clear neighbors_map
 					START_TIMING(t1);
-					neighbors_map.clear();
+					for (int i = 0; i < get_num_workers(); i++)
+						neighbors_map[i].clear();
 					STOP_TIMING(t1, 1, 1);
 				}
 				if (next_us.size() == 0)
 				{ //Leaf query vertex
 					this->manual_active = true;
+					this->final_results = passed_mappings;
 				}
 			}
 		}
@@ -781,8 +816,10 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 		{
 			for (SIMessage &msg : delete_messages)
 			{
+				delete msg.passed_mappings;
 				delete[] msg.mappings;
 			}
+			delete_messages.clear();
 		}
 };
 

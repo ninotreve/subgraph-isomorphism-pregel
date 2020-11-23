@@ -310,7 +310,7 @@ public:
 	// get functions before dfs.
 	int getID(int id) { return this->nodes[id].id; }
 	int getLabel(int id) { return this->nodes[id].label; }
-	vector<int> getNbs(int id) { return this->nodes[id].nbs; }
+	vector<int> &getNbs(int id) { return this->nodes[id].nbs; }
 	int getInverseIndex(int id, int next_u)
 	{
 		int j;
@@ -339,11 +339,11 @@ public:
 	int getBranchNumber(int id) { return this->nodes[id].branch_number;	}
 	int getDFSNumber(int id) { return this->nodes[id].dfs_number; }
 	int getParent(int id) { return this->nodes[id].parent; }
-	vector<int> getChildren(int id)
+	vector<int> &getChildren(int id)
 	{ return this->nodes[id].children; }
-	vector<int> getBNeighborsPos(int id)
+	vector<int> &getBNeighborsPos(int id)
 	{ return this->nodes[id].b_nbs_pos; }
-	vector<int> getBSameLabPos(int id)
+	vector<int> &getBSameLabPos(int id)
 	{ return this->nodes[id].b_same_lab_pos; }
 	int getNearestBranchingAncestor(int id)
 	{ return this->nbancestors[id]; }
@@ -398,7 +398,7 @@ public:
 	}
 
 	// get functions regarding buckets
-	vector<int> getBucket(int level, int label)
+	vector<int> &getBucket(int level, int label)
 	{
 		vector<int> &k = this->bucket_size_key[level];
 		vector<vector<int>> &v = this->bucket_size_value[level];
