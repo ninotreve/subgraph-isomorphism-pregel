@@ -140,13 +140,8 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 		if (ncol == 0) nrow = 1; //for the first step
 		m << nrow;
 		for (int i = 0; i < nrow; i++)
-		{
 			for (int j = 0; j < ncol; j++)
-			{
 				m << ((*v.passed_mappings)[i])[j];
-				cout << "[" << ((*v.passed_mappings)[i])[j] << "]^";
-			}
-		}
 		cout << endl;
 		break;
 		/*
@@ -195,10 +190,7 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 			if ((i+1)%ncol == 0)
 				v.mappings[i] = vID;
 			else
-			{
 				m >> v.mappings[i];
-				cout << "[" << v.mappings[i] << "]^";
-			}
 		}
 		cout << endl;
 		break;

@@ -846,11 +846,10 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 			{
 				if (msg.type == OUT_MAPPING)
 				{
-					cout << "[W" << get_worker_id() << "] deleting passed_mappings:";
-					for (int i = 0; i < msg.passed_mappings->size(); i++)
-						cout << "[" << *((*msg.passed_mappings)[i]) << "]";
-					cout << endl;
-					delete msg.passed_mappings;
+					cout << "[W" << get_worker_id() << "] deleting passed_mappings ";
+					cout << msg.id << " before: " << msg.passed_mappings->size();
+					vector<int*>().swap(*msg.passed_mappings);
+					cout << "after: " << msg.passed_mappings->size() << endl;
 				}
 				else
 				{
