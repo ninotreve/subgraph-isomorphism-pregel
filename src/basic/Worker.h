@@ -534,9 +534,6 @@ public:
 
             StartTimer(ACTIVE_COMPUTE_TIMER);
             active_compute(type, params, wakeAll);
-            //free memory(received messages of the last step) unless for the final step
-            clear_messages(delete_messages);
-            cout << "[W" << get_worker_id() << "]Deleting done." << endl;
             StopTimer(ACTIVE_COMPUTE_TIMER);
             
             message_buffer->combine();
@@ -551,16 +548,25 @@ public:
             vector<vector<msgpair<MessageT>>> &out_messages = 
                 message_buffer->out_messages.getBufs();
 
-            //Messages sent to other machines: their memory will be freed
+            //Messages sent to other machines: memory can be freed once they are sent
             for (int wID = 0; wID < out_messages.size(); wID++)
                 if (wID != get_worker_id())
                     for (int j = 0; j < out_messages[wID].size(); j++)
                         delete_messages.push_back(out_messages[wID][j].msg);
-            cout << "[W" << get_worker_id() << "]OK3." << endl;
-            //Messages to be received: their memory will be freed (after usage)
-            vector<VertexT*>& to_add = message_buffer->sync_messages(delete_messages);
+            
+            //Sync Messages. After this, received msgs will no longer be used
+            vector<VertexT*>& to_add = message_buffer->sync_messages();
+
+            //Free memory (received msgs in the last step + sent msgs in this step) 
+            //unless for the final step
+            clear_messages(delete_messages);
+            cout << "[W" << get_worker_id() << "]Deleting done." << endl;
+
+            //Distribute received msgs to each vertex
+            message_buffer->distribute_messages(delete_messages);
+
             StopTimer(SYNC_MESSAGE_TIMER);
-            cout << "[W" << get_worker_id() << "]OK4." << endl;
+
             agg_sync();
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);

@@ -63,10 +63,9 @@ public:
             out_messages.combine();
     }
 
-    vector<VertexT*>& sync_messages(vector<MessageT> &delete_messages)
+    vector<VertexT*>& sync_messages()
     {
         int np = get_num_workers();
-
         //------------------------------------------------
         // get messages from remote
         vector<vector<VertexT*> > add_buf(_num_workers);
@@ -101,10 +100,15 @@ public:
             int pos = oldsize + i;
             in_messages[to_add[i]->id.vID] = pos; //CHANGED FOR VADD
         }
+        
+        return to_add;
+    }
 
+    void distribute_messages(vector<MessageT> &delete_messages)
+    {
         //================================================
         // gather all messages, distribute them to vertices
-        for (int i = 0; i < np; i++) {
+        for (int i = 0; i < get_num_workers(); i++) {
             Vec& msgBuf = out_messages.getBuf(i);
             for (size_t i = 0; i < msgBuf.size(); i++) 
             {
@@ -123,16 +127,15 @@ public:
                          << it->second << ") receives a message." << endl;
                 }
 
-                //Memory will be freed in the next iteration
+                //Their memory will be freed in the next iteration
                 delete_messages.push_back(msgBuf[i].msg);
             }
         }
 
         //clear out-msg-buf
         out_messages.clear();
-
-        return to_add;
     }
+
 
     void add_vertex(VertexT* v)
     {
