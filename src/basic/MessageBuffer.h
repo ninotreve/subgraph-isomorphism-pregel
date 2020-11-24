@@ -66,6 +66,10 @@ public:
     vector<VertexT*>& sync_messages()
     {
         int np = get_num_workers();
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5e15aa7ab32949e94af0bfdda3e36d9ac38a10aa
         //------------------------------------------------
         // get messages from remote
         vector<vector<VertexT*> > add_buf(_num_workers);
