@@ -123,8 +123,6 @@ public:
                     MapIter it = in_messages.find(key);
                     if (it != in_messages.end())
                         v_msg_bufs[it->second].push_back(msgBuf[i].msg);
-                    cout << "[--] Vertex " << key << "(" 
-                         << it->second << ") receives a message." << endl;
                 }
 
                 //Their memory will be freed in the next iteration

@@ -142,7 +142,6 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 		for (int i = 0; i < nrow; i++)
 			for (int j = 0; j < ncol; j++)
 				m << ((*v.passed_mappings)[i])[j];
-		cout << endl;
 		break;
 		/*
 	case MESSAGE_TYPES::BRANCH_RESULT:
@@ -192,7 +191,6 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 			else
 				m >> v.mappings[i];
 		}
-		cout << endl;
 		break;
 		/*
 	case MESSAGE_TYPES::BRANCH_RESULT:

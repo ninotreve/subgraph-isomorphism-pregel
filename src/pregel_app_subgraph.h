@@ -8,12 +8,12 @@ using namespace std;
 #define START_TIMING(T) (T) = get_current_time();
 #define STOP_TIMING(T, X, Y) this->timers[(X)][(Y)] += get_current_time() - (T);
 
-
+/*
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
 #define DEBUG_MODE_PARTIAL_RESULT 1
 #define DEBUG_MODE_RESULT 1
-
+*/
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -116,15 +116,6 @@ public:
 			 << " Worker ID " << id.wID
 			 << " Manual active: " << manual_active << endl;
 #endif
-		for (int i = 0; i < messages.size(); i++)
-		{
-			cout << "[W" << id.wID << "] Received Message " << i 
-					<< " curr_u: " << messages[i].curr_u
-					<< " nrow: " << messages[i].nrow << " [";
-			for (int j = 0; j < messages[i].nrow * NCOL; j++)
-				cout << messages[i].mappings[j] << ",";
-			cout << "]" << endl;
-		}
 
 		// initiate timing
 		for (int i = 0; i < 3; i++)
@@ -164,10 +155,6 @@ public:
 			}
 		}
 		STOP_TIMING(t, 0, 0);
-
-		if (step_num() == 1)
-			cout << "[W" << id.wID << "] STEP NUMBER " << step_num()
-				<< " ACTIVE Vertex ID " << id.vID << endl;
 
 		// main computation
 		START_TIMING(t);
@@ -246,29 +233,12 @@ public:
 							}
 							send_messages(wID, neighbors_map[wID],
 								SIMessage(IN_MAPPING, next_u, nrow, mappings));
-							cout << "[W" << id.wID << "] Send Message: \n"
-							     << "nrow: " << nrow << "\n"
-								 << "mappings: [";
-							for (int i = 0; i < nrow * (NCOL+1); i++)
-								cout << mappings[i] << ",";
-							cout << "]" << endl;
 						}
 						else
 						{
 							send_messages(wID, neighbors_map[wID],
 								SIMessage(OUT_MAPPING, id.vID, next_u, 
 									passed_mappings));
-							cout << "[W" << id.wID << "] Message: \n"
-							     << "id.vID: " << id.vID << "\n"
-								 << "passed_mappings: ";
-							for (int i = 0; i < passed_mappings->size(); i++)
-							{
-								cout << "[";
-								for (int j = 0; j < NCOL; j++)
-									cout << ((*passed_mappings)[i])[j] << ",";
-								cout << "]";
-							}
-							cout << endl;
 						}
 					}
 					STOP_TIMING(t1, 1, 0);
@@ -845,20 +815,9 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 			for (SIMessage &msg : delete_messages)
 			{
 				if (msg.type == OUT_MAPPING)
-				{
-					cout << "[W" << get_worker_id() << "] deleting passed_mappings ";
-					cout << msg.id << " before: " << msg.passed_mappings->size();
 					vector<int*>().swap(*msg.passed_mappings);
-					cout << "after: " << msg.passed_mappings->size() << endl;
-				}
 				else
-				{
-					cout << "[W" << get_worker_id() << "] deleting mappings:";
-					for (int i = 0; i < NROW * (NCOL); i++)
-						cout << "[" << msg.mappings[i] << "]";
-					cout << endl;
 					delete[] msg.mappings;
-				}
 			}
 			delete_messages.clear();
 		}

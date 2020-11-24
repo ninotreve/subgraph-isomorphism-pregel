@@ -170,8 +170,6 @@ public:
         for (size_t i = 0; i < vertexes.size(); i++) {
         	if (wakeAll == 1) vertexes[i]->activate();
 
-            cout << "[--] vertex " << i << " is_active: " << vertexes[i]->is_active()
-                 << " message box size " << v_msgbufs[i].size() << endl;
             if  (
             	(vertexes[i]->is_active() && v_msgbufs[i].size() == 0)
             	||
@@ -560,7 +558,6 @@ public:
             //Free memory (received msgs in the last step + sent msgs in this step) 
             //unless for the final step
             clear_messages(delete_messages);
-            cout << "[W" << get_worker_id() << "]Deleting done." << endl;
 
             //Distribute received msgs to each vertex
             message_buffer->distribute_messages(delete_messages);
