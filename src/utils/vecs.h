@@ -72,7 +72,7 @@ public:
     }
 
     // newly added function
-    void append_by_wID(const int wID, const vector<int> keys, const MessageT msg)
+    void append_by_wID(const int wID, const vector<int> &keys, const MessageT msg)
     {
         msgpair<MessageT> item(keys, msg);
         vecs[wID].push_back(item);

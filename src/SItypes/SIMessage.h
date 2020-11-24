@@ -2,10 +2,12 @@
 #define SIMESSAGE_H
 
 //--------SIMessage = <type, key, value, mapping, branch>--------
-//  e.g. <type = LABEL_INFOMATION, key = vertex, value = label>
+//  e.g. <type = LABEL_INFOMATION, int1 = vertex, int2 = label>
+//	     <type = IN_MAPPING, int1 = curr_u, int2 = nrow>
+//	     <type = OUT_MAPPING, int1 = vID, int2 = curr_u>
+
 // 		 <type = DEGREE, key = vertex, value = degree>
 //		 <type = NEIGHBOR_PAIR, p_int = edge>
-//	     <type = MAPPING, mapping, value = next_u>
 //		 <type = BRANCH_RESULT, mapping, value = curr_u>
 // 		 <type = BRANCH, branch, value = curr_u>
 //		 <type = MAPPING_COUNT, value = count>
@@ -13,11 +15,7 @@
 
 struct SIMessage
 {
-	int type;
-
-	int id;
-	int curr_u;
-	int nrow;
+	int type, int1, int2;
 	int *mappings;
 	vector<int*>* passed_mappings;
 	/*
@@ -35,14 +33,30 @@ struct SIMessage
 	SIMessage()
 	{
 	}
-/*
-	SIMessage(int type, SIKey vertex, int value)
-	{ // for degree or label information
+
+	SIMessage(int type, int int1, int int2)
+	{ //LABEL_INFOMATION
 		this->type = type;
-		this->key = vertex;
-		this->value = value;
+		this->int1 = int1;
+		this->int2 = int2;
+	}
+	
+	SIMessage(int type, int int1, int int2, int *mappings)
+	{ //IN_MAPPING
+		this->type = type;
+		this->int1 = int1;
+		this->int2 = int2;
+		this->mappings = mappings;
 	}
 
+	SIMessage(int type, int int1, int int2, vector<int*>* passed_mappings)
+	{ //OUT_MAPPING
+		this->type = type;
+		this->int1 = int1;
+		this->int2 = int2;
+		this->passed_mappings = passed_mappings;
+	}
+/*
 	SIMessage(int type, pair<int, int> p_int)
 	{
 		this->type = type;
@@ -89,61 +103,44 @@ struct SIMessage
 		this->v_int.push_back(i);
 	}
 	*/
-	SIMessage(int type, int curr_u, int nrow, int *mappings)
-	{ // for this worker
-		this->type = type;
-		this->curr_u = curr_u;
-		this->nrow = nrow;
-		this->mappings = mappings;
-	}
-
-	SIMessage(int type, int id, int next_u, vector<int*>* passed_mappings)
-	{ // for other workers
-		this->type = type;
-		this->id = id;
-		this->curr_u = next_u;
-		this->passed_mappings = passed_mappings;
-	}
 };
 
 enum MESSAGE_TYPES {
 	LABEL_INFOMATION = 0,
 	IN_MAPPING = 1, // 1121
 	OUT_MAPPING = 2, // 1121
-	//BRANCH_RESULT = 2,
-	BRANCH = 3,
-	MAPPING_COUNT = 4,
+	BRANCH_RESULT = 3,
+	BRANCH = 4,
 	CANDIDATE = 5,
 	DEGREE = 6,
 	NEIGHBOR_PAIR = 7
 };
 
-ibinstream & operator<<(ibinstream & m, const SIMessage & v)
+ibinstream & operator<<(ibinstream &m, const SIMessage &msg)
 {
-	m << v.type;
-	switch (v.type)
+	m << msg.type;
+	switch (msg.type)
 	{
-		/*
 	case MESSAGE_TYPES::LABEL_INFOMATION:
-	case MESSAGE_TYPES::DEGREE:
-		m << v.key << v.value;
-		break;
-	case MESSAGE_TYPES::NEIGHBOR_PAIR:
-		m << v.p_int.first << v.p_int.second;
-		break;*/
+		m << msg.int1 << msg.int2;
 	case MESSAGE_TYPES::OUT_MAPPING:
-		m << v.id;
-		m << v.curr_u;
+		m << msg.int1 << msg.int2; //vID & curr_u
 
-		int nrow = v.passed_mappings->size();
+		int nrow = msg.passed_mappings->size();
 		int ncol = step_num()-1;
 		if (ncol == 0) nrow = 1; //for the first step
 		m << nrow;
 		for (int i = 0; i < nrow; i++)
 			for (int j = 0; j < ncol; j++)
-				m << ((*v.passed_mappings)[i])[j];
+				m << ((*msg.passed_mappings)[i])[j];
 		break;
 		/*
+	case MESSAGE_TYPES::DEGREE:
+		m << v.key << v.value;
+		break;
+	case MESSAGE_TYPES::NEIGHBOR_PAIR:
+		m << v.p_int.first << v.p_int.second;
+		break;
 	case MESSAGE_TYPES::BRANCH_RESULT:
 		m << v.mapping << v.value;
 		break;
@@ -161,38 +158,35 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 	return m;
 }
 
-obinstream & operator>>(obinstream & m, SIMessage & v)
+obinstream & operator>>(obinstream &m, SIMessage &msg)
 {
-	m >> v.type;
-	switch (v.type)
+	m >> msg.type;
+	switch (msg.type)
 	{
-		/*
 	case MESSAGE_TYPES::LABEL_INFOMATION:
+		m >> msg.int1 >> msg.int2;
+	case MESSAGE_TYPES::OUT_MAPPING:
+		msg.type = MESSAGE_TYPES::IN_MAPPING;
+		int vID, ncol = step_num();
+		m >> vID;
+		m >> msg.int1; //curr_u
+		m >> msg.int2; //nrow
+		msg.mappings = new int[msg.int2 * ncol];
+		for (int i = 0; i < msg.int2 * ncol; i++)
+		{
+			if ((i+1)%ncol == 0)
+				msg.mappings[i] = vID;
+			else
+				m >> msg.mappings[i];
+		}
+		break;
+		/*
 	case MESSAGE_TYPES::DEGREE:
 		m >> v.key >> v.value;
 		break;
 	case MESSAGE_TYPES::NEIGHBOR_PAIR:
 		m >> v.p_int.first >> v.p_int.second;
 		break;
-		*/
-	case MESSAGE_TYPES::OUT_MAPPING:
-		v.type = MESSAGE_TYPES::IN_MAPPING;
-		int vID;
-		m >> vID;
-		m >> v.curr_u;
-
-		int ncol = step_num();
-		m >> v.nrow;
-		v.mappings = new int[v.nrow * ncol];
-		for (int i = 0; i < v.nrow * ncol; i++)
-		{
-			if ((i+1)%ncol == 0)
-				v.mappings[i] = vID;
-			else
-				m >> v.mappings[i];
-		}
-		break;
-		/*
 	case MESSAGE_TYPES::BRANCH_RESULT:
 		m >> v.mapping >> v.value;
 		break;

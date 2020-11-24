@@ -3,7 +3,7 @@
 #include "utils/Query.h"
 using namespace std;
 
-#define NROW (msg.nrow)
+#define NROW (msg.int2)
 #define NCOL (step_num()-1)
 #define START_TIMING(T) (T) = get_current_time();
 #define STOP_TIMING(T, X, Y) this->timers[(X)][(Y)] += get_current_time() - (T);
@@ -32,7 +32,7 @@ using namespace std;
 //===============================================================
 
 // the first int for anc_u, the second int for curr_u's branch_num.
-typedef hash_map<int, map<int, vector<Mapping> > > mResult;
+//typedef hash_map<int, map<int, vector<Mapping> > > mResult;
 
 class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
@@ -44,18 +44,29 @@ public:
 
 	vector<int*>* final_results;
 
-	void preprocess(MessageContainer & messages)
-	{  // use bloom filter to store neighbors' edges.
-	/*
-		size_t sz = value().nbs_vector.size();
-
+	void preprocess(MessageContainer & messages, WorkerParams &params)
+	{
 		if (step_num() == 1)
-		{ // send label and degree to neighbors
-			SIMessage msg1 = SIMessage(LABEL_INFOMATION, id, value().label);
-			for (size_t i = 0; i < sz; ++i)
+		{
+			if (params.input)
 			{
-				send_message(value().nbs_vector[i].key, msg1);
+				//Construct neighbors_map: 
+				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
+				for (int i = 0; i < value().degree; ++i)
+				{
+					KeyLabel &kl = value().nbs_vector[i];
+					neighbors_map[kl.key.wID].push_back(kl.key.vID);
+				}
+
+				//Send label and degree to neighbors
+				SIMessage msg = SIMessage(LABEL_INFOMATION, id.vID, value().label);
+				for (int wID = 0; wID < get_num_workers(); ++wID)
+					send_messages(wID, neighbors_map[wID], msg);
 			}
+
+			//convert vector to set
+			for (size_t i = 0; i < value().degree; ++i)
+				value().nbs_set.insert(value().nbs_vector[i].key.vID);
 		}
 		else
 		{   // receive label and degree from neighbors, set up bloom filter
@@ -65,16 +76,15 @@ public:
 				SIMessage & msg = messages[i];
 				if (msg.type == LABEL_INFOMATION)
 				{
-					for (size_t i = 0; i < sz; ++i)
+					for (size_t i = 0; i < value().degree; ++i)
 					{
-						if (value().nbs_vector[i].key == msg.key)
-							value().nbs_vector[i].label = msg.value;
+						if (value().nbs_vector[i].key.vID == msg.int1)
+							value().nbs_vector[i].label = msg.int2;
 					}
 				}
 			}
 			vote_to_halt();
 		}
-		*/
 	}
 
 	bool check_feasibility(int *mapping, int query_u)
@@ -122,7 +132,7 @@ public:
 			for (int j = 0; j < 3; j++)
 				this->timers[i][j] = 0.0;
 
-		if (!this->id.partial_mapping.empty()) //dummy vertex
+		if (this->id.vID < 0) //dummy vertex
 		{
 			for (int i = 0; i < 3; i++)
 				for (int j = 0; j < 3; j++)
@@ -150,7 +160,7 @@ public:
 		{
 			for (int i = 0; i < messages.size(); i++)
 			{
-				int bucket_num = query->getBucketNumber(messages[i].curr_u);
+				int bucket_num = query->getBucketNumber(messages[i].int1);
 				messages_classifier[bucket_num].push_back(i);
 			}
 		}
@@ -374,10 +384,10 @@ public:
 		}
 		*/
 	}
-
+/*
 	void continue_enum(SIBranch b, int curr_u, int anc_u)
 	{
-		/*
+		
 		double t = get_current_time();
 		SIQuery* query = (SIQuery*)getQuery();	
 		Mapping &m = b.p;
@@ -399,9 +409,9 @@ public:
 			<< ", curr_u: " << curr_u << endl;
 #endif
 		this->timers[1][0] += get_current_time() - t;
-		*/
+		
 	}	
-
+*/
 	void enumerate_new(MessageContainer & messages)
 	{
 		/*
@@ -743,7 +753,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 					id = atoi(pch);
 					key = SIKey(id, id % _num_workers);
 					v->value().nbs_vector.push_back(KeyLabel(key, 0));
-					v->value().nbs_set.insert(id);
+					//v->value().nbs_set.insert(id);
 				}
 			}
 			else
@@ -763,7 +773,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 					key = SIKey(id, id % _num_workers);
 					pch = strtok(NULL, " ");
 					v->value().nbs_vector.push_back(KeyLabel(key, (int) *pch));
-					v->value().nbs_set.insert(id);
+					//v->value().nbs_set.insert(id);
 				}
 				size_t sz = v->value().nbs_vector.size();
 				v->value().degree = sz;
@@ -855,7 +865,7 @@ void pregel_subgraph(const WorkerParams & params)
 	time = worker.load_data(params);
 	load_time += time;
 
-	if (params.input || params.preprocess)
+	if (params.preprocess)
 		worker.run_type(PREPROCESS, params);
 
 	stop_timer(TOTAL_TIMER);

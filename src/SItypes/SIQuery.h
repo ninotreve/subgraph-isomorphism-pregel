@@ -71,20 +71,8 @@ obinstream& operator>>(obinstream& m, SINode& node)
 
 
 //==========================================================================
-// Overloading << operator of mapping and vector<int>
+// Overloading << operator of vector<int>
 // print like Python, for debug purpose
-
-ostream & operator << (ostream & os, const Mapping & v)
-{
-	os << "[";
-	for (size_t i = 0; i < v.size(); i++)
-	{
-		os << v[i].vID;
-		if (i != (v.size() - 1)) os << ", ";
-	}
-	os << "]";
-	return os;
-}
 
 ostream & operator << (ostream & os, const vector<int> & v)
 {
@@ -426,6 +414,7 @@ obinstream & operator>>(obinstream & m, SIQuery & q){
 
 //===============================================================
 
+/*
 vector<Mapping> joinVectors(vector<Mapping> & v1,
 		vector<Mapping> & v2)
 {
@@ -446,5 +435,5 @@ vector<Mapping> joinVectors(vector<Mapping> & v1,
 
 	return results;
 }
-
+*/
 #endif

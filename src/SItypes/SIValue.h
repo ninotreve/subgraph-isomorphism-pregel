@@ -42,12 +42,12 @@ struct SIValue
 };
 
 ibinstream & operator<<(ibinstream & m, const SIValue & v){
-	m << v.label << v.degree << v.nbs_vector << v.nbs_set;
+	m << v.label << v.degree << v.nbs_vector;
 	return m;
 }
 
 obinstream & operator>>(obinstream & m, SIValue & v){
-	m >> v.label >> v.degree >> v.nbs_vector >> v.nbs_set;
+	m >> v.label >> v.degree >> v.nbs_vector;
 	return m;
 }
 

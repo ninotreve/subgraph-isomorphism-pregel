@@ -311,7 +311,7 @@ struct WorkerParams {
     string order;
     bool enumerate;
     bool report;
-    bool input;
+    bool input; // 1 for non-g-thinker, 0 for g-thinker
 
     WorkerParams()
     {

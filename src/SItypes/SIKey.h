@@ -1,15 +1,12 @@
 #ifndef SIKEY_H
 #define SIKEY_H
 
-//----------------SIKey = <VertexID, WorkerID, partial_mapping>----------
-
-struct SIKey;
-typedef vector<SIKey> Mapping;
+//----------------SIKey = <VertexID, WorkerID>-----------------------
+// the same implementation as vwpair
 
 struct SIKey {
-    VertexID vID;
+    int vID;
     int wID;
-    Mapping partial_mapping;
 
     SIKey()
     {
@@ -19,13 +16,6 @@ struct SIKey {
     {
     	this->vID = v;
     	this->wID = w;
-    }
-
-    SIKey(int v, int w, Mapping & partial_mapping)
-    {
-        this->vID = v;
-        this->wID = w;
-        this->partial_mapping = partial_mapping;
     }
 
     inline bool operator<(const SIKey& rhs) const
@@ -40,12 +30,12 @@ struct SIKey {
 
     inline bool operator==(const SIKey& rhs) const
     {
-        return (vID == rhs.vID) && (partial_mapping == rhs.partial_mapping);
+        return (vID == rhs.vID);
     }
 
     inline bool operator!=(const SIKey& rhs) const
     {
-        return (vID != rhs.vID) || (partial_mapping != rhs.partial_mapping);
+        return (vID != rhs.vID);
     }
 
     int hash()
@@ -58,7 +48,6 @@ ibinstream& operator<<(ibinstream& m, const SIKey& v)
 {
     m << v.vID;
     m << v.wID;
-    m << v.partial_mapping;
     return m;
 }
 
@@ -66,7 +55,6 @@ obinstream& operator>>(obinstream& m, SIKey& v)
 {
     m >> v.vID;
     m >> v.wID;
-    m >> v.partial_mapping;
     return m;
 }
 
@@ -85,15 +73,12 @@ namespace __gnu_cxx {
 		size_t operator()(SIKey key) const
 		{
 			// this is general hash
-	        size_t seed = 0;
-	        hash_combine(seed, key.vID);
-	        for (SIKey &k : key.partial_mapping)
-	        	hash_combine(seed, k.vID);
-	        return seed;
+	        return key.vID;
 		}
 	};
 }
 
+/*
 // Define hash of Mapping
 
 namespace __gnu_cxx {
@@ -108,5 +93,5 @@ namespace __gnu_cxx {
 		}
 	};
 }
-
+*/
 #endif
