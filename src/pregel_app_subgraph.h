@@ -3,8 +3,8 @@
 #include "utils/Query.h"
 using namespace std;
 
-#define NROW msg.nrow
-#define NCOL step_num()-1
+#define NROW (msg.nrow)
+#define NCOL (step_num()-1)
 #define START_TIMING(T) (T) = get_current_time();
 #define STOP_TIMING(T, X, Y) this->timers[(X)][(Y)] += get_current_time() - (T);
 
@@ -113,13 +113,14 @@ public:
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
 			 << " ACTIVE Vertex ID " << id.vID
+			 << " Worker ID " << id.wID
 			 << " Manual active: " << manual_active << endl;
 #endif
 		for (int i = 0; i < messages.size(); i++)
 		{
-			cout << "[---] Message " << i << "\n"
-					<< "curr_u: " << messages[i].curr_u << "\n"
-					<< "nrow: " << messages[i].nrow << "\n[";
+			cout << "[W" << id.wID << "] Received Message " << i 
+					<< " curr_u: " << messages[i].curr_u
+					<< " nrow: " << messages[i].nrow << " [";
 			for (int j = 0; j < messages[i].nrow * NCOL; j++)
 				cout << messages[i].mappings[j] << ",";
 			cout << "]" << endl;
@@ -142,7 +143,6 @@ public:
 		// arrange messages
 		START_TIMING(t);
 		vector<int> vector_u = query->getBucket(NCOL, value().label);
-		cout << "[---] vector_u: " << vector_u << endl;
 		int n_u = vector_u.size();
 		vector<vector<int>> messages_classifier = vector<vector<int>>(n_u);
 		if (step_num() == 1 && this->manual_active)
@@ -166,7 +166,7 @@ public:
 		STOP_TIMING(t, 0, 0);
 
 		if (step_num() == 1)
-			cout << "[---] STEP NUMBER " << step_num()
+			cout << "[W" << id.wID << "] STEP NUMBER " << step_num()
 				<< " ACTIVE Vertex ID " << id.vID << endl;
 
 		// main computation
@@ -184,11 +184,6 @@ public:
 				{
 					if (check_feasibility(msg.mappings + i*NCOL, curr_u))
 					{
-						cout << "[---] check passed: [" << endl;
-						for (int k = 0; k < NCOL; k++)
-							cout << msg.mappings[i*NCOL+k] << ",";
-						cout << endl;
-
 						passed_mappings->push_back(msg.mappings + i*NCOL);
 						/* add_flag, need to be modified.
 						if (params.enumerate && query->isBranch(vector_u[0]))
@@ -232,9 +227,6 @@ public:
 					}
 					STOP_TIMING(t1, 0, 2);
 
-					for (int i = 0; i < get_num_workers(); i++)
-						cout << "[---] neighbors_map: " << neighbors_map[i] << endl;
-
 					//Update out_message_buffer
 					START_TIMING(t1);
 					for (int wID = 0; wID < get_num_workers(); wID++)
@@ -243,18 +235,18 @@ public:
 							continue;
 
 						if (wID == get_worker_id())
-						{
+						{ //Copy the message
 							int nrow = (NCOL != 0) ? passed_mappings->size() : 1;
 							int *mappings = new int[nrow * (NCOL+1)];
-							for (int i = 0; i < nrow; i++)
+							for (int i = 0, j; i < nrow; i++)
 							{
-								for (int j = 0; j < NCOL; j++)
-									mappings[i*NCOL+j] = (*passed_mappings)[i][j];
-								mappings[(i+1)*NCOL] = id.vID;
+								for (j = 0; j < NCOL; j++)
+									mappings[i*(NCOL+1)+j] = (*passed_mappings)[i][j];
+								mappings[i*(NCOL+1)+j] = id.vID;
 							}
 							send_messages(wID, neighbors_map[wID],
-								SIMessage(MAPPING, next_u, nrow, mappings));
-							cout << "[---] Message: \n"
+								SIMessage(IN_MAPPING, next_u, nrow, mappings));
+							cout << "[W" << id.wID << "] Send Message: \n"
 							     << "nrow: " << nrow << "\n"
 								 << "mappings: [";
 							for (int i = 0; i < nrow * (NCOL+1); i++)
@@ -262,9 +254,22 @@ public:
 							cout << "]" << endl;
 						}
 						else
+						{
 							send_messages(wID, neighbors_map[wID],
-								SIMessage(MAPPING, id.vID, next_u, 
+								SIMessage(OUT_MAPPING, id.vID, next_u, 
 									passed_mappings));
+							cout << "[W" << id.wID << "] Message: \n"
+							     << "id.vID: " << id.vID << "\n"
+								 << "passed_mappings: ";
+							for (int i = 0; i < passed_mappings->size(); i++)
+							{
+								cout << "[";
+								for (int j = 0; j < NCOL; j++)
+									cout << ((*passed_mappings)[i])[j] << ",";
+								cout << "]";
+							}
+							cout << endl;
+						}
 					}
 					STOP_TIMING(t1, 1, 0);
 
@@ -700,7 +705,9 @@ public:
     	}
     	else if (type == ENUMERATE)
     	{
-    		agg_mat[0][0] += v->final_results->size();
+			if (v->manual_active)
+    			agg_mat[0][0] += v->final_results->size();
+
 			for (int i = 0; i < 3; i++)
 				for (int j = 0; j < 3; j++)
 					if (i != 0 || j != 0)
@@ -796,9 +803,12 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 
 		virtual void toline(SIVertex* v, BufferedWriter & writer)
 		{
+			if (!v->manual_active)
+				return;
+
 			SIQuery* query = (SIQuery*)getQuery();
 			int ncol = query->num;
-			for (size_t i = 0; i < v->final_results->size(); i++)
+			for (size_t i = 0, j; i < v->final_results->size(); i++)
 			{
 				int* mapping = (*v->final_results)[i];
 				sprintf(buf, "# Match\n");
@@ -808,24 +818,48 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 				cout << "[DEBUG] Worker ID: " << get_worker_id() << endl;
 				cout << "[DEBUG] Vertex ID: " << v->id.vID << endl;
 				cout << "[DEBUG] Result: [";
-				for (size_t j = 0; j < ncol; j++)
-					cout << mapping[j] << endl;
+				for (j = 0; j < ncol-1; j++)
+					cout << mapping[j] << ",";
+				cout << v->id.vID << "]" << endl;
 #endif
-				for (size_t j = 0; j < ncol; j++)
+
+				for (j = 0; j < ncol-1; j++)
 				{
 					sprintf(buf, "%d %d\n", 
 						query->getID(query->dfs_order[j]), mapping[j]);
 					writer.write(buf);
 				}
+				sprintf(buf, "%d %d\n", 
+					query->getID(query->dfs_order[j]), v->id.vID);
+				writer.write(buf);
 			}
 		}
 
 		virtual void clear_messages(vector<SIMessage> &delete_messages)
 		{
+			SIQuery* query = (SIQuery*)getQuery();
+			if (query->max_level == NCOL)
+				//We are going to use this later, don't free memory.
+				return;
+
 			for (SIMessage &msg : delete_messages)
 			{
-				delete msg.passed_mappings;
-				delete[] msg.mappings;
+				if (msg.type == OUT_MAPPING)
+				{
+					cout << "[W" << get_worker_id() << "] deleting passed_mappings:";
+					for (int i = 0; i < msg.passed_mappings->size(); i++)
+						cout << "[" << *((*msg.passed_mappings)[i]) << "]";
+					cout << endl;
+					delete msg.passed_mappings;
+				}
+				else
+				{
+					cout << "[W" << get_worker_id() << "] deleting mappings:";
+					for (int i = 0; i < NROW * (NCOL); i++)
+						cout << "[" << msg.mappings[i] << "]";
+					cout << endl;
+					delete[] msg.mappings;
+				}
 			}
 			delete_messages.clear();
 		}

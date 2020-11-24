@@ -159,8 +159,7 @@ public:
 		}
 		*/
 
-    void active_compute(int type, WorkerParams params, int wakeAll,
-        vector<MessageT> &delete_messages)
+    void active_compute(int type, WorkerParams params, int wakeAll)
     {
         double timers[4] = {0.0, 0.0, 0.0, 0.0};
         double t0 = get_current_time();
@@ -171,6 +170,8 @@ public:
         for (size_t i = 0; i < vertexes.size(); i++) {
         	if (wakeAll == 1) vertexes[i]->activate();
 
+            cout << "[--] vertex " << i << " is_active: " << vertexes[i]->is_active()
+                 << " message box size " << v_msgbufs[i].size() << endl;
             if  (
             	(vertexes[i]->is_active() && v_msgbufs[i].size() == 0)
             	||
@@ -200,8 +201,6 @@ public:
 
 				//clear used msgs
                 t = get_current_time();
-                for (int j = 0; j < v_msgbufs[i].size(); j++)
-                    delete_messages.push_back(v_msgbufs[i][j]);
                 v_msgbufs[i].clear();
                 timers[1] += get_current_time() - t;
 
@@ -524,9 +523,7 @@ public:
             if (wakeAll == 0) {
                 active_vnum() = all_sum(active_count);
                 if (active_vnum() == 0 && getBit(HAS_MSG_ORBIT, bits_bor) == 0)
-                    break; //all_halt AND no_msg
-                else
-                    clear_messages(delete_messages); //free memory
+                    break; //all_halt AND no_msg, note that received msgs are not freed
             } else
                 active_vnum() = get_vnum();
             //===================
@@ -536,7 +533,10 @@ public:
             clearBits();
 
             StartTimer(ACTIVE_COMPUTE_TIMER);
-            active_compute(type, params, wakeAll, delete_messages);
+            active_compute(type, params, wakeAll);
+            //free memory(received messages of the last step) unless for the final step
+            clear_messages(delete_messages);
+            cout << "[W" << get_worker_id() << "]Deleting done." << endl;
             StopTimer(ACTIVE_COMPUTE_TIMER);
             
             message_buffer->combine();
@@ -546,17 +546,21 @@ public:
                 global_msg_num += step_msg_num;
                 global_vadd_num += step_vadd_num;
             }
-           
+            
             StartTimer(SYNC_MESSAGE_TIMER);
             vector<vector<msgpair<MessageT>>> &out_messages = 
                 message_buffer->out_messages.getBufs();
-            for (int i = 0; i < out_messages.size(); i++)
-                for (int j = 0; j < out_messages[i].size(); j++)
-                    delete_messages.push_back(out_messages[i][j].msg);
 
-            vector<VertexT*>& to_add = message_buffer->sync_messages();
+            //Messages sent to other machines: their memory will be freed
+            for (int wID = 0; wID < out_messages.size(); wID++)
+                if (wID != get_worker_id())
+                    for (int j = 0; j < out_messages[wID].size(); j++)
+                        delete_messages.push_back(out_messages[wID][j].msg);
+            cout << "[W" << get_worker_id() << "]OK3." << endl;
+            //Messages to be received: their memory will be freed (after usage)
+            vector<VertexT*>& to_add = message_buffer->sync_messages(delete_messages);
             StopTimer(SYNC_MESSAGE_TIMER);
-
+            cout << "[W" << get_worker_id() << "]OK4." << endl;
             agg_sync();
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);

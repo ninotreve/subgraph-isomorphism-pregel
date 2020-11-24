@@ -108,8 +108,9 @@ struct SIMessage
 
 enum MESSAGE_TYPES {
 	LABEL_INFOMATION = 0,
-	MAPPING = 1, // 1121
-	BRANCH_RESULT = 2,
+	IN_MAPPING = 1, // 1121
+	OUT_MAPPING = 2, // 1121
+	//BRANCH_RESULT = 2,
 	BRANCH = 3,
 	MAPPING_COUNT = 4,
 	CANDIDATE = 5,
@@ -130,7 +131,7 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 	case MESSAGE_TYPES::NEIGHBOR_PAIR:
 		m << v.p_int.first << v.p_int.second;
 		break;*/
-	case MESSAGE_TYPES::MAPPING:
+	case MESSAGE_TYPES::OUT_MAPPING:
 		m << v.id;
 		m << v.curr_u;
 
@@ -139,8 +140,14 @@ ibinstream & operator<<(ibinstream & m, const SIMessage & v)
 		if (ncol == 0) nrow = 1; //for the first step
 		m << nrow;
 		for (int i = 0; i < nrow; i++)
+		{
 			for (int j = 0; j < ncol; j++)
-				m << (*v.passed_mappings)[i][j];
+			{
+				m << ((*v.passed_mappings)[i])[j];
+				cout << "[" << ((*v.passed_mappings)[i])[j] << "]^";
+			}
+		}
+		cout << endl;
 		break;
 		/*
 	case MESSAGE_TYPES::BRANCH_RESULT:
@@ -174,7 +181,8 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 		m >> v.p_int.first >> v.p_int.second;
 		break;
 		*/
-	case MESSAGE_TYPES::MAPPING:
+	case MESSAGE_TYPES::OUT_MAPPING:
+		v.type = MESSAGE_TYPES::IN_MAPPING;
 		int vID;
 		m >> vID;
 		m >> v.curr_u;
@@ -184,10 +192,15 @@ obinstream & operator>>(obinstream & m, SIMessage & v)
 		v.mappings = new int[v.nrow * ncol];
 		for (int i = 0; i < v.nrow * ncol; i++)
 		{
-			for (int j = 0; j < ncol - 1; i++)
+			if ((i+1)%ncol == 0)
+				v.mappings[i] = vID;
+			else
+			{
 				m >> v.mappings[i];
-			v.mappings[i] = vID;
+				cout << "[" << v.mappings[i] << "]^";
+			}
 		}
+		cout << endl;
 		break;
 		/*
 	case MESSAGE_TYPES::BRANCH_RESULT:

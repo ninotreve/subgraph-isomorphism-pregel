@@ -7,13 +7,13 @@ Filter Method: 0
 Order Method: random
 Enumerate Method: 1
 =================Start loading data graph ...=====================
-Load Graph Time : 0.150772 seconds
+Load Graph Time : 0.113895 seconds
 =================Start loading query...===================
 Worker 0: "hdfs://36279a66fe8e:9000/query/query.txt" loaded
-Communication Time : 0.000006 seconds
-- Serialization Time : 0.000004 seconds
-- Transfer Time : 0.000002 seconds
-Load Query Time : 0.057317 seconds
+Communication Time : 0.000019 seconds
+- Serialization Time : 0.000006 seconds
+- Transfer Time : 0.000011 seconds
+Load Query Time : 0.054658 seconds
 =================Start building query tree...===================
 this->nodes size: 5
 Node 0
@@ -51,81 +51,347 @@ Neighbors: [3]
 Backward neighbors: []
 Backward same labels: []
 It has 0 children.
-Build Query Tree Time : 0.000085 seconds
+Build Query Tree Time : 0.000099 seconds
 ================Start matching...======================
 Superstep 1:
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 1 Manual active: 1
-[---] vector_u: [0]
-[---] STEP NUMBER 1 ACTIVE Vertex ID 1
-[---] neighbors_map: [5]
-[---] Message: 
-nrow: 1
-mappings: [1,]
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 2 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 3 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 4 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 5 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 6 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 7 Manual active: 1
-[---] vector_u: [0]
-[---] STEP NUMBER 1 ACTIVE Vertex ID 7
-[---] neighbors_map: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 8 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 9 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 10 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 11 Manual active: 1
-[---] vector_u: [0]
-[---] STEP NUMBER 1 ACTIVE Vertex ID 11
-[---] neighbors_map: [12, 14]
-[---] Message: 
+[--] vertex 0 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 3 Worker ID 0 Manual active: 1
+[--] vertex 1 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 6 Worker ID 0 Manual active: 1
+[--] vertex 2 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 9 Worker ID 0 Manual active: 1
+[--] vertex 3 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 12 Worker ID 0 Manual active: 1
+[--] vertex 4 is_active: 1 message box size 0
+[--] vertex 0 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 1 Worker ID 1 Manual active: 1
+[W1] STEP NUMBER 1 ACTIVE Vertex ID 1
+[--] vertex 0 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 2 Worker ID 2 Manual active: 1
+[--] vertex 1 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 5 Worker ID 2 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 15 Worker ID 0 Manual active: 1
+*3.21865e-05: [1.81198e-05, 0, 0]
+[W0]Deleting done.
+[--] vertex 2 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 8 Worker ID 2 Manual active: 1
+[--] vertex 3 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 11 Worker ID 2 Manual active: 1
+[W2] STEP NUMBER 1 ACTIVE Vertex ID 11
+[W1] Message: 
+id.vID: 1
+passed_mappings: 
+[--] vertex 1 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 4 Worker ID 1 Manual active: 1
+[--] vertex 2 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 7 Worker ID 1 Manual active: 1
+[W1] STEP NUMBER 1 ACTIVE Vertex ID 7
+[W2] Message: 
+id.vID: 11
+passed_mappings: 
+[W2] Send Message: 
 nrow: 1
 mappings: [11,]
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 12 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 13 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 14 Manual active: 1
-[---] vector_u: []
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 15 Manual active: 1
-[---] vector_u: []
-*9.10759e-05: [8.79765e-05, 0, 0]
-[--] Vertex 5 receives a message.
-[--] Vertex 12 receives a message.
-[--] Vertex 14 receives a message.
-Superstep 1 done.Time elapsed: 0.000138998 seconds
-#msgs: 2
+[--] vertex 4 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 14 Worker ID 2 Manual active: 1
+[--] vertex 3 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 10 Worker ID 1 Manual active: 1
+[--] vertex 4 is_active: 1 message box size 0
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 13 Worker ID 1 Manual active: 1
+[W1]Deleting done.
+[W1]OK3.
+
+[W2]Deleting done.
+[W2]OK3.
+
+[W0]OK3.
+
+[--] Vertex 12(3) receives a message.
+[W1]OK4.
+
+[--] Vertex 5(1) receives a message.
+[--] Vertex 14(4) receives a message.
+[W2]OK4.
+[W0]OK4.
+Superstep 1 done.Time elapsed: 0.000163078 seconds
+#msgs: 3
 Superstep 2:
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 6 Manual active: 0
-[---] Message 0
-curr_u: 1
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 0
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 0
+[W1] deleting passed_mappings:
+[W1]Deleting done.
+[W1]OK3.
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 1
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 5 Worker ID 2 Manual active: 0
+[W2] Received Message 0 curr_u: 1 nrow: 1 [1,]
+[W2] Message: 
+id.vID: 5
+passed_mappings: [1,]
+[W2] Send Message: 
 nrow: 1
-[1702195503,]
-[---] vector_u: []
-#
-# A fatal error has been detected by the Java Runtime Environment:
-#
-#  SIGSEGV (0xb) at pc=0x000000000041df60, pid=83253, tid=0x00007ff33b8d6740
-#
-# JRE version: OpenJDK Runtime Environment (8.0_275-b01) (build 1.8.0_275-8u275-b01-0ubuntu1~16.04-b01)
-# Java VM: OpenJDK 64-Bit Server VM (25.275-b01 mixed mode linux-amd64 compressed oops)
-# Problematic frame:
-# C  [run+0x1df60]
-#
-# Core dump written. Default location: /root/subgraph-isomorphism-pregel/src/core or core.83253
-#
-# An error report file with more information is saved as:
-# /root/subgraph-isomorphism-pregel/src/hs_err_pid83253.log
-#
-# If you would like to submit a bug report, please visit:
-#   http://bugreport.java.com/bugreport/crash.jsp
-# The crash happened outside the Java Virtual Machine in native code.
-# See problematic frame for where to report the bug.
-#
+mappings: [1,5,]
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 0
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 1
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 12 Worker ID 0 Manual active: 0
+[W0] Received Message 0 curr_u: 1 nrow: 1 [11,]
+[W0] Send Message: 
+nrow: 1
+mappings: [11,12,]
+[--] vertex 4 is_active: 0 message box size 0
+*2.81334e-05: [1.5974e-05, 0, 0]
+[W0] deleting mappings:[11]
+[W0]Deleting done.
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 1
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 14 Worker ID 2 Manual active: 0
+[W2] Received Message 0 curr_u: 1 nrow: 1 [11,]
+[W2] Message: 
+id.vID: 14
+passed_mappings: [11,]
+[W2] deleting passed_mappings:
+[W2] deleting mappings:[1]
+[W2] deleting mappings:[11]
+[W2]Deleting done.
+[W2]OK3.
+[25281104]^
+[W0]OK3.
+[25281104]^
+[--] Vertex 4(1) receives a message.
+[W1]OK4.
+[0]^
+[--] Vertex 2(0) receives a message.
+[W2]OK4.
+[0]^
+[--] Vertex 15(4) receives a message.
+[--] Vertex 15(4) receives a message.
+[W0]OK4.
+[--] vertex 0 is_active: 0 message box size 1
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 2 Worker ID 2 Manual active: 0
+[W2] Received Message 0 curr_u: 2 nrow: 1 [1,5,]
+[W2] Message: 
+id.vID: 2
+passed_mappings: [1,5,]
+[W2] Send Message: 
+nrow: 1
+mappings: [1,5,2,]
+[--] vertex 1 is_active: 0 message box size 0
+[--] vertex 2 is_active: 0 message box size 0
+Superstep 2 done.Time elapsed: 0.000124931 seconds
+#msgs: 4
+Superstep 3:
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 0
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 2
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 15 Worker ID 0 Manual active: 0
+[W0] Received Message 0 curr_u: 2 nrow: 1 [11,12,]
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 1
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 4 Worker ID 1 Manual active: 0
+[W1] Received Message 0 curr_u: 2 nrow: 1 [25281104,5,]
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 0
+[W1] deleting mappings:[25281104][5]
+[W1]Deleting done.
+[W1]OK3.
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 0
+[W2] deleting passed_mappings:[25282432]
+[W2] deleting passed_mappings:[25281120]
+[W2] deleting mappings:[1][5]
+[W0] Received Message 1 curr_u: 2 nrow: 1 [0,14,]
+[W0] Send Message: 
+nrow: 1
+[W2]Deleting done.
+[W2]OK3.
+mappings: [11,12,15,]
+[W0] Message: 
+id.vID: 15
+passed_mappings: [11,12,]
+*6.31809e-05: [4.00543e-05, 0, 0]
+[W0] deleting mappings:[11][12]
+[W0] deleting mappings:[0][14]
+[W0]Deleting done.
+[W0]OK3.
+[W1]OK4.
+[67470192]^[0]^
+[14]^[0]^
+[--] Vertex 12(3) receives a message.
+[--] Vertex 3(0) receives a message.
+[W0]OK4.
+Superstep 3 done.Time elapsed: 0.000118971 seconds
+#msgs: 4
+[67470192]^[0]^
+[14]^[0]^
+[--] Vertex 14(4) receives a message.
+[--] Vertex 5(1) receives a message.
+[W2]OK4.
+Superstep 4:
+[--] vertex 0 is_active: 0 message box size 1
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 3 Worker ID 0 Manual active: 0
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 1
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 5 Worker ID 2 Manual active: 0
+[W2] Received Message 0 curr_u: 3 nrow: 1 [1,5,2,]
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 0
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 0
+[W1]Deleting done.
+[W1]OK3.
+[W0] Received Message 0 curr_u: 3 nrow: 1 [14,0,2,]
+[W0] Message: 
+id.vID: 3
+passed_mappings: [14,0,2,]
+[--] vertex 1 is_active: 0 message box size 0
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 1
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 12 Worker ID 0 Manual active: 0
+[W0] Received Message 0 curr_u: 3 nrow: 1 [11,12,15,]
+[--] vertex 4 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 1
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 14 Worker ID 2 Manual active: 0
+[W2] Received Message 0 curr_u: 3 nrow: 1 [67470192,0,15,]
+[W2] Message: 
+id.vID: 14
+passed_mappings: [67470192,0,15,]
+[W2] deleting passed_mappings:[25282048]
+[W2] deleting mappings:[67470192][0][15]
+[W2] deleting mappings:[1][5][2]
+[W2]Deleting done.
+[W2]OK3.
+[25281104]^[0]^[15]^
+[25281104]^[0]^[15]^
+*4.1008e-05: [2.40803e-05, 0, 0]
+[W0] deleting passed_mappings:[13]
+[W0] deleting mappings:[11][12][15]
+[W0] deleting mappings:[14][0][2]
+[W0]Deleting done.
+[W0]OK3.
+[69539968]^[0]^[2]^
+[69539968]^[0]^[2]^
+[--] Vertex 13(4) receives a message.
+[--] Vertex 13(4) receives a message.
+[W1]OK4.
+[W0]OK4.
+Superstep 4 done.Time elapsed: 8.58307e-05 seconds
+#msgs: 2
+Superstep 5:
+[W2]OK4.
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 0
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 0
+[W2]Deleting done.
+[W2]OK3.
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 0
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 0
+*1.28746e-05: [0, 0, 0]
+[W0]Deleting done.
+[W0]OK3.
+[--] vertex 0 is_active: 0 message box size 0
+[--] vertex 1 is_active: 0 message box size 0
+[--] vertex 2 is_active: 0 message box size 0
+[--] vertex 3 is_active: 0 message box size 0
+[--] vertex 4 is_active: 0 message box size 2
+[DEBUG] STEP NUMBER 5 ACTIVE Vertex ID 13 Worker ID 1 Manual active: 0
+[W1] Received Message 0 curr_u: 4 nrow: 1 [69539968,0,2,3,]
+[W1] Received Message 1 curr_u: 4 nrow: 1 [25281104,0,15,14,]
+[W1]Deleting done.
+[W1]OK3.
+[W1]OK4.
+[W2]OK4.
+[W0]OK4.
+Superstep 5 done.Time elapsed: 3.91006e-05 seconds
+#msgs: 0
+Superstep 6:
+Subgraph matching done. 
+Total Computational Time : 0.000590 seconds
+ - Active Compute Time : 0.000257 seconds
+ - Sync Message Time : 0.000116 seconds
+ - Communication Time : 0.000126 seconds
+    - Serialization Time : 0.000029 seconds
+    - Transfer Time : 0.000091 seconds
+Total #msgs=13, Total #vadd=0
+1. Arrange messages: 1.90735e-06 s
+2. Check feasibility: 1.90735e-06 s
+	 - Check vertex uniqueness: 0 s
+	 - Check non-tree edge: 0 s
+3. Construct neighbor map: 2.86102e-06 s
+4. Update out messages buffer: 7.51019e-05 s
+5. Clear out neighbor map: 0 s
+Main Computation: 8.17776e-05 s
+================Start enumerating...===================
+Superstep 1:
+[--] vertex 0 is_active: 1 message box size 0
+[--] vertex 1 is_active: 1 message box size 0
+[--] vertex 2 is_active: 1 message box size 0
+[--] vertex 3 is_active: 1 message box size 0
+[--] vertex 0 is_active: 1 message box size 0
+[--] vertex 1 is_active: 1 message box size 0
+[--] vertex 2 is_active: 1 message box size 0
+[--] vertex 3 is_active: 1 message box size 0
+[--] vertex 4 is_active: 1 message box size 0
+[W1]Deleting done.
+[W1]OK3.
+[--] vertex 0 is_active: 1 message box size 0
+[--] vertex 1 is_active: 1 message box size 0
+[--] vertex 2 is_active: 1 message box size 0
+[--] vertex 3 is_active: 1 message box size 0
+[--] vertex 4 is_active: 1 message box size 0
+[W2]Deleting done.
+[W2]OK3.
+[--] vertex 4 is_active: 1 message box size 0
+*2.00272e-05: [0, 0, 0]
+[W0]Deleting done.
+[W0]OK3.
+[W0]OK4.
+Superstep 1 done.Time elapsed: 4.41074e-05 seconds
+#msgs: 0
+[W2]OK4.
+[W1]OK4.
+Superstep 2:
+Subgraph enumeration done. 
+Total Computational Time : 0.000061 seconds
+ - Active Compute Time : 0.000027 seconds
+ - Sync Message Time : 0.000006 seconds
+ - Communication Time : 0.000009 seconds
+    - Serialization Time : 0.000002 seconds
+    - Transfer Time : 0.000006 seconds
+Total #msgs=0, Total #vadd=0
+From start to end: total time: 1.90735e-06 s
+ - continue enumerating: 7.51019e-05 s
+ - expand time: 0 s
+Sync Time: 1.90735e-06 s
+=================Start dumping graph...===================
+output path: /output
+Dump Time : 0.080569 seconds
+================ Final Report ===============
+Mapping count: 2
+Load time: 0.168553 s.
+Dump time: 0.080569 s.
+Compute time: 0.00083518 s.
+Offline time: 0.915724 s.
+Online time: 0.194293 s.
+[DEBUG] Worker ID: 1
+[DEBUG] Vertex ID: 13
+[DEBUG] Result: [69539968,0,2,3,13]
+[DEBUG] Worker ID: 1
+[DEBUG] Vertex ID: 13
+[DEBUG] Result: [25281104,0,15,14,13]

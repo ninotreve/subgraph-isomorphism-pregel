@@ -15,7 +15,7 @@ public:
     typedef typename VertexT::MessageType MessageT;
     typedef typename VertexT::HashType HashT;
     typedef vector<MessageT> MessageContainerT;
-    typedef hash_map<KeyT, int> Map; //int = position in v_msg_bufs //CHANGED FOR VADD
+    typedef hash_map<int, int> Map; //key, position in v_msg_bufs //CHANGED FOR VADD
     typedef Vecs<KeyT, MessageT, HashT> VecsT;
     typedef typename VecsT::Vec Vec;
     typedef typename VecsT::VecGroup VecGroup;
@@ -32,7 +32,7 @@ public:
         v_msg_bufs.resize(vertexes.size());
         for (size_t i = 0; i < vertexes.size(); i++) {
             VertexT* v = vertexes[i];
-            in_messages[v->id] = i; //CHANGED FOR VADD
+            in_messages[v->id.vID] = i; //CHANGED FOR VADD
         }
     }
     void reinit(vector<VertexT*> vertexes)
@@ -63,7 +63,7 @@ public:
             out_messages.combine();
     }
 
-    vector<VertexT*>& sync_messages()
+    vector<VertexT*>& sync_messages(vector<MessageT> &delete_messages)
     {
         int np = get_num_workers();
 
@@ -99,25 +99,32 @@ public:
         v_msg_bufs.resize(oldsize + to_add.size());
         for (size_t i = 0; i < to_add.size(); i++) {
             int pos = oldsize + i;
-            in_messages[to_add[i]->id] = pos; //CHANGED FOR VADD
+            in_messages[to_add[i]->id.vID] = pos; //CHANGED FOR VADD
         }
 
         //================================================
-        // gather all messages
+        // gather all messages, distribute them to vertices
         for (int i = 0; i < np; i++) {
             Vec& msgBuf = out_messages.getBuf(i);
             for (size_t i = 0; i < msgBuf.size(); i++) 
             {
-                /*
-                MapIter it = in_messages.find(msgBuf[i].key);
-                if (it != in_messages.end()) //filter out msgs to non-existent vertices
-                    v_msg_bufs[it->second].push_back(msgBuf[i].msg); //CHANGED FOR VADD
-                */
+                //[Original implementation]
+                //MapIter it = in_messages.find(msgBuf[i].key);
+                //if (it != in_messages.end()) //filter out msgs to non-existent vertices
+                //    v_msg_bufs[it->second].push_back(msgBuf[i].msg); //CHANGED FOR VADD
+                
+                //Distribute (Copy) messages to each key
                 for (int key : msgBuf[i].keys)
                 {
-                    cout << "[--] Vertex " << key << " receives a message." << endl;
-                    v_msg_bufs[key].push_back(msgBuf[i].msg);
+                    MapIter it = in_messages.find(key);
+                    if (it != in_messages.end())
+                        v_msg_bufs[it->second].push_back(msgBuf[i].msg);
+                    cout << "[--] Vertex " << key << "(" 
+                         << it->second << ") receives a message." << endl;
                 }
+
+                //Memory will be freed in the next iteration
+                delete_messages.push_back(msgBuf[i].msg);
             }
         }
 
