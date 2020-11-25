@@ -39,7 +39,6 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 public:
 	SICandidate *candidate;
 	double timers[3][3];
-	int results_count = 0;
 	bool manual_active = true;
 
 	vector<int*>* final_results;
