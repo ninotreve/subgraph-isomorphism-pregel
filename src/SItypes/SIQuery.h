@@ -90,11 +90,9 @@ ostream & operator << (ostream & os, const vector<int> & v)
 // Overloading << operator of SINode for debug purpose.
 ostream & operator << (ostream & os, const SINode & node)
 {
-	os << "Label: " << node.label << endl;
-	os << "Branch number: " << node.branch_number << endl;
-	os << "Neighbors: " << node.nbs << endl;
-	os << "Backward neighbors: " << node.b_nbs_pos << endl;
-	os << "Backward same labels: " << node.b_same_lab_pos << endl;
+	os << "[Label: " << node.label 
+	   << " Neighbors: " << node.nbs
+	   << " Backward neighbors: " << node.b_nbs_pos << "]";
 	return os;
 }
 
@@ -192,13 +190,13 @@ public:
 
 	virtual void printOrder()
 	{
-		cout << "this->nodes size: " << this->nodes.size() << endl;
+		cout << "# Query Vertices: " << this->nodes.size() << endl;
 		for (size_t i = 0; i < this->dfs_order.size(); i++)
 		{
 			SINode* curr = &this->nodes[this->dfs_order[i]];
-			cout << "Node " << this->dfs_order[i] << endl;
-			cout << *curr << "It has " << curr->children.size() <<
-					" children." << endl;
+			cout << "Node " << this->dfs_order[i] << ": "
+				 << *curr << ". with " << curr->children.size() 
+				 <<	" children." << endl;
 		}
 	}
 
