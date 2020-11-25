@@ -1,0 +1,135 @@
+Data graph path: /g-thinker/labelOR.txt
+Query graph path: /fdu-zyj/query1125/query3.txt
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 1
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 108.270228 seconds
+================Start preprocessing...=================
+Superstep 1:
+*2.11737: [2.03702, 0.011764, 0.00802231]
+Superstep 1 done.Time elapsed: 2.13439 seconds
+#msgs: 0
+Superstep 2:
+*0.083591: [0.00725794, 0.00674248, 0.00664806]
+Superstep 2 done.Time elapsed: 0.116421 seconds
+#msgs: 0
+Superstep 3:
+Subgraph preprocessing done. 
+Total Computational Time : 2.278726 seconds
+ - Active Compute Time : 2.201183 seconds
+ - Sync Message Time : 0.009185 seconds
+ - Communication Time : 0.010189 seconds
+    - Serialization Time : 0.000077 seconds
+    - Transfer Time : 0.010069 seconds
+Total #msgs=0, Total #vadd=0
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query1125/query3.txt" loaded
+Communication Time : 0.000118 seconds
+- Serialization Time : 0.000008 seconds
+- Transfer Time : 0.000110 seconds
+Load Query Time : 0.510848 seconds
+=================Start building query tree...===================
+this->nodes size: 5
+Node 0
+Label: 97
+Branch number: 0
+Neighbors: [1, 2, 4]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 0
+Neighbors: [0, 2]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 2
+Label: 99
+Branch number: 0
+Neighbors: [0, 1, 3]
+Backward neighbors: [0]
+Backward same labels: []
+It has 1 children.
+Node 3
+Label: 98
+Branch number: 0
+Neighbors: [2, 4]
+Backward neighbors: []
+Backward same labels: [1]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 0
+Neighbors: [0, 3]
+Backward neighbors: [0]
+Backward same labels: []
+It has 0 children.
+Build Query Tree Time : 0.000736 seconds
+================Start matching...======================
+Superstep 1:
+*0.136846: [0.0745041, 0.0114927, 0.00752187]
+Superstep 1 done.Time elapsed: 0.208361 seconds
+#msgs: 290438
+Superstep 2:
+*0.035794: [0.0233521, 0.000181675, 0.000205278]
+Superstep 2 done.Time elapsed: 0.11708 seconds
+#msgs: 266029
+Superstep 3:
+*0.09952: [0.0862916, 0.000194073, 0.000194311]
+Superstep 3 done.Time elapsed: 0.243844 seconds
+#msgs: 187871
+Superstep 4:
+*0.170558: [0.15704, 0.000187159, 0.000263691]
+Superstep 4 done.Time elapsed: 2.07166 seconds
+#msgs: 235812
+Superstep 5:
+*1.94433: [1.92969, 0.000287294, 0.000345469]
+Superstep 5 done.Time elapsed: 4.73058 seconds
+#msgs: 0
+Superstep 6:
+Subgraph matching done. 
+Total Computational Time : 7.402254 seconds
+ - Active Compute Time : 2.389260 seconds
+ - Sync Message Time : 2.059081 seconds
+ - Communication Time : 1.999437 seconds
+    - Serialization Time : 0.928695 seconds
+    - Transfer Time : 1.065539 seconds
+Total #msgs=980150, Total #vadd=0
+1. Arrange messages: 0.230077 s
+2. Check feasibility: 46.9157 s
+	 - Check vertex uniqueness: 12.3529 s
+	 - Check non-tree edge: 33.2702 s
+3. Construct neighbor map: 0.227424 s
+4. Update out messages buffer: 0.482995 s
+5. Clear out neighbor map: 0.0191123 s
+Main Computation: 47.8676 s
+================Start enumerating...===================
+Superstep 1:
+*0.0813251: [0.00718474, 0.0113668, 0.00769186]
+Superstep 1 done.Time elapsed: 0.110122 seconds
+#msgs: 0
+Superstep 2:
+Subgraph enumeration done. 
+Total Computational Time : 0.140824 seconds
+ - Active Compute Time : 0.081412 seconds
+ - Sync Message Time : 0.003668 seconds
+ - Communication Time : 0.004488 seconds
+    - Serialization Time : 0.000101 seconds
+    - Transfer Time : 0.004332 seconds
+Total #msgs=0, Total #vadd=0
+From start to end: total time: 46.9157 s
+ - continue enumerating: 0.482995 s
+ - expand time: 0.0191123 s
+Sync Time: 0.00627732 s
+================ Final Report ===============
+Mapping count: 9232914
+Load time: 108.781 s.
+Dump time: 0 s.
+Compute time: 7.54416 s.
+Offline time: 114.031 s.
+Online time: 8.28271 s.

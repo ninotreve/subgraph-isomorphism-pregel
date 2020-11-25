@@ -1,0 +1,52 @@
+Load Time : 4.462253 seconds
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 48
+Worker 0: 1 tasks processed
+Worker 1: 1 tasks processed
+Worker 2: 8 tasks processed
+Worker 3: 0 tasks processed
+Worker 4: 0 tasks processed
+Worker 5: 14 tasks processed
+Worker 6: 4 tasks processed
+Worker 7: 14 tasks processed
+Worker 8: 0 tasks processed
+Worker 9: 3 tasks processed
+Worker 10: 3 tasks processed
+
+结果：the # of matched graph = 0
+52 stealing plans generated at the master
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 4902
+Worker 0: 458 tasks processed (+ 457)
+--- 17 more tasks stolen
+Worker 1: 442 tasks processed (+ 441)
+Worker 2: 447 tasks processed (+ 439)
+Worker 3: 440 tasks processed (+ 440)
+Worker 4: 433 tasks processed (+ 433)
+Worker 5: 458 tasks processed (+ 444)
+Worker 6: 452 tasks processed (+ 448)
+Worker 7: 475 tasks processed (+ 461)
+Worker 8: 448 tasks processed (+ 448)
+Worker 9: 419 tasks processed (+ 416)
+Worker 10: 430 tasks processed (+ 427)
+
+结果：the # of matched graph = 4467460
+Task Time : 1.254151 seconds
+结果：the # of matched graph = 4472004
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 4911
+Worker 0: 458 tasks processed (+ 0)
+Worker 1: 442 tasks processed (+ 0)
+Worker 2: 448 tasks processed (+ 1)
+Worker 3: 440 tasks processed (+ 0)
+Worker 4: 435 tasks processed (+ 2)
+Worker 5: 464 tasks processed (+ 6)
+Worker 6: 452 tasks processed (+ 0)
+Worker 7: 475 tasks processed (+ 0)
+Worker 8: 448 tasks processed (+ 0)
+Worker 9: 419 tasks processed (+ 0)
+Worker 10: 430 tasks processed (+ 0)
+

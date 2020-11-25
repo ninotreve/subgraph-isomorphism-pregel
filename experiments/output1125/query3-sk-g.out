@@ -1,0 +1,68 @@
+Load Time : 9.625820 seconds
+
+结果：the # of matched graph = ============ PROGRESS REPORT ============
+Total number of tasks processed: 0
+0
+Worker 0: 0 tasks processed
+Worker 1: 0 tasks processed
+Worker 2: 0 tasks processed
+Worker 3: 0 tasks processed
+Worker 4: 0 tasks processed
+Worker 5: 0 tasks processed
+Worker 6: 0 tasks processed
+Worker 7: 0 tasks processed
+Worker 8: 0 tasks processed
+Worker 9: 0 tasks processed
+Worker 10: 0 tasks processed
+
+100 stealing plans generated at the master
+结果：the # of matched graph = 424963
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 3957
+Worker 0: 297 tasks processed (+ 297)
+Worker 1: 477 tasks processed (+ 477)
+--- 108 more tasks stolen
+Worker 2: 385 tasks processed (+ 385)
+Worker 3: 351 tasks processed (+ 351)
+Worker 4: 288 tasks processed (+ 288)
+Worker 5: 333 tasks processed (+ 333)
+Worker 6: 382 tasks processed (+ 382)
+Worker 7: 354 tasks processed (+ 354)
+Worker 8: 344 tasks processed (+ 344)
+Worker 9: 394 tasks processed (+ 394)
+Worker 10: 352 tasks processed (+ 352)
+
+结果：the # of matched graph = 526031
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 4040
+Worker 0: 297 tasks processed (+ 0)
+Worker 1: 477 tasks processed (+ 0)
+Worker 2: 385 tasks processed (+ 0)
+Worker 3: 351 tasks processed (+ 0)
+Worker 4: 371 tasks processed (+ 83)
+Worker 5: 333 tasks processed (+ 0)
+Worker 6: 382 tasks processed (+ 0)
+Worker 7: 354 tasks processed (+ 0)
+Worker 8: 344 tasks processed (+ 0)
+Worker 9: 394 tasks processed (+ 0)
+Worker 10: 352 tasks processed (+ 0)
+
+Task Time : 2.383732 seconds
+结果：the # of matched graph = 526762
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 4040
+Worker 0: 297 tasks processed (+ 0)
+Worker 1: 477 tasks processed (+ 0)
+Worker 2: 385 tasks processed (+ 0)
+Worker 3: 351 tasks processed (+ 0)
+Worker 4: 371 tasks processed (+ 0)
+Worker 5: 333 tasks processed (+ 0)
+Worker 6: 382 tasks processed (+ 0)
+Worker 7: 354 tasks processed (+ 0)
+Worker 8: 344 tasks processed (+ 0)
+Worker 9: 394 tasks processed (+ 0)
+Worker 10: 352 tasks processed (+ 0)
+

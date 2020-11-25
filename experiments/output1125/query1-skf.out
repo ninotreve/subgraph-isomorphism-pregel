@@ -1,0 +1,98 @@
+Data graph path: /g-thinker/newdata/skitter_f.txt
+Query graph path: /fdu-zyj/query1125/query1.txt
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 1
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 20.965907 seconds
+================Start preprocessing...=================
+Superstep 1:
+*0.294054: [0.246379, 0.00645232, 0.00432372]
+Superstep 1 done.Time elapsed: 0.300724 seconds
+#msgs: 0
+Superstep 2:
+*0.0483851: [0.0040772, 0.00378203, 0.00357461]
+Superstep 2 done.Time elapsed: 0.0662501 seconds
+#msgs: 0
+Superstep 3:
+Subgraph preprocessing done. 
+Total Computational Time : 0.381664 seconds
+ - Active Compute Time : 0.342651 seconds
+ - Sync Message Time : 0.008507 seconds
+ - Communication Time : 0.009056 seconds
+    - Serialization Time : 0.000073 seconds
+    - Transfer Time : 0.008938 seconds
+Total #msgs=0, Total #vadd=0
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query1125/query1.txt" loaded
+Communication Time : 0.000099 seconds
+- Serialization Time : 0.000007 seconds
+- Transfer Time : 0.000092 seconds
+Load Query Time : 0.423726 seconds
+=================Start building query tree...===================
+this->nodes size: 5
+Node 0
+Label: 97
+Branch number: 0
+Neighbors: [1]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 0
+Neighbors: [0, 2]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 2
+Label: 99
+Branch number: 0
+Neighbors: [1, 3]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 3
+Label: 98
+Branch number: 0
+Neighbors: [2, 4]
+Backward neighbors: []
+Backward same labels: [1]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 0
+Neighbors: [3]
+Backward neighbors: []
+Backward same labels: []
+It has 0 children.
+Build Query Tree Time : 0.000694 seconds
+================Start matching...======================
+Superstep 1:
+*0.09532: [0.0601935, 0.00611591, 0.00411677]
+Superstep 1 done.Time elapsed: 0.163528 seconds
+#msgs: 327255
+Superstep 2:
+*0.0371039: [0.0283208, 0.000292778, 0.000306368]
+Superstep 2 done.Time elapsed: 0.154597 seconds
+#msgs: 253994
+Superstep 3:
+*0.845885: [0.83577, 0.000355005, 0.00039959]
+Superstep 3 done.Time elapsed: 7.75451 seconds
+#msgs: 312690
+Superstep 4:
+*11.9311: [11.9215, 0.000552416, 0.000735044]
+Superstep 4 done.Time elapsed: 181.025 seconds
+#msgs: 245821
+Superstep 5:
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 6124 RUNNING AT master
+=   EXIT CODE: 9
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================

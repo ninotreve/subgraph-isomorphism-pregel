@@ -1,0 +1,34 @@
+Load Time : 3.918347 seconds
+结果：the # of matched graph = 0
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 1
+Worker 0: 0 tasks processed
+Worker 1: 0 tasks processed
+Worker 2: 0 tasks processed
+Worker 3: 0 tasks processed
+Worker 4: 0 tasks processed
+Worker 5: 0 tasks processed
+Worker 6: 0 tasks processed
+Worker 7: 0 tasks processed
+Worker 8: 0 tasks processed
+Worker 9: 1 tasks processed
+Worker 10: 0 tasks processed
+
+Task Time : 0.354257 seconds
+结果：the # of matched graph = 238901
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 1615
+Worker 0: 141 tasks processed (+ 141)
+Worker 1: 149 tasks processed (+ 149)
+Worker 2: 127 tasks processed (+ 127)
+Worker 3: 144 tasks processed (+ 144)
+Worker 4: 140 tasks processed (+ 140)
+Worker 5: 161 tasks processed (+ 161)
+Worker 6: 159 tasks processed (+ 159)
+Worker 7: 153 tasks processed (+ 153)
+Worker 8: 157 tasks processed (+ 157)
+Worker 9: 136 tasks processed (+ 135)
+Worker 10: 148 tasks processed (+ 148)
+
