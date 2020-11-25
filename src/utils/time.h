@@ -47,9 +47,9 @@ enum TIMERS {
     AGG_TIMER = 8,
 
     // Timers for COMMUNICATION
-    COMMUNICATION_TIMER = 11,
-    SERIALIZATION_TIMER = 12,
-    TRANSFER_TIMER = 13
+    COMMUNICATION_TIMER = 9,
+    SERIALIZATION_TIMER = 10,
+    TRANSFER_TIMER = 11
 };
 
 void start_timer(int i)

@@ -887,7 +887,7 @@ void pregel_subgraph(const WorkerParams & params)
 //=============================================================================
 	// ONLINE STAGE
 	MPRINT("");
-	StartTimer(TOTAL_TIMER);
+	ResetTimer(TOTAL_TIMER);
 
 	// STAGE 1: Load query graph
 	MPRINT("Loading query graph...")
@@ -910,12 +910,14 @@ void pregel_subgraph(const WorkerParams & params)
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Filtering time", STAGE_TIMER)
 
+	// STAGE 3: Build query tree
 	MPRINT("Building query tree...")
 	ResetTimer(STAGE_TIMER);
 	worker.build_query_tree(params.order);
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Building query tree time", STAGE_TIMER)
 
+	// STAGE 4: Subgraph matching
 	MPRINT("**Subgraph matching**")
 	ResetTimer(STAGE_TIMER);
 	wakeAll();
@@ -925,29 +927,33 @@ void pregel_subgraph(const WorkerParams & params)
 
 	if (_my_rank == MASTER_RANK)
 	{
+		cout << "[Detailed report]" << endl;
 		auto mat = *((AggMat*)global_agg);
 		cout << "1. Arrange messages: " <<
 			mat[0][0] << " s" << endl;
-		cout << "2. Check feasibility: " <<
+		cout << "2. Main Computation: " <<
+			mat[1][2] << " s" << endl;
+		cout << "2.1. Check feasibility: " <<
 			mat[0][1] << " s" << endl;
 		cout << "\t - Check vertex uniqueness: " <<
 			mat[2][0] << " s" << endl;
 		cout << "\t - Check non-tree edge: " <<
 			mat[2][1] - mat[2][0] << " s" << endl;
-		cout << "3. Construct neighbor map: " <<
+		cout << "2.2. Construct neighbor map: " <<
 			mat[0][2] << " s" << endl;
-		cout << "4. Update out messages buffer: " <<
+		cout << "2.3. Update out messages buffer: " <<
 			mat[1][0] << " s" << endl;
-		cout << "5. Clear out neighbor map: " <<
+		cout << "2.4. Clear out neighbor map: " <<
 			mat[1][1] << " s" << endl;
-		cout << "Main Computation: " <<
-			mat[1][2] << " s" << endl;
 	}
 
+	// STAGE 5: Subgraph enumeration
+	MPRINT("**Subgraph enumeration**")
+	ResetTimer(STAGE_TIMER);
 	wakeAll();
 	worker.run_type(ENUMERATE, params);
-	stop_timer(COMPUTE_TIMER);
-	compute_time = get_timer(COMPUTE_TIMER);
+	StopTimer(STAGE_TIMER);
+	PrintTimer("Subgraph enumeration time", STAGE_TIMER)
 
 	if (_my_rank == MASTER_RANK)
 	{
@@ -960,24 +966,25 @@ void pregel_subgraph(const WorkerParams & params)
 			mat[1][1] << " s" << endl;
 	}
 
-	time = worker.dump_graph(params.output_path, params.force_write);
-	dump_time += time;
+	StopTimer(COMPUTE_TIMER);
+	//=============== The most important timer stops here!!! =================
 
-	stop_timer(TOTAL_TIMER);
-	online_time = get_timer(TOTAL_TIMER);
-	reset_timer(TOTAL_TIMER);
+	// STAGE 6: Dumping
+	MPRINT("Dumping results...")
+	ResetTimer(STAGE_TIMER);
+	worker.dump_graph(params.output_path, params.force_write);
+	StopTimer(STAGE_TIMER);
+	PrintTimer("Dumping results time", STAGE_TIMER)
+
+	StopTimer(TOTAL_TIMER);
+	PrintTimer("In total, online time", TOTAL_TIMER)
 
 	if (_my_rank == MASTER_RANK)
 	{
 		cout << "================ Final Report ===============" << endl;
 		cout << "Mapping count: " <<
 				(long) (*((AggMat*)global_agg))[0][0] << endl;
-		cout << "Load time: " << load_time << " s." << endl;
-		cout << "Dump time: " << dump_time << " s." << endl;
-		cout << "Compute time: " << compute_time << " s." << endl;
-		cout << "Offline time: " << offline_time << " s." << endl;
-		cout << "Online time: " << online_time << " s." << endl;
 	}
 
-	PrintTimer("Load Graph Time", LOAD_TIMER);
+	PrintTimer("COMPUTE Time", COMPUTE_TIMER);
 }

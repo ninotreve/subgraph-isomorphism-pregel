@@ -436,6 +436,7 @@ public:
     void run_type(int type, const WorkerParams & params)
     {
         ResetTimer(WORKER_TIMER);
+        InitTimer(ACTIVE_COMPUTE_TIMER);
         InitTimer(COMMUNICATION_TIMER);
         InitTimer(SERIALIZATION_TIMER);
         InitTimer(TRANSFER_TIMER);
@@ -454,8 +455,6 @@ public:
         while (true) 
         {
             global_step_num++;
-            if (_my_rank == MASTER_RANK && !params.report)
-                cout << "Superstep " << global_step_num << ":" << endl;
             ResetTimer(SUPERSTEP_TIMER);
 
             // stopping criteria for MATCH and ENUMRATE
@@ -524,13 +523,13 @@ public:
                 cout << "#msgs: " << step_msg_num << ", #vadd: " << step_vadd_num << endl;
             }
         } // end of while loop
-        StartTimer(AGG_TIMER)
+        StartTimer(AGG_TIMER);
         for (size_t i = 0; i < vertexes.size(); i++)
         {
 			agg->stepPartial(vertexes[i], type);
         }
         agg_sync();
-        StopTimer(AGG_TIMER)
+        StopTimer(AGG_TIMER);
 
         StartTimer(SYNC_TIMER);
         worker_barrier();
@@ -543,6 +542,7 @@ public:
             PrintTimer("Total Computational Time", WORKER_TIMER);
             PrintTimer(" - Active Compute Time", ACTIVE_COMPUTE_TIMER);
             PrintTimer(" - Sync Message Time", SYNC_MESSAGE_TIMER);
+            PrintTimer(" - Agg Time", AGG_TIMER);
             PrintTimer(" - Sync Time (load imbalance)", SYNC_TIMER);
             PrintTimer(" - Communication Time", COMMUNICATION_TIMER);
             PrintTimer("    - Serialization Time", SERIALIZATION_TIMER);
@@ -552,25 +552,15 @@ public:
     	}
     }
 
-    // dump result and return dump time
-    double dump_graph(const string& output_path, bool force_write)
+    void dump_graph(const string& output_path, bool force_write)
     {
-    	if (_my_rank == MASTER_RANK)
-    	    cout << "=================Start dumping graph...===================" << endl;
-
-        //check path + init
+    	//check path + init
         if (_my_rank == MASTER_RANK) {
             cout << "output path: " << output_path << endl;
             if (dirCheck(output_path.c_str(), force_write) == -1)
                 exit(-1);
         }
-        init_timers();
-
-        ResetTimer(WORKER_TIMER);
         dump_partition(output_path.c_str());
-        StopTimer(WORKER_TIMER);
-        PrintTimer("Dump Time", WORKER_TIMER);
-        return get_timer(WORKER_TIMER);
     }
 
     /* original run
