@@ -1,0 +1,203 @@
+Load Time : 9.763830 seconds
+结果：the # of matched graph = 0
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 13
+Worker 0: 0 tasks processed
+Worker 1: 0 tasks processed
+Worker 2: 3 tasks processed
+Worker 3: 3 tasks processed
+Worker 4: 3 tasks processed
+Worker 5: 0 tasks processed
+Worker 6: 0 tasks processed
+Worker 7: 4 tasks processed
+Worker 8: 0 tasks processed
+Worker 9: 0 tasks processed
+Worker 10: 0 tasks processed
+
+28 stealing plans generated at the master
+90 stealing plans generated at the master
+100 stealing plans generated at the master
+结果：the # of matched graph = 66300
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 4966
+Worker 0: 622 tasks processed (+ 622)
+--- 300 more tasks stolen
+Worker 1: 541 tasks processed (+ 541)
+Worker 2: 418 tasks processed (+ 415)
+--- 600 more tasks stolen
+Worker 3: 299 tasks processed (+ 296)
+Worker 4: 204 tasks processed (+ 201)
+Worker 5: 523 tasks processed (+ 523)
+--- 150 more tasks stolen
+Worker 6: 220 tasks processed (+ 220)
+Worker 7: 513 tasks processed (+ 509)
+--- 34 more tasks stolen
+Worker 8: 567 tasks processed (+ 567)
+--- 150 more tasks stolen
+Worker 9: 484 tasks processed (+ 484)
+Worker 10: 575 tasks processed (+ 575)
+--- 131 more tasks stolen
+
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 6600
+Worker 0: 677 tasks processed (+ 55)
+Worker 1: 698 tasks processed (+ 157)
+Worker 2: 763 tasks processed (+ 345)
+Worker 3: 448 tasks processed (+ 149)
+Worker 4: 277 tasks processed (+ 73)
+Worker 5: 689 tasks processed (+ 166)
+Worker 6: 323 tasks processed (+ 103)
+Worker 7: 613 tasks processed (+ 100)
+Worker 8: 667 tasks processed (+ 100)
+Worker 9: 564 tasks processed (+ 80)
+Worker 10: 881 tasks processed (+ 306)
+
+结果：the # of matched graph = 121290661
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 8105
+Worker 0: 892 tasks processed (+ 215)
+Worker 1: 847 tasks processed (+ 149)
+Worker 2: 886 tasks processed (+ 123)
+Worker 3: 522 tasks processed (+ 74)
+Worker 4: 350 tasks processed (+ 73)
+Worker 5: 797 tasks processed (+ 108)
+Worker 6: 542 tasks processed (+ 219)
+Worker 7: 753 tasks processed (+ 140)
+Worker 8: 756 tasks processed (+ 89)
+Worker 9: 759 tasks processed (+ 195)
+Worker 10: 1001 tasks processed (+ 120)
+
+结果：the # of matched graph = 385352227
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 10135
+Worker 0: 1013 tasks processed (+ 121)
+Worker 1: 1207 tasks processed (+ 360)
+Worker 2: 1220 tasks processed (+ 334)
+Worker 3: 805 tasks processed (+ 283)
+Worker 4: 571 tasks processed (+ 221)
+Worker 5: 848 tasks processed (+ 51)
+Worker 6: 635 tasks processed (+ 93)
+Worker 7: 959 tasks processed (+ 206)
+Worker 8: 958 tasks processed (+ 202)
+Worker 9: 901 tasks processed (+ 142)
+Worker 10: 1018 tasks processed (+ 17)
+
+结果：the # of matched graph = 802738999
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 12112
+Worker 0: 1254 tasks processed (+ 241)
+Worker 1: 1339 tasks processed (+ 132)
+Worker 2: 1425 tasks processed (+ 205)
+Worker 3: 871 tasks processed (+ 66)
+Worker 4: 694 tasks processed (+ 123)
+Worker 5: 1155 tasks processed (+ 307)
+Worker 6: 676 tasks processed (+ 41)
+Worker 7: 1173 tasks processed (+ 214)
+Worker 8: 1283 tasks processed (+ 325)
+Worker 9: 1205 tasks processed (+ 304)
+Worker 10: 1037 tasks processed (+ 19)
+
+结果：the # of matched graph = 1286703557
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 13578
+Worker 0: 1498 tasks processed (+ 244)
+Worker 1: 1434 tasks processed (+ 95)
+Worker 2: 1674 tasks processed (+ 249)
+Worker 3: 927 tasks processed (+ 56)
+Worker 4: 773 tasks processed (+ 79)
+Worker 5: 1391 tasks processed (+ 236)
+Worker 6: 709 tasks processed (+ 33)
+Worker 7: 1271 tasks processed (+ 98)
+Worker 8: 1403 tasks processed (+ 120)
+Worker 9: 1349 tasks processed (+ 144)
+Worker 10: 1149 tasks processed (+ 112)
+
+结果：the # of matched graph = 1900800430
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 14282
+Worker 0: 1525 tasks processed (+ 27)
+Worker 1: 1483 tasks processed (+ 49)
+Worker 2: 1754 tasks processed (+ 80)
+Worker 3: 955 tasks processed (+ 28)
+Worker 4: 870 tasks processed (+ 97)
+Worker 5: 1421 tasks processed (+ 30)
+Worker 6: 788 tasks processed (+ 79)
+Worker 7: 1436 tasks processed (+ 165)
+Worker 8: 1436 tasks processed (+ 33)
+Worker 9: 1378 tasks processed (+ 29)
+Worker 10: 1236 tasks processed (+ 87)
+
+结果：the # of matched graph = 2430977410
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 15145
+Worker 0: 1557 tasks processed (+ 32)
+Worker 1: 1493 tasks processed (+ 10)
+Worker 2: 1969 tasks processed (+ 215)
+Worker 3: 955 tasks processed (+ 0)
+Worker 4: 901 tasks processed (+ 31)
+Worker 5: 1463 tasks processed (+ 42)
+Worker 6: 911 tasks processed (+ 123)
+Worker 7: 1481 tasks processed (+ 45)
+Worker 8: 1559 tasks processed (+ 123)
+Worker 9: 1429 tasks processed (+ 51)
+Worker 10: 1427 tasks processed (+ 191)
+
+结果：the # of matched graph = 2756033694
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 15648
+Worker 0: 1695 tasks processed (+ 138)
+Worker 1: 1493 tasks processed (+ 0)
+Worker 2: 2056 tasks processed (+ 87)
+Worker 3: 955 tasks processed (+ 0)
+Worker 4: 981 tasks processed (+ 80)
+Worker 5: 1524 tasks processed (+ 61)
+Worker 6: 911 tasks processed (+ 0)
+Worker 7: 1481 tasks processed (+ 0)
+Worker 8: 1559 tasks processed (+ 0)
+Worker 9: 1545 tasks processed (+ 116)
+Worker 10: 1448 tasks processed (+ 21)
+
+结果：the # of matched graph = 2888538815
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 15901
+Worker 0: 1806 tasks processed (+ 111)
+Worker 1: 1493 tasks processed (+ 0)
+Worker 2: 2056 tasks processed (+ 0)
+Worker 3: 955 tasks processed (+ 0)
+Worker 4: 1095 tasks processed (+ 114)
+Worker 5: 1524 tasks processed (+ 0)
+Worker 6: 911 tasks processed (+ 0)
+Worker 7: 1481 tasks processed (+ 0)
+Worker 8: 1559 tasks processed (+ 0)
+Worker 9: 1545 tasks processed (+ 0)
+Worker 10: 1476 tasks processed (+ 28)
+
+结果：the # of matched graph = 2931102865
+Task Time : 11.165417 seconds
+结果：the # of matched graph = 2945534242
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 16009
+Worker 0: 1806 tasks processed (+ 0)
+Worker 1: 1493 tasks processed (+ 0)
+Worker 2: 2056 tasks processed (+ 0)
+Worker 3: 955 tasks processed (+ 0)
+Worker 4: 1095 tasks processed (+ 0)
+Worker 5: 1524 tasks processed (+ 0)
+Worker 6: 911 tasks processed (+ 0)
+Worker 7: 1481 tasks processed (+ 0)
+Worker 8: 1559 tasks processed (+ 0)
+Worker 9: 1545 tasks processed (+ 0)
+Worker 10: 1584 tasks processed (+ 108)
+

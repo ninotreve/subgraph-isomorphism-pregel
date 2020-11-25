@@ -9,6 +9,7 @@
 #define StartTimer(i) start_timer((i))
 #define StopTimer(i) stop_timer((i))
 #define ResetTimer(i) reset_timer((i))
+#define InitTimer(i) init_timer((i))
 #define PrintTimer(str, i)              \
     if (get_worker_id() == MASTER_RANK) \
         printf("%s : %f seconds\n", (str), get_timer((i)));
@@ -20,7 +21,7 @@ double get_current_time()
     return (double)t.tv_sec + (double)t.tv_usec / 1000000;
 }
 
-const int N_Timers = 10;
+const int N_Timers = 12;
 static double _timers[N_Timers]; // timers
 static double _acc_time[N_Timers]; // accumulated time
 
@@ -32,16 +33,23 @@ void init_timers()
 }
 
 enum TIMERS {
-    WORKER_TIMER = 0,
-    SERIALIZATION_TIMER = 1,
-    TRANSFER_TIMER = 2,
-    COMMUNICATION_TIMER = 3,
+    // Timers for stage
+    TOTAL_TIMER = 0,
+    STAGE_TIMER = 1,
+    COMPUTE_TIMER = 2,
+
+    // Timers inside MATCH
+    WORKER_TIMER = 3,
     SUPERSTEP_TIMER = 4,
-    TOTAL_TIMER = 5,
-    COMPUTE_TIMER = 6,
+    ACTIVE_COMPUTE_TIMER = 5,
+    SYNC_MESSAGE_TIMER = 6,
     SYNC_TIMER = 7,
-    ACTIVE_COMPUTE_TIMER = 8,
-    SYNC_MESSAGE_TIMER = 9
+    AGG_TIMER = 8,
+
+    // Timers for COMMUNICATION
+    COMMUNICATION_TIMER = 11,
+    SERIALIZATION_TIMER = 12,
+    TRANSFER_TIMER = 13
 };
 
 void start_timer(int i)
@@ -59,6 +67,11 @@ void stop_timer(int i)
 {
     double t = get_current_time();
     _acc_time[i] += t - _timers[i];
+}
+
+void init_timer(int i)
+{
+    _acc_time[i] = 0;
 }
 
 double get_timer(int i)

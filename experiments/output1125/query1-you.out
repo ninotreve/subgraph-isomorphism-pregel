@@ -1,0 +1,135 @@
+Data graph path: /g-thinker/labelyou.txt
+Query graph path: /fdu-zyj/query1125/query1.txt
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 1
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+=================Start loading data graph ...=====================
+Load Graph Time : 10.763901 seconds
+================Start preprocessing...=================
+Superstep 1:
+*0.0957839: [0.0654652, 0.0040791, 0.00282431]
+Superstep 1 done.Time elapsed: 0.111575 seconds
+#msgs: 0
+Superstep 2:
+*0.030545: [0.00264907, 0.00255132, 0.0023737]
+Superstep 2 done.Time elapsed: 0.0448852 seconds
+#msgs: 0
+Superstep 3:
+Subgraph preprocessing done. 
+Total Computational Time : 0.168559 seconds
+ - Active Compute Time : 0.126523 seconds
+ - Sync Message Time : 0.007121 seconds
+ - Communication Time : 0.007949 seconds
+    - Serialization Time : 0.000097 seconds
+    - Transfer Time : 0.007803 seconds
+Total #msgs=0, Total #vadd=0
+=================Start loading query...===================
+Worker 0: "hdfs://master:9000/fdu-zyj/query1125/query1.txt" loaded
+Communication Time : 0.000108 seconds
+- Serialization Time : 0.000006 seconds
+- Transfer Time : 0.000101 seconds
+Load Query Time : 0.361853 seconds
+=================Start building query tree...===================
+this->nodes size: 5
+Node 0
+Label: 97
+Branch number: 0
+Neighbors: [1]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 1
+Label: 98
+Branch number: 0
+Neighbors: [0, 2]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 2
+Label: 99
+Branch number: 0
+Neighbors: [1, 3]
+Backward neighbors: []
+Backward same labels: []
+It has 1 children.
+Node 3
+Label: 98
+Branch number: 0
+Neighbors: [2, 4]
+Backward neighbors: []
+Backward same labels: [1]
+It has 1 children.
+Node 4
+Label: 100
+Branch number: 0
+Neighbors: [3]
+Backward neighbors: []
+Backward same labels: []
+It has 0 children.
+Build Query Tree Time : 0.000815 seconds
+================Start matching...======================
+Superstep 1:
+*0.042974: [0.0206761, 0.00406504, 0.00275135]
+Superstep 1 done.Time elapsed: 0.0629039 seconds
+#msgs: 7608
+Superstep 2:
+*0.00480294: [0.000773668, 8.34465e-06, 1.12057e-05]
+Superstep 2 done.Time elapsed: 0.010788 seconds
+#msgs: 3949
+Superstep 3:
+*0.00557399: [0.00158858, 8.34465e-06, 1.00136e-05]
+Superstep 3 done.Time elapsed: 0.0158832 seconds
+#msgs: 5710
+Superstep 4:
+*0.00844693: [0.00439405, 5.24521e-06, 7.39098e-06]
+Superstep 4 done.Time elapsed: 0.0677161 seconds
+#msgs: 3065
+Superstep 5:
+*0.037307: [0.0331497, 1.43051e-05, 1.35899e-05]
+Superstep 5 done.Time elapsed: 0.0925169 seconds
+#msgs: 0
+Superstep 6:
+Subgraph matching done. 
+Total Computational Time : 0.261128 seconds
+ - Active Compute Time : 0.099520 seconds
+ - Sync Message Time : 0.056731 seconds
+ - Communication Time : 0.057484 seconds
+    - Serialization Time : 0.013295 seconds
+    - Transfer Time : 0.043885 seconds
+Total #msgs=20332, Total #vadd=0
+1. Arrange messages: 0.0168843 s
+2. Check feasibility: 0.91458 s
+	 - Check vertex uniqueness: 0.272234 s
+	 - Check non-tree edge: 0.541897 s
+3. Construct neighbor map: 0.0138264 s
+4. Update out messages buffer: 0.0185351 s
+5. Clear out neighbor map: 0.00396085 s
+Main Computation: 0.980211 s
+================Start enumerating...===================
+Superstep 1:
+*0.034368: [0.00247073, 0.00425601, 0.00286484]
+Superstep 1 done.Time elapsed: 0.042799 seconds
+#msgs: 0
+Superstep 2:
+Subgraph enumeration done. 
+Total Computational Time : 0.055033 seconds
+ - Active Compute Time : 0.034572 seconds
+ - Sync Message Time : 0.003706 seconds
+ - Communication Time : 0.004312 seconds
+    - Serialization Time : 0.000094 seconds
+    - Transfer Time : 0.004137 seconds
+Total #msgs=0, Total #vadd=0
+From start to end: total time: 0.91458 s
+ - continue enumerating: 0.0185351 s
+ - expand time: 0.00396085 s
+Sync Time: 0.00653362 s
+================ Final Report ===============
+Mapping count: 4472004
+Load time: 11.1258 s.
+Dump time: 0 s.
+Compute time: 0.317285 s.
+Offline time: 14.3255 s.
+Online time: 0.913638 s.

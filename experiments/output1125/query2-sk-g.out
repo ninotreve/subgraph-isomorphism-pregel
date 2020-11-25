@@ -1,0 +1,50 @@
+Load Time : 9.583967 seconds
+结果：the # of matched graph = 0
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 0
+Worker 0: 0 tasks processed
+Worker 1: 0 tasks processed
+Worker 2: 0 tasks processed
+Worker 3: 0 tasks processed
+Worker 4: 0 tasks processed
+Worker 5: 0 tasks processed
+Worker 6: 0 tasks processed
+Worker 7: 0 tasks processed
+Worker 8: 0 tasks processed
+Worker 9: 0 tasks processed
+Worker 10: 0 tasks processed
+
+结果：the # of matched graph = 4790061
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 5949
+Worker 0: 616 tasks processed (+ 616)
+Worker 1: 587 tasks processed (+ 587)
+Worker 2: 480 tasks processed (+ 480)
+Worker 3: 504 tasks processed (+ 504)
+Worker 4: 453 tasks processed (+ 453)
+Worker 5: 474 tasks processed (+ 474)
+Worker 6: 608 tasks processed (+ 608)
+Worker 7: 572 tasks processed (+ 572)
+Worker 8: 517 tasks processed (+ 517)
+Worker 9: 562 tasks processed (+ 562)
+Worker 10: 576 tasks processed (+ 576)
+
+Task Time : 1.549313 seconds
+结果：the # of matched graph = 7841842
+
+============ PROGRESS REPORT ============
+Total number of tasks processed: 6461
+Worker 0: 628 tasks processed (+ 12)
+Worker 1: 587 tasks processed (+ 0)
+Worker 2: 586 tasks processed (+ 106)
+Worker 3: 554 tasks processed (+ 50)
+Worker 4: 579 tasks processed (+ 126)
+Worker 5: 547 tasks processed (+ 73)
+Worker 6: 608 tasks processed (+ 0)
+Worker 7: 572 tasks processed (+ 0)
+Worker 8: 581 tasks processed (+ 64)
+Worker 9: 643 tasks processed (+ 81)
+Worker 10: 576 tasks processed (+ 0)
+

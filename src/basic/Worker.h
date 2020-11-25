@@ -161,8 +161,6 @@ public:
 
     void active_compute(int type, WorkerParams params, int wakeAll)
     {
-        double timers[4] = {0.0, 0.0, 0.0, 0.0};
-        double t0 = get_current_time();
         active_count = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
@@ -176,8 +174,7 @@ public:
             	(v_msgbufs[i].size() != 0)
             	)
             {
-                double t = get_current_time();
-				switch (type)
+                switch (type)
 				{
 				case PREPROCESS:
                     vertexes[i]->preprocess(v_msgbufs[i], params);
@@ -195,23 +192,13 @@ public:
 						vertexes[i]->enumerate_old(v_msgbufs[i]);
 					break;
 				}
-                timers[0] += get_current_time() - t;
-
-				//clear used msgs
-                t = get_current_time();
+                //clear used msgs
                 v_msgbufs[i].clear();
-                timers[1] += get_current_time() - t;
-
-                t = get_current_time();
+                
 				if (vertexes[i]->is_active())
 					active_count++;
-                timers[2] += get_current_time() - t;
             }
         }
-        timers[3] = get_current_time() - t0;
-        if (_my_rank == MASTER_RANK)
-            cout << "*" << timers[3] << ": [" << timers[0] << ", " << timers[1] 
-                 << ", " << timers[2] << "]" << endl;
     }
 
     inline void add_vertex(VertexT* vertex)
@@ -344,22 +331,18 @@ public:
     }
     //=======================================================
 
-    // run the worker, load the data graph, return loading time
-    double load_data(const WorkerParams & params)
+    // run the worker, load the data graph
+    void load_data(const WorkerParams & params)
     {
     	const string& input_path = params.data_path;
 
-    	if (_my_rank == MASTER_RANK)
-    		cout << "=================Start loading data graph ...=====================" << endl;
         //check path + init
         if (_my_rank == MASTER_RANK) {
             if (dirCheck(input_path.c_str()) == -1)
                 exit(-1);
         }
-        init_timers();
 
         //dispatch splits
-        ResetTimer(WORKER_TIMER);
         vector<vector<string> >* arrangement;
         if (_my_rank == MASTER_RANK) {
             arrangement = dispatchRan(input_path.c_str());
@@ -392,27 +375,19 @@ public:
         message_buffer->init(vertexes);
         //barrier for data loading
         worker_barrier(); //@@@@@@@@@@@@@
-        StopTimer(WORKER_TIMER);
-        PrintTimer("Load Graph Time", WORKER_TIMER);
-        return get_timer(WORKER_TIMER);
     }
 
     //====================================================================
 
     // load the query graph by MASTER and broadcast to SLAVEs, return load time
-    double load_query(const string& input_path)
+    void load_query(const string& input_path)
 	{
-    	if (_my_rank == MASTER_RANK)
-    		cout << "=================Start loading query...===================" << endl;
-
 		//check path + init
     	if (_my_rank == MASTER_RANK) {
 			if (dirCheck(input_path.c_str()) == -1)
 				exit(-1);
 		}
-		init_timers();
-		ResetTimer(WORKER_TIMER);
-
+		
 		if (_my_rank == MASTER_RANK)
 		{
 			// read query from HDFS
@@ -435,25 +410,13 @@ public:
 		//((QueryT*) global_query)->printOrder();
 
 		//barrier for query loading
-		worker_barrier(); //@@@@@@@@@@@@@
-		StopTimer(WORKER_TIMER);
-        PrintTimer("Communication Time", COMMUNICATION_TIMER);
-        PrintTimer("- Serialization Time", SERIALIZATION_TIMER);
-        PrintTimer("- Transfer Time", TRANSFER_TIMER);
-		PrintTimer("Load Query Time", WORKER_TIMER);
-		return get_timer(WORKER_TIMER);
+		worker_barrier();
 	}
 
     //====================================================================
 
-    // build the query tree, return build time
-    double build_query_tree(const string &order)
+    void build_query_tree(const string &order)
 	{
-    	if (_my_rank == MASTER_RANK)
-    		cout << "=================Start building query tree...===================" << endl;
-
-    	init_timers();
-		ResetTimer(WORKER_TIMER);
     	QueryT* query = (QueryT*) global_query;
 		query->init(order);
 
@@ -465,9 +428,6 @@ public:
 
 		//barrier for query tree build
 		worker_barrier(); 
-		StopTimer(WORKER_TIMER);
-		PrintTimer("Build Query Tree Time", WORKER_TIMER);
-		return get_timer(WORKER_TIMER);
 	}
 
     //=========================================================
@@ -475,27 +435,11 @@ public:
     // run preprocess, match or enumerate, return compute time
     void run_type(int type, const WorkerParams & params)
     {
-    	if (_my_rank == MASTER_RANK)
-    	{
-    		switch (type)
-    		{
-    		case PREPROCESS:
-    			cout << "================Start preprocessing...=================" << endl;
-    			break;
-            case FILTER:
-    			cout << "================Start filtering...=================" << endl;
-    			break;    
-    		case MATCH:
-    			cout << "================Start matching...======================" << endl;
-    			break;
-    		case ENUMERATE:
-    			cout << "================Start enumerating...===================" << endl;
-    			break;
-    		}
-    	}
-
-        init_timers();
         ResetTimer(WORKER_TIMER);
+        InitTimer(COMMUNICATION_TIMER);
+        InitTimer(SERIALIZATION_TIMER);
+        InitTimer(TRANSFER_TIMER);
+
         //supersteps
         global_step_num = 0;
         long long step_msg_num;
@@ -507,11 +451,13 @@ public:
 
         vector<MessageT> delete_messages;
         
-        while (true) {
+        while (true) 
+        {
             global_step_num++;
             if (_my_rank == MASTER_RANK && !params.report)
                 cout << "Superstep " << global_step_num << ":" << endl;
-            ResetTimer(4);
+            ResetTimer(SUPERSTEP_TIMER);
+
             // stopping criteria for MATCH and ENUMRATE
             char bits_bor = all_bor(global_bor_bitmap);
             if (getBit(FORCE_TERMINATE_ORBIT, bits_bor) == 1)
@@ -561,7 +507,6 @@ public:
 
             //Distribute received msgs to each vertex
             message_buffer->distribute_messages(delete_messages);
-
             StopTimer(SYNC_MESSAGE_TIMER);
 
             agg_sync();
@@ -572,55 +517,39 @@ public:
             StartTimer(SYNC_TIMER);
             worker_barrier();
             StopTimer(SYNC_TIMER);
-            StopTimer(4);
-            if (_my_rank == MASTER_RANK && !params.report) {
+            StopTimer(SUPERSTEP_TIMER);
+            if (_my_rank == MASTER_RANK && !params.report && type == MATCH) {
                 cout << "Superstep " << global_step_num << " done."
-                	 << "Time elapsed: " << get_timer(4) << " seconds" << endl;
-                cout << "#msgs: " << step_msg_num << endl;
+                	 << "Time elapsed: " << get_timer(SUPERSTEP_TIMER) << " seconds" << endl;
+                cout << "#msgs: " << step_msg_num << ", #vadd: " << step_vadd_num << endl;
             }
         } // end of while loop
+        StartTimer(AGG_TIMER)
         for (size_t i = 0; i < vertexes.size(); i++)
         {
 			agg->stepPartial(vertexes[i], type);
         }
-        if (type != FILTER)
-            agg->agg_mat[2][2] = get_timer(SYNC_TIMER);
         agg_sync();
+        StopTimer(AGG_TIMER)
 
+        StartTimer(SYNC_TIMER);
         worker_barrier();
+        StopTimer(SYNC_TIMER);
+
         StopTimer(WORKER_TIMER);
-        if (_my_rank == MASTER_RANK && !params.report)
+        if (_my_rank == MASTER_RANK && !params.report && type == MATCH)
     	{
-    		switch (type)
-    		{
-    		case PREPROCESS:
-    			cout << "Subgraph preprocessing done. " << endl;
-    			break;
-    		case MATCH:
-    			cout << "Subgraph matching done. " << endl;
-    			break;
-    		case ENUMERATE:
-    			cout << "Subgraph enumeration done. " << endl;
-    			break;
-            case FILTER:
-                cout << "Candidate filtering done." << endl;
-                break;
-    		}
-    	}
-
-        PrintTimer("Total Computational Time", WORKER_TIMER);
-        PrintTimer(" - Active Compute Time", ACTIVE_COMPUTE_TIMER);
-        PrintTimer(" - Sync Message Time", SYNC_MESSAGE_TIMER);
-        PrintTimer(" - Communication Time", COMMUNICATION_TIMER);
-        PrintTimer("    - Serialization Time", SERIALIZATION_TIMER);
-        PrintTimer("    - Transfer Time", TRANSFER_TIMER);
-        
-        if (_my_rank == MASTER_RANK)
-        {
+            cout << "Subgraph matching done. " << endl;
+            PrintTimer("Total Computational Time", WORKER_TIMER);
+            PrintTimer(" - Active Compute Time", ACTIVE_COMPUTE_TIMER);
+            PrintTimer(" - Sync Message Time", SYNC_MESSAGE_TIMER);
+            PrintTimer(" - Sync Time (load imbalance)", SYNC_TIMER);
+            PrintTimer(" - Communication Time", COMMUNICATION_TIMER);
+            PrintTimer("    - Serialization Time", SERIALIZATION_TIMER);
+            PrintTimer("    - Transfer Time", TRANSFER_TIMER);
             cout << "Total #msgs=" << global_msg_num << ", "
-            		"Total #vadd=" << global_vadd_num << endl;
-        }
-
+                "Total #vadd=" << global_vadd_num << endl;
+    	}
     }
 
     // dump result and return dump time

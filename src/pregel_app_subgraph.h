@@ -7,6 +7,9 @@ using namespace std;
 #define NCOL (step_num()-1)
 #define START_TIMING(T) (T) = get_current_time();
 #define STOP_TIMING(T, X, Y) this->timers[(X)][(Y)] += get_current_time() - (T);
+#define MPRINT(str) \
+	if (get_worker_id() == MASTER_RANK) \
+		printf("%s\n", (str));
 
 /*
 #define DEBUG_MODE_ACTIVE 1
@@ -39,6 +42,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 public:
 	SICandidate *candidate;
 	double timers[3][3];
+	int results_count = 0;
 	bool manual_active = true;
 
 	vector<int*>* final_results;
@@ -66,6 +70,7 @@ public:
 			//convert vector to set
 			for (size_t i = 0; i < value().degree; ++i)
 				value().nbs_set.insert(value().nbs_vector[i].key.vID);
+			vote_to_halt();
 		}
 		else
 		{   // receive label and degree from neighbors, set up bloom filter
@@ -91,7 +96,7 @@ public:
 		double t = get_current_time();
 		SIQuery* query = (SIQuery*)getQuery();
 		// check vertex uniqueness
-		for (int b_level : query->getBSameLabPos(query_u))
+		for (int &b_level : query->getBSameLabPos(query_u))
 		{
 			if (this->id.vID == mapping[b_level])
 			{
@@ -102,7 +107,7 @@ public:
 
 		this->timers[2][0] += get_current_time() - t;
 		// check backward neighbors
-		for (int b_level : query->getBNeighborsPos(query_u))
+		for (int &b_level : query->getBNeighborsPos(query_u))
 		{
 			if (! this->value().hasNeighbor(mapping[b_level]))
 			{
@@ -849,8 +854,11 @@ void pregel_subgraph(const WorkerParams & params)
 	//CCCombiner_pregel combiner;
 	//if(use_combiner) worker.setCombiner(&combiner);
 
+//=============================================================================
+	// OFFLINE STAGE
+	MPRINT("");
 	init_timers();
-	start_timer(TOTAL_TIMER);
+	StartTimer(TOTAL_TIMER);
 
 	SIQuery query;
 	worker.setQuery(&query);
@@ -858,33 +866,62 @@ void pregel_subgraph(const WorkerParams & params)
 	SIAgg agg;
 	worker.setAggregator(&agg);
 
-	double time, load_time = 0.0, compute_time = 0.0, dump_time = 0.0,
-			offline_time = 0.0, online_time = 0.0;
+	// STAGE 1: Load data graph
+	MPRINT("Loading data graph...")
+	ResetTimer(STAGE_TIMER);
+	worker.load_data(params);
+	StopTimer(STAGE_TIMER);
+	PrintTimer("Loading data graph time", STAGE_TIMER)
 
-	time = worker.load_data(params);
-	load_time += time;
-
+	// STAGE 2: Preprocessing
+	MPRINT("Preprocessing...")
+	ResetTimer(STAGE_TIMER);
 	if (params.preprocess)
 		worker.run_type(PREPROCESS, params);
+	StopTimer(STAGE_TIMER);
+	PrintTimer("Preprocessing time", STAGE_TIMER)
 
-	stop_timer(TOTAL_TIMER);
-	offline_time = get_timer(TOTAL_TIMER);
-	reset_timer(TOTAL_TIMER);
+	StopTimer(TOTAL_TIMER);
+	PrintTimer("In total, offline time", TOTAL_TIMER)
 
-	time = worker.load_query(params.query_path);
-	load_time += time;
+//=============================================================================
+	// ONLINE STAGE
+	MPRINT("");
+	StartTimer(TOTAL_TIMER);
 
-	start_timer(COMPUTE_TIMER);
+	// STAGE 1: Load query graph
+	MPRINT("Loading query graph...")
+	ResetTimer(STAGE_TIMER);
+	worker.load_query(params.query_path);
+	StopTimer(STAGE_TIMER);
+	PrintTimer("Loading query graph time", STAGE_TIMER)
+
+	//=============== The most important timer starts here!!! =================
+	StartTimer(COMPUTE_TIMER);
+
+	// STAGE 2: Filtering
+	MPRINT("Filtering...")
+	ResetTimer(STAGE_TIMER);
 	if (params.filter)
 	{
 		wakeAll();
 		worker.run_type(FILTER, params);
 	}
+	StopTimer(STAGE_TIMER);
+	PrintTimer("Filtering time", STAGE_TIMER)
 
-	time = worker.build_query_tree(params.order);
+	MPRINT("Building query tree...")
+	ResetTimer(STAGE_TIMER);
+	worker.build_query_tree(params.order);
+	StopTimer(STAGE_TIMER);
+	PrintTimer("Building query tree time", STAGE_TIMER)
 
+	MPRINT("**Subgraph matching**")
+	ResetTimer(STAGE_TIMER);
 	wakeAll();
 	worker.run_type(MATCH, params);
+	StopTimer(STAGE_TIMER);
+	PrintTimer("Subgraph matching time", STAGE_TIMER)
 
 	if (_my_rank == MASTER_RANK)
 	{
@@ -896,7 +933,7 @@ void pregel_subgraph(const WorkerParams & params)
 		cout << "\t - Check vertex uniqueness: " <<
 			mat[2][0] << " s" << endl;
 		cout << "\t - Check non-tree edge: " <<
-			mat[2][1] << " s" << endl;
+			mat[2][1] - mat[2][0] << " s" << endl;
 		cout << "3. Construct neighbor map: " <<
 			mat[0][2] << " s" << endl;
 		cout << "4. Update out messages buffer: " <<
@@ -921,8 +958,6 @@ void pregel_subgraph(const WorkerParams & params)
 			mat[1][0] << " s" << endl;
 		cout << " - expand time: " <<
 			mat[1][1] << " s" << endl;
-		cout << "Sync Time: " <<
-			mat[2][2] << " s" << endl;
 	}
 
 	time = worker.dump_graph(params.output_path, params.force_write);
@@ -943,4 +978,6 @@ void pregel_subgraph(const WorkerParams & params)
 		cout << "Offline time: " << offline_time << " s." << endl;
 		cout << "Online time: " << online_time << " s." << endl;
 	}
+
+	PrintTimer("Load Graph Time", LOAD_TIMER);
 }
