@@ -42,7 +42,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 public:
 	SICandidate *candidate;
 	double timers[3][3];
-	int results_count = 0;
+	int eligible_neighbors = 1;
 	bool manual_active = true;
 
 	vector<int*>* final_results;
@@ -67,9 +67,17 @@ public:
 					send_messages(wID, neighbors_map[wID], msg);
 			}
 
-			//convert vector to set
+			//convert vector to set & build nblab_dist
 			for (size_t i = 0; i < value().degree; ++i)
+			{
 				value().nbs_set.insert(value().nbs_vector[i].key.vID);
+				if (value().nblab_dist.find(value().nbs_vector[i].label) 
+					!= value().nblab_dist.end())
+					value().nblab_dist[value().nbs_vector[i].label]++;
+				else
+					value().nblab_dist[value().nbs_vector[i].label] = 1;
+			}
+					
 			vote_to_halt();
 		}
 		else
@@ -188,6 +196,7 @@ public:
 
 			//Continue mapping
 			vector<int> &next_us = query->getChildren(curr_u);
+			vector<int> &ps_labs = query->getPseudoLabel(curr_u);
 			if (!passed_mappings->empty() || step_num() == 1)
 			{
 				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
@@ -254,6 +263,12 @@ public:
 				{ //Leaf query vertex
 					this->manual_active = true;
 					this->final_results = passed_mappings;
+					if (!ps_labs.empty())
+					{
+						this->eligible_neighbors
+							= this->value().countOccurrences(ps_labs,
+							query->getPseudoLabelCount(curr_u));
+					}
 				}
 			}
 		}
@@ -677,7 +692,8 @@ public:
     	else if (type == ENUMERATE)
     	{
 			if (v->manual_active)
-    			agg_mat[0][0] += v->final_results->size();
+    			agg_mat[0][0] += v->final_results->size() * v->eligible_neighbors;
+			//Sorry I cheat here. Eligible neighbors are not saved.
 
 			for (int i = 0; i < 3; i++)
 				for (int j = 0; j < 3; j++)

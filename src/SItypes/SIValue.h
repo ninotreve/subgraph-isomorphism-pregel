@@ -34,10 +34,25 @@ struct SIValue
 	int degree;
 	vector<KeyLabel> nbs_vector;
 	hash_set<int> nbs_set;
+	hash_map<int, int> nblab_dist; //distribution of labels
 
 	inline bool hasNeighbor(int &vID)
 	{
 		return nbs_set.find(vID) != nbs_set.end();
+	}
+
+	int countOccurrences(vector<int> &labels, vector<int> &counts)
+	{
+		int prod = 1;
+		for (int i = 0; i < labels.size(); i++)
+		{
+			int label = labels[i];
+			int count = counts[i];
+			int num = nblab_dist[label];
+			for (int j = 0; j < count; j++)
+				prod = prod * (num - j) / (j + 1);
+		}
+		return prod;
 	}
 };
 

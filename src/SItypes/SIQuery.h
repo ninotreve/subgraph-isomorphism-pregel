@@ -37,6 +37,9 @@ struct SINode
 	int parent;
 	int level; // root: level 0. Used as an index in mapping.
 	vector<int> children;
+	// pseudo children: do not send messages
+	vector<int> ps_children_labels;
+	vector<int> ps_children_labels_count;
 	// positions of backward neighbors (excluding its parent!)
 	vector<int> b_nbs_pos;
 	// positions of backward vertices with same label
@@ -92,6 +95,7 @@ ostream & operator << (ostream & os, const SINode & node)
 {
 	os << "[Label: " << node.label 
 	   << " Neighbors: " << node.nbs
+	   << " Level: " << node.level
 	   << " Backward neighbors: " << node.b_nbs_pos << "]";
 	return os;
 }
@@ -153,7 +157,8 @@ public:
 					}
 				}
 			}
-			this->dfs(this->root, 0, true, order);
+			vector<int> sequence;
+			this->dfs(this->root, 0, true, order, sequence);
 			this->addBranchNumber(this->root, 0, this->root);
 			this->initBuckets();
 		}
@@ -196,18 +201,28 @@ public:
 			SINode* curr = &this->nodes[this->dfs_order[i]];
 			cout << "Node " << this->dfs_order[i] << ": "
 				 << *curr << ". with " << curr->children.size() 
-				 <<	" children." << endl;
+				 <<	" children and " << curr->ps_children_labels.size()
+				 << " pseudo children." << endl;
+			if (!curr->ps_children_labels.empty())
+			{
+				cout << "{";
+				for (size_t j = 0; j < curr->ps_children_labels.size(); j++)
+					cout << curr->ps_children_labels[j] << "*" 
+						 << curr->ps_children_labels_count[j] << " ";
+				cout << "}" << endl;
+			}
 		}
 	}
 
-	void dfs(int currID, int parentID, bool isRoot, const string &order)
+	void dfs(int currID, int parentID, bool isRoot, const string &order,
+		vector<int> &sequence)
 	{
 		// recursive function to implement depth-first search.
 		// only called when current node is not visited.
 		SINode* curr = &this->nodes[currID];
 		curr->visited = true;
 		curr->dfs_number = this->dfs_order.size();
-		dfs_order.push_back(currID);
+		this->dfs_order.push_back(currID);
 
 		// update level
 		if (isRoot)
@@ -215,19 +230,19 @@ public:
 		else
 		{
 			curr->parent = parentID;
-			SINode* parent = & this->nodes[parentID];
-			parent->children.push_back(currID);
-			curr->level = parent->level + 1;
+			curr->level = this->getLevel(parentID) + 1;
 			if (curr->level > this->max_level)
 				this->max_level = curr->level;
 		}
 
-		// adding in nodes that are visited and with same label
-		for (SINode& node: this->nodes)
+		// adding in nodes with same label in the sequence 
+		for (int id : sequence)
 		{
-			if (node.visited && node.label == curr->label && node.id != curr->id)
-				curr->b_same_lab_pos.push_back(node.level);
+			SINode* anc = &this->nodes[id];
+			if (anc->label == curr->label && anc->id != curr->id)
+				curr->b_same_lab_pos.push_back(anc->level);
 		}
+		sequence.push_back(currID);
 
 		// we must have two loops to avoid descendants being visited
 		// by other descendants.
@@ -267,7 +282,31 @@ public:
 		{
 			if (! this->nodes[it->first].visited)
 			{
-				this->dfs(it->first, currID, false, order);
+				this->dfs(it->first, currID, false, order, sequence);
+				int childID = sequence.back();
+				SINode *child = &this->nodes[childID];
+				if (child->children.empty() && child->ps_children_labels.empty() &&
+					child->b_nbs_pos.empty() && child->b_same_lab_pos.empty())
+				{
+					int index, childLab = this->getLabel(childID);
+					for (index = 0; index < curr->ps_children_labels.size(); index++)
+					{
+						if (curr->ps_children_labels[index] == childLab)
+						{
+							curr->ps_children_labels_count[index]++;
+							break;
+						}
+					}
+					if (index == curr->ps_children_labels.size())
+					{
+						curr->ps_children_labels.push_back(childLab);
+						curr->ps_children_labels_count.push_back(1);
+					}
+				}		
+				else
+					curr->children.push_back(childID);
+				
+				sequence.pop_back();
 			}
 		}
 	}
@@ -327,6 +366,10 @@ public:
 	int getParent(int id) { return this->nodes[id].parent; }
 	vector<int> &getChildren(int id)
 	{ return this->nodes[id].children; }
+	vector<int> &getPseudoLabel(int id)
+	{ return this->nodes[id].ps_children_labels; }
+	vector<int> &getPseudoLabelCount(int id)
+	{ return this->nodes[id].ps_children_labels_count; }
 	vector<int> &getBNeighborsPos(int id)
 	{ return this->nodes[id].b_nbs_pos; }
 	vector<int> &getBSameLabPos(int id)

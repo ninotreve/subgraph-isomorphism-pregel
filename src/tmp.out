@@ -8,68 +8,62 @@ Order Method: random
 Enumerate Method: 1
 
 Loading data graph...
-Loading data graph time : 0.937289 seconds
+Loading data graph time : 0.902129 seconds
 Preprocessing...
-Preprocessing time : 0.000065 seconds
-In total, offline time : 0.937375 seconds
+Preprocessing time : 0.000032 seconds
+In total, offline time : 0.902169 seconds
 
 Loading query graph...
 Worker 0: "hdfs://36279a66fe8e:9000/query/query.txt" loaded
-Loading query graph time : 0.077329 seconds
+Loading query graph time : 0.076359 seconds
 Filtering...
-Filtering time : 0.000001 seconds
+Filtering time : 0.000000 seconds
 Building query tree...
 # Query Vertices: 5
-Node 0: [Label: 97 Neighbors: [1, 2] Backward neighbors: []]. with 1 children.
-Node 1: [Label: 98 Neighbors: [0, 2] Backward neighbors: []]. with 1 children.
-Node 2: [Label: 99 Neighbors: [0, 1, 3] Backward neighbors: [0]]. with 1 children.
-Node 3: [Label: 98 Neighbors: [2, 4] Backward neighbors: []]. with 1 children.
-Node 4: [Label: 100 Neighbors: [3] Backward neighbors: []]. with 0 children.
-Building query tree time : 0.000040 seconds
+Node 0: [Label: 97 Neighbors: [1, 2] Level: 0 Backward neighbors: []]. with 1 children and 0 pseudo children.
+Node 1: [Label: 98 Neighbors: [0, 2] Level: 1 Backward neighbors: []]. with 1 children and 0 pseudo children.
+Node 2: [Label: 99 Neighbors: [0, 1, 3] Level: 2 Backward neighbors: [0]]. with 1 children and 0 pseudo children.
+Node 3: [Label: 98 Neighbors: [2, 4] Level: 3 Backward neighbors: []]. with 0 children and 1 pseudo children.
+{100*1 }
+Node 4: [Label: 100 Neighbors: [3] Level: 4 Backward neighbors: []]. with 0 children and 0 pseudo children.
+Building query tree time : 0.000058 seconds
 **Subgraph matching**
-Superstep 1:
-Superstep 1 done.Time elapsed: 3.69549e-05 seconds
+Superstep 1 done.Time elapsed: 2.40803e-05 seconds
+#msgs: 2, #vadd: 0
+Superstep 2 done.Time elapsed: 1.40667e-05 seconds
 #msgs: 3, #vadd: 0
-Superstep 2:
-Superstep 2 done.Time elapsed: 2.09808e-05 seconds
-#msgs: 4, #vadd: 0
-Superstep 3:
-Superstep 3 done.Time elapsed: 2.19345e-05 seconds
-#msgs: 6, #vadd: 0
-Superstep 4:
-Superstep 4 done.Time elapsed: 2.7895e-05 seconds
-#msgs: 6, #vadd: 0
-Superstep 5:
-Superstep 5 done.Time elapsed: 1.71661e-05 seconds
+Superstep 3 done.Time elapsed: 1.50204e-05 seconds
+#msgs: 3, #vadd: 0
+*2*1
+*1*3
+*1*1
+*1*1
+Superstep 4 done.Time elapsed: 2.90871e-05 seconds
 #msgs: 0, #vadd: 0
-Superstep 6:
 Subgraph matching done. 
-Total Computational Time : 0.000201 seconds
- - Active Compute Time : 0.000020 seconds
- - Sync Message Time : 0.000037 seconds
- - Sync Time (load imbalance) : 0.000010 seconds
- - Communication Time : 0.000060 seconds
-    - Serialization Time : 0.000017 seconds
-    - Transfer Time : 0.000032 seconds
-Total #msgs=19, Total #vadd=0
-Subgraph matching time : 0.000230 seconds
-1. Arrange messages: 3.8147e-06 s
-2. Check feasibility: 3.8147e-06 s
-	 - Check vertex uniqueness: 1.90735e-06 s
-	 - Check non-tree edge: 9.53674e-07 s
-3. Construct neighbor map: 9.53674e-07 s
-4. Update out messages buffer: 6.91414e-06 s
-5. Clear out neighbor map: 0 s
-Main Computation: 1.4782e-05 s
+Total Computational Time : 0.000145 seconds
+ - Active Compute Time : 0.000054 seconds
+ - Sync Message Time : 0.000008 seconds
+ - Agg Time : 0.000003 seconds
+ - Sync Time (load imbalance) : 0.000001 seconds
+ - Communication Time : 0.000013 seconds
+    - Serialization Time : 0.000008 seconds
+    - Transfer Time : 0.000002 seconds
+Total #msgs=8, Total #vadd=0
+Subgraph matching time : 0.000161 seconds
+[Detailed report]
+1. Arrange messages: 9.53674e-07 s
+2. Main Computation: 3.50475e-05 s
+2.1. Check feasibility: 8.34465e-06 s
+2.2. Construct neighbor map: 1.90735e-06 s
+2.3. Update out messages buffer: 3.8147e-06 s
+2.4. Clear out neighbor map: 0 s
 **Subgraph enumeration**
-Subgraph enumeration time : 0.000025 seconds
-From start to end: total time: 3.8147e-06 s
- - continue enumerating: 6.91414e-06 s
- - expand time: 0 s
+Subgraph enumeration time : 0.000011 seconds
 Dumping results...
 output path: /output
-Dumping results time : 0.132577 seconds
-In total, online time : 1.147674 seconds
+Dumping results time : 0.147308 seconds
+In total, online time : 0.223976 seconds
 ================ Final Report ===============
 Mapping count: 7
-COMPUTE Time : 0.000366 seconds
+COMPUTE Time : 0.000297 seconds
