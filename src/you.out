@@ -1,5 +1,5 @@
 Data graph path: /data/labelyou.txt
-Query graph path: /query/query.txt
+Query graph path: /query/query1.txt
 Output graph path: /output
 Partition Method: 
 Preprocess Method: 1
@@ -8,64 +8,61 @@ Order Method: random
 Enumerate Method: 1
 
 Loading data graph...
-Loading data graph time : 3.816750 seconds
+Loading data graph time : 3.754711 seconds
 Preprocessing...
-Preprocessing time : 0.243110 seconds
-In total, offline time : 4.059890 seconds
+Preprocessing time : 0.244458 seconds
+In total, offline time : 3.999200 seconds
 
 Loading query graph...
-Worker 0: "hdfs://36279a66fe8e:9000/query/query.txt" loaded
-Loading query graph time : 0.077578 seconds
+Worker 0: "hdfs://36279a66fe8e:9000/query/query1.txt" loaded
+Loading query graph time : 0.075925 seconds
 Filtering...
 Filtering time : 0.000000 seconds
 Building query tree...
 # Query Vertices: 5
-Node 0: [Label: 97 Neighbors: [1, 2] Backward neighbors: []]. with 1 children.
+Node 0: [Label: 97 Neighbors: [1] Backward neighbors: []]. with 1 children.
 Node 1: [Label: 98 Neighbors: [0, 2] Backward neighbors: []]. with 1 children.
-Node 2: [Label: 99 Neighbors: [0, 1, 3] Backward neighbors: [0]]. with 1 children.
+Node 2: [Label: 99 Neighbors: [1, 3] Backward neighbors: []]. with 1 children.
 Node 3: [Label: 98 Neighbors: [2, 4] Backward neighbors: []]. with 1 children.
 Node 4: [Label: 100 Neighbors: [3] Backward neighbors: []]. with 0 children.
-Building query tree time : 0.000071 seconds
+Building query tree time : 0.000035 seconds
 **Subgraph matching**
-Superstep 1 done.Time elapsed: 0.071594 seconds
+Superstep 1 done.Time elapsed: 0.0653839 seconds
 #msgs: 6072, #vadd: 0
-Superstep 2 done.Time elapsed: 0.0110989 seconds
+Superstep 2 done.Time elapsed: 0.0110881 seconds
 #msgs: 2451, #vadd: 0
-Superstep 3 done.Time elapsed: 0.012537 seconds
-#msgs: 720, #vadd: 0
-Superstep 4 done.Time elapsed: 0.0113161 seconds
-#msgs: 1290, #vadd: 0
-Superstep 5 done.Time elapsed: 0.015727 seconds
+Superstep 3 done.Time elapsed: 0.0142291 seconds
+#msgs: 4053, #vadd: 0
+Superstep 4 done.Time elapsed: 0.030421 seconds
+#msgs: 1842, #vadd: 0
+Superstep 5 done.Time elapsed: 0.0166068 seconds
 #msgs: 0, #vadd: 0
 Subgraph matching done. 
-Total Computational Time : 0.141388 seconds
- - Active Compute Time : 0.117069 seconds
- - Sync Message Time : 0.005027 seconds
- - Agg Time : 0.037759 seconds
- - Sync Time (load imbalance) : 0.000040 seconds
- - Communication Time : 0.002659 seconds
-    - Serialization Time : 0.001342 seconds
-    - Transfer Time : 0.001310 seconds
-Total #msgs=10533, Total #vadd=0
-Subgraph matching time : 0.141410 seconds
+Total Computational Time : 0.157346 seconds
+ - Active Compute Time : 0.112018 seconds
+ - Sync Message Time : 0.025532 seconds
+ - Agg Time : 0.019492 seconds
+ - Sync Time (load imbalance) : 0.000037 seconds
+ - Communication Time : 0.022293 seconds
+    - Serialization Time : 0.009612 seconds
+    - Transfer Time : 0.012674 seconds
+Total #msgs=14418, Total #vadd=0
+Subgraph matching time : 0.157367 seconds
 [Detailed report]
-1. Arrange messages: 0.00769663 s
-2. Main Computation: 0.0573676 s
-2.1. Check feasibility: 0.0363379 s
-	 - Check vertex uniqueness: 0.00810456 s
-	 - Check non-tree edge: 0.0126843 s
-2.2. Construct neighbor map: 0.00659299 s
-2.3. Update out messages buffer: 0.00405669 s
-2.4. Clear out neighbor map: 0.00121903 s
+1. Arrange messages: 0.00801039 s
+2. Main Computation: 0.058764 s
+2.1. Check feasibility: 0.0354233 s
+	 - Check vertex uniqueness: 0 s
+	 - Check non-tree edge: 0 s
+2.2. Construct neighbor map: 0.00721073 s
+2.3. Update out messages buffer: 0.00591421 s
+2.4. Clear out neighbor map: 0.0011878 s
 **Subgraph enumeration**
-Subgraph enumeration time : 0.027842 seconds
-From start to end: total time: 0.0363379 s
- - continue enumerating: 0.00405669 s
- - expand time: 0.00121903 s
+Subgraph enumeration time : 0.028537 seconds
 Dumping results...
 output path: /output
-Dumping results time : 0.195922 seconds
-In total, online time : 0.442914 seconds
+Dumping results time : 1.222940 seconds
+In total, online time : 1.484865 seconds
 ================ Final Report ===============
-Mapping count: 238901
-COMPUTE Time : 0.169384 seconds
+Mapping count: 4472004
+COMPUTE Time : 0.185975 seconds

@@ -437,6 +437,8 @@ public:
     {
         ResetTimer(WORKER_TIMER);
         InitTimer(ACTIVE_COMPUTE_TIMER);
+        InitTimer(SYNC_MESSAGE_TIMER);
+        InitTimer(SYNC_TIMER);
         InitTimer(COMMUNICATION_TIMER);
         InitTimer(SERIALIZATION_TIMER);
         InitTimer(TRANSFER_TIMER);
@@ -523,7 +525,7 @@ public:
                 cout << "#msgs: " << step_msg_num << ", #vadd: " << step_vadd_num << endl;
             }
         } // end of while loop
-        StartTimer(AGG_TIMER);
+        ResetTimer(AGG_TIMER);
         for (size_t i = 0; i < vertexes.size(); i++)
         {
 			agg->stepPartial(vertexes[i], type);

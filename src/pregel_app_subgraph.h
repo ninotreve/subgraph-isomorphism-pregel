@@ -93,29 +93,16 @@ public:
 
 	bool check_feasibility(int *mapping, int query_u)
 	{ // check vertex uniqueness and backward neighbors 
-		double t = get_current_time();
 		SIQuery* query = (SIQuery*)getQuery();
 		// check vertex uniqueness
 		for (int &b_level : query->getBSameLabPos(query_u))
-		{
 			if (this->id.vID == mapping[b_level])
-			{
-				this->timers[2][0] += get_current_time() - t;
 				return false;
-			}
-		}
 
-		this->timers[2][0] += get_current_time() - t;
 		// check backward neighbors
 		for (int &b_level : query->getBNeighborsPos(query_u))
-		{
 			if (! this->value().hasNeighbor(mapping[b_level]))
-			{
-				this->timers[2][1] += get_current_time() - t;
 				return false;
-			}
-		}
-		this->timers[2][1] += get_current_time() - t;
 		return true;
 	}
 
@@ -935,10 +922,6 @@ void pregel_subgraph(const WorkerParams & params)
 			mat[1][2] << " s" << endl;
 		cout << "2.1. Check feasibility: " <<
 			mat[0][1] << " s" << endl;
-		cout << "\t - Check vertex uniqueness: " <<
-			mat[2][0] << " s" << endl;
-		cout << "\t - Check non-tree edge: " <<
-			mat[2][1] - mat[2][0] << " s" << endl;
 		cout << "2.2. Construct neighbor map: " <<
 			mat[0][2] << " s" << endl;
 		cout << "2.3. Update out messages buffer: " <<
@@ -954,17 +937,6 @@ void pregel_subgraph(const WorkerParams & params)
 	worker.run_type(ENUMERATE, params);
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Subgraph enumeration time", STAGE_TIMER)
-
-	if (_my_rank == MASTER_RANK)
-	{
-		auto mat = *((AggMat*)global_agg);
-		cout << "From start to end: total time: " <<
-			mat[0][1] << " s" << endl;
-		cout << " - continue enumerating: " <<
-			mat[1][0] << " s" << endl;
-		cout << " - expand time: " <<
-			mat[1][1] << " s" << endl;
-	}
 
 	StopTimer(COMPUTE_TIMER);
 	//=============== The most important timer stops here!!! =================
