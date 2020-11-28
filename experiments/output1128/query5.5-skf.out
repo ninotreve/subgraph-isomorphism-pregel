@@ -1,0 +1,67 @@
+Data graph path: /g-thinker/newdata/skitter_f.txt
+Query graph path: /fdu-zyj/query1125/query2.txt
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 1
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+
+Loading data graph...
+Loading data graph time : 32.493404 seconds
+Preprocessing...
+Preprocessing time : 0.492125 seconds
+In total, offline time : 32.985639 seconds
+
+Loading query graph...
+Worker 0: "hdfs://master:9000/fdu-zyj/query1125/query2.txt" loaded
+Loading query graph time : 0.886776 seconds
+Filtering...
+Filtering time : 0.000000 seconds
+Building query tree...
+# Query Vertices: 5
+Node 0: [Label: 97 Neighbors: [1, 2] Level: 0 Backward neighbors: []]. with 1 children and 0 pseudo children.
+Node 1: [Label: 98 Neighbors: [0, 2] Level: 1 Backward neighbors: []]. with 1 children and 0 pseudo children.
+Node 2: [Label: 99 Neighbors: [0, 1, 3] Level: 2 Backward neighbors: [0]]. with 1 children and 0 pseudo children.
+Node 3: [Label: 98 Neighbors: [2, 4] Level: 3 Backward neighbors: []]. with 0 children and 1 pseudo children.
+{100*1 }
+Node 4: [Label: 100 Neighbors: [3] Level: 4 Backward neighbors: []]. with 0 children and 0 pseudo children.
+Building query tree time : 0.000676 seconds
+**Subgraph matching**
+Superstep 1 done.Time elapsed: 0.145252 seconds
+#msgs: 327255, #vadd: 0
+Superstep 2 done.Time elapsed: 0.148399 seconds
+#msgs: 253994, #vadd: 0
+Superstep 3 done.Time elapsed: 0.405365 seconds
+#msgs: 188437, #vadd: 0
+Superstep 4 done.Time elapsed: 0.233175 seconds
+#msgs: 0, #vadd: 0
+Subgraph matching done. 
+Total Computational Time : 0.958314 seconds
+ - Active Compute Time : 0.440192 seconds
+ - Sync Message Time : 0.345643 seconds
+ - Agg Time : 0.022932 seconds
+ - Sync Time (load imbalance) : 0.004229 seconds
+ - Communication Time : 0.304354 seconds
+    - Serialization Time : 0.120743 seconds
+    - Transfer Time : 0.180896 seconds
+Total #msgs=769686, Total #vadd=0
+Subgraph matching time : 0.958426 seconds
+[Detailed report]
+1. Arrange messages: 0.24509 s
+2. Main Computation: 6.09307 s
+2.1. Check feasibility: 5.1355 s
+2.2. Continue mapping: 0.870506 s
+2.2.0. Initiate neighbor map: 0.123105 s
+2.2.1. Construct neighbor map: 0.157518 s
+2.2.2. Update out messages buffer: 0.310004 s
+2.2.3. Clear out neighbor map: 0.0256929 s
+2.2.4. Leaf query vertex counting: 0.0642819 s
+**Subgraph enumeration**
+Subgraph enumeration time : 0.042848 seconds
+Dumping results...
+Dumping results time : 0.000000 seconds
+In total, online time : 1.888985 seconds
+================ Final Report ===============
+Mapping count: 2187761840
+COMPUTE Time : 1.002166 seconds
