@@ -117,7 +117,7 @@ public:
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
 	{
 		SIQuery* query = (SIQuery*)getQuery();
-		double t, t1;
+		double t, t1, t2;
 
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
@@ -200,16 +200,20 @@ public:
 			*/
 
 			//Continue mapping
+			//START_TIMING(t1);
 			vector<int> &next_us = query->getChildren(curr_u);
 			vector<int> &ps_labs = query->getPseudoLabel(curr_u);
+			START_TIMING(t1);
 			if (!passed_mappings->empty() || step_num() == 1)
 			{
+				START_TIMING(t2);
 				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
+				STOP_TIMING(t2, 2, 2);
 				for (int next_u : next_us)
 				{
 					//Construct neighbors_map: 
 				  	//Loop through neighbors and select out ones with right labels
-				    START_TIMING(t1);
+				    START_TIMING(t2);
 					if (params.filter)
 					{ //With filtering
 						hash_set<SIKey> &keys = candidate->candidates[curr_u][next_u];
@@ -227,10 +231,10 @@ public:
 								neighbors_map[kl.key.wID].push_back(kl.key.vID);
 						}
 					}
-					STOP_TIMING(t1, 0, 2);
+					STOP_TIMING(t2, 0, 2);
 
 					//Update out_message_buffer
-					START_TIMING(t1);
+					START_TIMING(t2);
 					for (int wID = 0; wID < get_num_workers(); wID++)
 					{
 						if (neighbors_map[wID].empty())
@@ -256,16 +260,19 @@ public:
 									passed_mappings));
 						}
 					}
-					STOP_TIMING(t1, 1, 0);
+					STOP_TIMING(t2, 1, 0);
 
 					//Clear neighbors_map
-					START_TIMING(t1);
+					START_TIMING(t2);
 					for (int i = 0; i < get_num_workers(); i++)
 						neighbors_map[i].clear();
-					STOP_TIMING(t1, 1, 1);
+					STOP_TIMING(t2, 1, 1);
 				}
+
+				//Leaf query vertex counting
+				START_TIMING(t2);
 				if (next_us.size() == 0)
-				{ //Leaf query vertex
+				{
 					this->manual_active = true;
 					this->final_results = passed_mappings;
 					if (!ps_labs.empty())
@@ -275,7 +282,9 @@ public:
 							query->getPseudoLabelCount(curr_u));
 					}
 				}
+				STOP_TIMING(t2, 2, 1);
 			}
+			STOP_TIMING(t1, 2, 0);
 		}
 		STOP_TIMING(t, 1, 2);
 		vote_to_halt();
@@ -943,12 +952,18 @@ void pregel_subgraph(const WorkerParams & params)
 			mat[1][2] << " s" << endl;
 		cout << "2.1. Check feasibility: " <<
 			mat[0][1] << " s" << endl;
-		cout << "2.2. Construct neighbor map: " <<
+		cout << "2.2. Continue mapping: " <<
+			mat[2][0] << " s" << endl;	
+		cout << "2.2.0. Initiate neighbor map: " <<
+			mat[2][2] << " s" << endl;		
+		cout << "2.2.1. Construct neighbor map: " <<
 			mat[0][2] << " s" << endl;
-		cout << "2.3. Update out messages buffer: " <<
+		cout << "2.2.2. Update out messages buffer: " <<
 			mat[1][0] << " s" << endl;
-		cout << "2.4. Clear out neighbor map: " <<
+		cout << "2.2.3. Clear out neighbor map: " <<
 			mat[1][1] << " s" << endl;
+		cout << "2.2.4. Leaf query vertex counting: " <<
+			mat[2][1] << " s" << endl;
 	}
 
 	// STAGE 5: Subgraph enumeration
@@ -965,7 +980,7 @@ void pregel_subgraph(const WorkerParams & params)
 	// STAGE 6: Dumping
 	MPRINT("Dumping results...")
 	ResetTimer(STAGE_TIMER);
-	worker.dump_graph(params.output_path, params.force_write);
+	//worker.dump_graph(params.output_path, params.force_write);
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Dumping results time", STAGE_TIMER)
 

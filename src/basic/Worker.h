@@ -437,6 +437,7 @@ public:
     {
         ResetTimer(WORKER_TIMER);
         InitTimer(ACTIVE_COMPUTE_TIMER);
+        InitTimer(REDUCE_MESSAGE_TIMER);
         InitTimer(SYNC_MESSAGE_TIMER);
         InitTimer(SYNC_TIMER);
         InitTimer(COMMUNICATION_TIMER);
@@ -471,23 +472,21 @@ public:
                     break; //all_halt AND no_msg, note that received msgs are not freed
             } else
                 active_vnum() = get_vnum();
-            //===================
-            //if (type == ENUMERATE || type == MATCH)
-            //    agg->init(type);
-            //===================
             clearBits();
-
+            
             StartTimer(ACTIVE_COMPUTE_TIMER);
             active_compute(type, params, wakeAll);
             StopTimer(ACTIVE_COMPUTE_TIMER);
             
-            message_buffer->combine();
+            StartTimer(REDUCE_MESSAGE_TIMER);
+            //message_buffer->combine();
             step_msg_num = master_sum_LL(message_buffer->get_total_msg());
             step_vadd_num = master_sum_LL(message_buffer->get_total_vadd());
             if (_my_rank == MASTER_RANK) {
                 global_msg_num += step_msg_num;
                 global_vadd_num += step_vadd_num;
             }
+            StopTimer(REDUCE_MESSAGE_TIMER);
             
             StartTimer(SYNC_MESSAGE_TIMER);
             vector<vector<msgpair<MessageT>>> &out_messages = 
@@ -510,10 +509,10 @@ public:
             message_buffer->distribute_messages(delete_messages);
             StopTimer(SYNC_MESSAGE_TIMER);
 
-            agg_sync();
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);
             to_add.clear();
+
             //===================
             StartTimer(SYNC_TIMER);
             worker_barrier();

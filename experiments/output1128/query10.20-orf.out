@@ -1,0 +1,12 @@
+Data graph path: /g-thinker/newdata/orkut_f.txt
+Query graph path: /fdu-zyj/query1125/query10.20.txt
+Output graph path: /fdu-zyj/output
+Partition Method: 
+Preprocess Method: 1
+Filter Method: 0
+Order Method: random
+Enumerate Method: 1
+
+Loading data graph...
+[mpiexec@master] Sending Ctrl-C to processes as requested
+[mpiexec@master] Press Ctrl-C again to force abort
