@@ -145,11 +145,19 @@ public:
 		vector<int> vector_u = query->getBucket(NCOL, value().label);
 		int n_u = vector_u.size();
 		vector<vector<int>> messages_classifier = vector<vector<int>>(n_u);
-		if (step_num() == 1 && this->manual_active)
+		if (step_num() == 1)
 		{
-			this->manual_active = false;
-			if ((!params.filter) && 
-				(value().label != query->getLabel(query->root)))
+			if (this->manual_active)
+			{
+				this->manual_active = false;
+				if ((!params.filter) && 
+					(value().label != query->getLabel(query->root)))
+				{
+					vote_to_halt();
+					return;
+				}
+			}
+			else
 			{
 				vote_to_halt();
 				return;
@@ -177,22 +185,19 @@ public:
 			{
 				SIMessage &msg = messages[msgi];
 				for (int i = 0; i < NROW; i++)
-				{
 					if (check_feasibility(msg.mappings + i*NCOL, curr_u))
-					{
 						passed_mappings->push_back(msg.mappings + i*NCOL);
-						/* add_flag, need to be modified.
-						if (params.enumerate && query->isBranch(vector_u[0]))
-						{
-							SIVertex* v = new SIVertex;
-							v->id = SIKey(vector_u[0], id.wID, mapping);
-							this->add_vertex(v);
-						}
-						*/
-					}
-				}
 			}
 			STOP_TIMING(t1, 0, 1);
+
+			/* add_flag, need to be modified.
+			if (params.enumerate && query->isBranch(vector_u[0]))
+			{
+				SIVertex* v = new SIVertex;
+				v->id = SIKey(vector_u[0], id.wID, mapping);
+				this->add_vertex(v);
+			}
+			*/
 
 			//Continue mapping
 			vector<int> &next_us = query->getChildren(curr_u);

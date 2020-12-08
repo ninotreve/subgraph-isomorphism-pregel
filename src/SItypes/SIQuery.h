@@ -32,10 +32,12 @@ struct SINode
 
 	// for depth-first search
 	bool visited;
+	bool is_branch = false;
 	int branch_number;
 	int dfs_number; // 0-based
 	int parent;
 	int level; // root: level 0. Used as an index in mapping.
+	int ncol; // the length of mapping
 	vector<int> children;
 	// pseudo children: do not send messages
 	vector<int> ps_children_labels;
@@ -44,6 +46,8 @@ struct SINode
 	vector<int> b_nbs_pos;
 	// positions of backward vertices with same label
 	vector<int> b_same_lab_pos;
+	// compressed prefix: what vertices from root to itself will be used later
+	vector<int> compressed_prefix;
 
 	SINode() { this->visited = false; }
 
@@ -161,6 +165,9 @@ public:
 			this->dfs(this->root, 0, true, order, sequence);
 			this->addBranchNumber(this->root, 0, this->root);
 			this->initBuckets();
+
+			sequence.clear();
+			this->addCompressedPrefix(this->root, sequence, this->root);
 		}
 	}
 
@@ -317,8 +324,12 @@ public:
 		this->nbancestors[currID] = ancID;
 
 		SINode* curr = &this->nodes[currID];
-		if (curr->children.size() > 1)
+		int children_size = curr->children.size();
+		for (int index = 0; index < curr->ps_children_labels.size(); index++)
+			children_size += curr->ps_children_labels_count[index];
+		if (curr->children.size() >= 1 && children_size > 1)
 		{
+			curr->is_branch = true;
 			num ++;
 			ancID = currID;
 		}
@@ -331,11 +342,90 @@ public:
 			this->addBranchNumber(curr->children[i], num, ancID);
 	}
 
+	bool hasForwardConnection(ancestorID, currID)
+	{
+		// recursive helper function to addCompressedPrefix
+		// checks the connection between ancestorID and the subtree of currID
+		if (this->getLabel(ancestorID) == this->getLabel(currID) ||
+			this->hasEdge(ancestorID, currID))
+			return true;
+		
+		SINode* curr = &this->nodes[currID];
+		for (int i = 0; i < curr->children.size(); i++)
+			if (this->hasForwardConnection(curr->children[i], currID))
+				return true;
+		
+		return false;
+	}
+
+	void addCompressedPrefix(int currID, vector<int> &sequence, int nbaID)
+	{
+		// recursive function to add compressed prefix and update BNP and BSLP
+		SINode* curr = &this->nodes[currID];
+		sequence.push_back(currID);
+
+		if (curr->branch_number > 0)
+		{
+			if (curr->is_branch)
+			{
+				for (int ancestor : sequence)
+				{
+					for (int i = 0; i < curr->children.size(); i++)
+					{
+						if (this->hasForwardConnection(ancestor, curr->children[i]))
+						{
+							curr->compressed_prefix.push_back(ancestor);
+							break;
+						}
+					}
+				}
+				nbaID = currID;
+				//ncol
+			}
+			else
+			{
+				// update BNP and BSLP
+				vector<int> &nbacp = this->getCompressedPrefix(nbaID);
+				for (int i = 0; i < curr->b_nbs_pos.size(); i++)
+				{
+					int new_pos, old_pos = curr->b_nbs_pos[i];
+					for (new_pos = 0; nbacp[new_pos] != sequence[old_pos]; new_pos++);
+					curr->b_nbs_pos[i] = new_pos;
+				}
+				for (int i = 0; i < curr->b_same_lab_pos.size(); i++)
+				{
+					int new_pos, old_pos = curr->b_same_lab_pos[i];
+					for (new_pos = 0; nbacp[new_pos] != sequence[old_pos]; new_pos++);
+					curr->b_same_lab_pos[i] = new_pos;
+				}
+				//ncol
+			}
+		}
+		else
+		{
+			curr->ncol = sequence.size(); //?
+		}
+		
+		// dfs
+		for (size_t i = 0; i < curr->children.size(); i++)
+		{
+			this->addCompressedPrefix(curr->children[i], sequence, nbaID);
+			sequence.pop_back();
+		}
+	}
+
 	// Query is read-only.
 	// get functions before dfs.
 	int getID(int id) { return this->nodes[id].id; }
 	int getLabel(int id) { return this->nodes[id].label; }
 	vector<int> &getNbs(int id) { return this->nodes[id].nbs; }
+	bool hasEdge(int i, int j)
+	{
+		for (int k : this->getNbs(i))
+			if (k == j)
+				return true;
+		return false;
+	}
 	int getInverseIndex(int id, int next_u)
 	{
 		int j;
@@ -374,11 +464,13 @@ public:
 	{ return this->nodes[id].b_nbs_pos; }
 	vector<int> &getBSameLabPos(int id)
 	{ return this->nodes[id].b_same_lab_pos; }
+	vector<int> &getCompressedPrefix(int id)
+	{ return this->nodes[id].compressed_prefix; }
 	int getNearestBranchingAncestor(int id)
 	{ return this->nbancestors[id]; }
 
 	bool isBranch(int id)
-	{ return this->getChildren(id).size() > 1; }
+	{ return this->getChildren(id).is_branch; }
 
 	void initBuckets()
 	{
