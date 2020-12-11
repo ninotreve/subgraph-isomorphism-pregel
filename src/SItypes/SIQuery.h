@@ -100,7 +100,8 @@ ostream & operator << (ostream & os, const SINode & node)
 	os << "[Label: " << node.label 
 	   << " Neighbors: " << node.nbs
 	   << " Level: " << node.level
-	   << " Backward neighbors: " << node.b_nbs_pos << "]";
+	   << " Backward neighbors: " << node.b_nbs_pos
+	   << " compressed_prefix: " << node.compressed_prefix << "]";
 	return os;
 }
 
@@ -342,7 +343,7 @@ public:
 			this->addBranchNumber(curr->children[i], num, ancID);
 	}
 
-	bool hasForwardConnection(ancestorID, currID)
+	bool hasForwardConnection(int ancestorID, int currID)
 	{
 		// recursive helper function to addCompressedPrefix
 		// checks the connection between ancestorID and the subtree of currID
@@ -380,7 +381,6 @@ public:
 					}
 				}
 				nbaID = currID;
-				//ncol
 			}
 			else
 			{
@@ -398,12 +398,7 @@ public:
 					for (new_pos = 0; nbacp[new_pos] != sequence[old_pos]; new_pos++);
 					curr->b_same_lab_pos[i] = new_pos;
 				}
-				//ncol
 			}
-		}
-		else
-		{
-			curr->ncol = sequence.size(); //?
 		}
 		
 		// dfs
@@ -470,7 +465,7 @@ public:
 	{ return this->nbancestors[id]; }
 
 	bool isBranch(int id)
-	{ return this->getChildren(id).is_branch; }
+	{ return this->nodes[id].is_branch; }
 
 	void initBuckets()
 	{

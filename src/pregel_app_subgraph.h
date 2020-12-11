@@ -995,4 +995,5 @@ void pregel_subgraph(const WorkerParams & params)
 	}
 
 	PrintTimer("COMPUTE Time", COMPUTE_TIMER);
+
 }

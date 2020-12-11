@@ -335,11 +335,14 @@ public:
     void load_data(const WorkerParams & params)
     {
     	const string& input_path = params.data_path;
-
+        
         //check path + init
         if (_my_rank == MASTER_RANK) {
             if (dirCheck(input_path.c_str()) == -1)
+            {
+                cout << "Input path doesn't exist." << endl;
                 exit(-1);
+            }
         }
 
         //dispatch splits
@@ -406,8 +409,8 @@ public:
 		}
 
 		//debug
-		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
-		//((QueryT*) global_query)->printOrder();
+		cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
+		((QueryT*) global_query)->printOrder();
 
 		//barrier for query loading
 		worker_barrier();
