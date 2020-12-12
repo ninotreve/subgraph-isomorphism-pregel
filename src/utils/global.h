@@ -19,6 +19,8 @@ using namespace std;
 
 int _my_rank;
 int _num_workers;
+int _dummy_vertex_id = -1;
+
 inline int get_worker_id()
 {
     return _my_rank;
@@ -26,6 +28,14 @@ inline int get_worker_id()
 inline int get_num_workers()
 {
     return _num_workers;
+}
+inline int get_dummy_vertex_id()
+{
+    return _dummy_vertex_id;
+}
+inline void dec_dummy_vertex_id()
+{
+    _dummy_vertex_id--;
 }
 
 void init_workers()

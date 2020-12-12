@@ -3,33 +3,15 @@
 
 //--------SIMessage = <type, key, value, mapping, branch>--------
 //  e.g. <type = LABEL_INFOMATION, int1 = vertex, int2 = label>
-//	     <type = IN_MAPPING, int1 = curr_u, int2 = nrow>
-//	     <type = OUT_MAPPING, int1 = vID, int2 = curr_u>
-
-// 		 <type = DEGREE, key = vertex, value = degree>
-//		 <type = NEIGHBOR_PAIR, p_int = edge>
-//		 <type = BRANCH_RESULT, mapping, value = curr_u>
-// 		 <type = BRANCH, branch, value = curr_u>
-//		 <type = MAPPING_COUNT, value = count>
-//		 <type = CANDIDATE, key = vertex, v_int = candidates of v>
+//	     <type = IN_MAPPING, int1 = curr_u, int2 = nrow, int3 = ncol>
+//	     <type = OUT_MAPPING, int1 = vID, int2 = curr_u, int3 = ncol>>
 
 struct SIMessage
 {
-	int type, int1, int2;
+	int type, int1, int2, int3;
 	int *mappings;
 	vector<int*>* passed_mappings;
-	/*
-	int* ints;
-	SIKey* keys;
 
-	SIKey key;
-	int value;
-	vector<int> v_int;
-	pair<int, int> p_int;
-	Mapping mapping;
-	vector<Mapping> mappings;
-	SIBranch branch;
-	*/
 	SIMessage()
 	{
 	}

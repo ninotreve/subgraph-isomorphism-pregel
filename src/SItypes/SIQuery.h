@@ -369,7 +369,7 @@ public:
 		{
 			if (curr->is_branch)
 			{
-				for (int ancestor : sequence)
+				for (int ancestor : sequence) //level
 				{
 					for (int i = 0; i < curr->children.size(); i++)
 					{

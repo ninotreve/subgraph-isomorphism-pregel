@@ -178,9 +178,11 @@ public:
 		for (int bucket_num = 0; bucket_num < n_u; bucket_num ++)
 		{
 			int curr_u = vector_u[bucket_num];
+			int ncol;
 			//Loop through messages and check feasibilities
 			START_TIMING(t1);
 			vector<int*>* passed_mappings = new vector<int*>();
+			vector<int>* dummys = new vector<int>();
 			for (int msgi : messages_classifier[bucket_num])
 			{
 				SIMessage &msg = messages[msgi];
@@ -190,14 +192,22 @@ public:
 			}
 			STOP_TIMING(t1, 0, 1);
 
-			/* add_flag, need to be modified.
-			if (params.enumerate && query->isBranch(vector_u[0]))
+			//Add dummy vertex for branch vertices
+			if (params.enumerate && query->isBranch(curr_u))
 			{
-				SIVertex* v = new SIVertex;
-				v->id = SIKey(vector_u[0], id.wID, mapping);
-				this->add_vertex(v);
+				ncol = query->getCompressedPrefix(curr_u).size() + 2;
+				for (int i = 0; i < passed_mappings->size(); i++)
+				{
+					SIVertex* v = new SIVertex;
+					int dummyID = get_dummy_vertex_id();
+					v->id = SIKey(dummyID, id.wID);
+					v->value().label = id.vID;
+					this->add_vertex(v);
+					dummys.push_back(dummyID);
+					dummys.push_back(id.wID);
+				}
 			}
-			*/
+			
 
 			//Continue mapping
 			//START_TIMING(t1);
