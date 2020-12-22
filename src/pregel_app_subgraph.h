@@ -44,8 +44,8 @@ public:
 	double timers[3][3];
 	int eligible_neighbors = 1;
 	bool manual_active = true;
-
-	vector<int*>* final_results;
+	vector<int> final_us;
+	vector<int*> final_results;
 
 	void preprocess(MessageContainer & messages, WorkerParams &params)
 	{
@@ -144,6 +144,7 @@ public:
 		START_TIMING(t);
 		vector<int> vector_u = query->getBucket(NCOL, value().label);
 		int n_u = vector_u.size();
+		int ncol = step_num() - 1;
 		vector<vector<int>> messages_classifier = vector<vector<int>>(n_u);
 		if (step_num() == 1)
 		{
@@ -178,11 +179,11 @@ public:
 		for (int bucket_num = 0; bucket_num < n_u; bucket_num ++)
 		{
 			int curr_u = vector_u[bucket_num];
-			int ncol;
+			int type = MESSAGE_TYPES::OUT_MAPPING;
 			//Loop through messages and check feasibilities
 			START_TIMING(t1);
 			vector<int*>* passed_mappings = new vector<int*>();
-			vector<int>* dummys = new vector<int>();
+			vector<int*>* dummies = new vector<int*>();
 			for (int msgi : messages_classifier[bucket_num])
 			{
 				SIMessage &msg = messages[msgi];
@@ -195,6 +196,12 @@ public:
 			//Add dummy vertex for branch vertices
 			if (params.enumerate && query->isBranch(curr_u))
 			{
+				//Case 1: compressed_prefix.size() = 0, no constraint
+				//We don't need to build dummy vertex; the dummy vertex is itself.
+				type = MESSAGE_TYPES::BMAPPING;
+				int dummy_self[] = {id.vID, id.wID};
+				dummies.push_back(dummy_self);
+				/*
 				ncol = query->getCompressedPrefix(curr_u).size() + 2;
 				for (int i = 0; i < passed_mappings->size(); i++)
 				{
@@ -206,6 +213,7 @@ public:
 					dummys.push_back(dummyID);
 					dummys.push_back(id.wID);
 				}
+				*/
 			}
 			
 
@@ -265,9 +273,10 @@ public:
 						}
 						else
 						{
+							int nrow = (NCOL != 0) ? passed_mappings->size() : 1;
 							send_messages(wID, neighbors_map[wID],
-								SIMessage(OUT_MAPPING, id.vID, next_u, 
-									passed_mappings));
+								SIMessage(type, passed_mappings, dummies,
+									next_u, nrow, ncol, id.vID));
 						}
 					}
 					STOP_TIMING(t2, 1, 0);
@@ -284,13 +293,16 @@ public:
 				if (next_us.size() == 0)
 				{
 					this->manual_active = true;
-					this->final_results = passed_mappings;
+					this->final_us.push_back(curr_u);
+					this->final_results.push_back(passed_mappings);
+					/*
 					if (!ps_labs.empty())
 					{
 						this->eligible_neighbors
 							= this->value().countOccurrences(ps_labs,
 							query->getPseudoLabelCount(curr_u));
 					}
+					*/
 				}
 				STOP_TIMING(t2, 2, 1);
 			}
@@ -299,6 +311,116 @@ public:
 		STOP_TIMING(t, 1, 2);
 		vote_to_halt();
 	}
+
+	void enumerate(MessageContainer & messages)
+	{
+#ifdef DEBUG_MODE_ACTIVE
+		cout << "[DEBUG] STEP NUMBER " << step_num()
+			 << " ACTIVE Vertex ID " << id.vID 
+			 << " Manual active: " << manual_active << endl;
+#endif
+		SIQuery* query = (SIQuery*)getQuery();	
+
+		if (step_num() > query->max_branch_number + 1)
+		{
+			vote_to_halt();
+			return;
+		}
+
+		// send mappings from leaves for supersteps [1, max_branch_number]
+		// if (step_num() > 0 && step_num() <= query->max_branch_number)
+		if (step_num() == 1)
+		{
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					this->timers[i][j] = 0.0;
+
+			if (!this->manual_active)
+			{
+				vote_to_halt();
+				return;
+			}
+
+			double t = get_current_time();
+			vector<int> vector_u = query->getBucket(query->max_level, value().label);
+			if (vector_u.size() == 1)
+			{
+				if (step_num() == query->max_branch_number + 1)
+				{
+					this->results_count += this->bucket.size();
+				}
+				else
+				{
+					int curr_u = vector_u[0];
+					int anc_u = query->getNearestBranchingAncestor(curr_u);
+					for (int i = 0; i < this->bucket.size(); i++)
+						continue_enum(SIBranch(this->bucket[i]), curr_u, anc_u);
+					this->bucket.clear();
+				}
+			}
+			else
+			{
+				for (int b = 0; b < this->buckets.size(); b++)
+				{
+					if (step_num() == query->max_branch_number + 1)
+					{
+						this->results_count += this->buckets[b].size();
+					}
+					else
+					{
+						int curr_u = vector_u[b];
+						int anc_u = query->getNearestBranchingAncestor(curr_u);
+						for (int i = 0; i < this->buckets[b].size(); i++)
+							continue_enum(SIBranch(this->buckets[b][i]), curr_u, anc_u);
+						
+						this->buckets[b].clear();
+					}
+				}
+			}
+			this->timers[0][1] += get_current_time() - t;
+		}
+		else
+		{
+			double t = get_current_time();
+			SIBranch b = SIBranch(id.partial_mapping);
+			b.branches.resize(query->getChildren(id.vID).size());
+			int i, j;
+			vector<int> branch_u;
+			for (i = 0; i < messages.size(); i++)
+			{
+				SIMessage & msg = messages[i];
+				// find out where to store the branch
+				for (j = 0; j < branch_u.size(); j++)
+					if (branch_u[j] == msg.value) break;
+				if (j == branch_u.size())
+					branch_u.push_back(msg.value);
+				b.branches[j].push_back(msg.branch);
+			}
+			// make sure every child sends you result!
+			if (!b.isValid())
+			{
+				vote_to_halt();
+				return;
+			}
+			if (step_num() == query->max_branch_number + 1)
+			{
+				double t0 = get_current_time();
+				this->bucket = b.expand();
+				this->timers[1][1] += get_current_time() - t0;
+				this->results_count += this->bucket.size();
+			}
+			else
+			{
+				continue_enum(b, id.vID, query->getNearestBranchingAncestor(id.vID));
+				this->bucket.clear();
+			}
+			this->timers[0][1] += get_current_time() - t;
+		}
+ 		vote_to_halt();
+		 
+	}
+
+//////////////////////////////////////////////////////////
 
 	void check_candidates(hash_set<int> &invalid_set)
 	{
@@ -716,7 +838,7 @@ public:
     	else if (type == ENUMERATE)
     	{
 			if (v->manual_active)
-    			agg_mat[0][0] += v->final_results->size() * v->eligible_neighbors;
+    			agg_mat[0][0] += v->final_results.size() * v->eligible_neighbors;
 			//Sorry I cheat here. Eligible neighbors are not saved.
 
 			for (int i = 0; i < 3; i++)

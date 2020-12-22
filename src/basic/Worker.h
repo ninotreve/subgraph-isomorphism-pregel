@@ -186,10 +186,7 @@ public:
 					vertexes[i]->compute(v_msgbufs[i], params);
 					break;
 				case ENUMERATE:
-					if (params.enumerate)
-						vertexes[i]->enumerate_new(v_msgbufs[i]);
-					else
-						vertexes[i]->enumerate_old(v_msgbufs[i]);
+					vertexes[i]->enumerate(v_msgbufs[i]);
 					break;
 				}
                 //clear used msgs

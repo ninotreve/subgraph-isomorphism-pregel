@@ -1,7 +1,7 @@
 #ifndef SIBRANCH_H
 #define SIBRANCH_H
 
-/*
+
 //==========================================================================
 
 struct SIBranch;
@@ -9,8 +9,10 @@ vector<Mapping> crossJoin(vector<Mapping> v1, vector<SIBranch> &b);
 
 struct SIBranch
 {
-	Mapping p;
-	vector<vector<SIBranch> > branches;
+	int *prefix;
+	int nrow;
+	vector<vector<int*>> psd_chd;
+	vector<vector<SIBranch*>> chd;
 
 	SIBranch() {};
 
@@ -95,6 +97,6 @@ obinstream& operator>>(obinstream& m, SIBranch& branch)
 
     return m;
 }
-*/
+
 
 #endif

@@ -1,26 +1,23 @@
 #ifndef SIMESSAGE_H
 #define SIMESSAGE_H
 
-//--------SIMessage = <type, key, value, mapping, branch>--------
-//  e.g. <type = LABEL_INFOMATION, int1 = vertex, int2 = label>
-//	     <type = IN_MAPPING, int1 = curr_u, int2 = nrow, int3 = ncol>
-//	     <type = OUT_MAPPING, int1 = vID, int2 = curr_u, int3 = ncol>>
-
 struct SIMessage
 {
-	int type, int1, int2, int3;
+	int type, curr_u, nrow, ncol, vID, dvID, dwID;
 	int *mappings;
-	vector<int*>* passed_mappings;
+	vector<int*> *passed_mappings;
+	vector<int*> *dummies;
+	SIBranch *branch;
 
 	SIMessage()
 	{
 	}
 
-	SIMessage(int type, int int1, int int2)
+	SIMessage(int type, int neighbor, int label)
 	{ //LABEL_INFOMATION
 		this->type = type;
-		this->int1 = int1;
-		this->int2 = int2;
+		this->ncol = neighbor;
+		this->nrow = label;
 	}
 	
 	SIMessage(int type, int int1, int int2, int *mappings)
@@ -31,12 +28,16 @@ struct SIMessage
 		this->mappings = mappings;
 	}
 
-	SIMessage(int type, int int1, int int2, vector<int*>* passed_mappings)
+	SIMessage(int type, vector<int*> *passed_mappings, vector<int*> *dummies,
+		int curr_u, int nrow, int ncol, int vID)
 	{ //OUT_MAPPING
 		this->type = type;
-		this->int1 = int1;
-		this->int2 = int2;
 		this->passed_mappings = passed_mappings;
+		this->dummies = dummies;
+		this->curr_u = curr_u;
+		this->nrow = nrow;
+		this->ncol = ncol;
+		this->vID = vID;
 	}
 /*
 	SIMessage(int type, pair<int, int> p_int)
@@ -89,13 +90,9 @@ struct SIMessage
 
 enum MESSAGE_TYPES {
 	LABEL_INFOMATION = 0,
-	IN_MAPPING = 1, // 1121
-	OUT_MAPPING = 2, // 1121
-	BRANCH_RESULT = 3,
-	BRANCH = 4,
-	CANDIDATE = 5,
-	DEGREE = 6,
-	NEIGHBOR_PAIR = 7
+	IN_MAPPING = 1,
+	OUT_MAPPING = 2,
+	BMAPPING = 3,
 };
 
 ibinstream & operator<<(ibinstream &m, const SIMessage &msg)
@@ -106,16 +103,14 @@ ibinstream & operator<<(ibinstream &m, const SIMessage &msg)
 	case MESSAGE_TYPES::LABEL_INFOMATION:
 		m << msg.int1 << msg.int2;
 	case MESSAGE_TYPES::OUT_MAPPING:
-		m << msg.int1 << msg.int2; //vID & curr_u
-
-		int nrow = msg.passed_mappings->size();
-		int ncol = step_num()-1;
-		if (ncol == 0) nrow = 1; //for the first step
-		m << nrow;
-		for (int i = 0; i < nrow; i++)
-			for (int j = 0; j < ncol; j++)
+		m << msg.vID << msg.curr_u; //vID & curr_u
+		m << msg.nrow;
+		for (int i = 0; i < msg.nrow; i++)
+			for (int j = 0; j < msg.ncol; j++)
 				m << ((*msg.passed_mappings)[i])[j];
 		break;
+	case MESSAGE_TYPES::BMAPPING:
+	// fill up this
 		/*
 	case MESSAGE_TYPES::DEGREE:
 		m << v.key << v.value;
