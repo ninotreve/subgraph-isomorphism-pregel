@@ -37,17 +37,21 @@ struct SINode
 	int dfs_number; // 0-based
 	int parent;
 	int level; // root: level 0. Used as an index in mapping.
-	int ncol; // the length of mapping
 	vector<int> children;
 	// pseudo children: do not send messages
-	vector<int> ps_children_labels;
-	vector<int> ps_children_labels_count;
-	// positions of backward neighbors (excluding its parent!)
-	vector<int> b_nbs_pos;
-	// positions of backward vertices with same label
-	vector<int> b_same_lab_pos;
-	// compressed prefix: what vertices from root to itself will be used later
-	vector<int> compressed_prefix;
+	vector<int> ps_children_labels, ps_children_labels_count;
+	// backward neighbors and their positions (excluding its parent!)
+	vector<int> b_nbs, b_nbs_pos;
+	// backward vertices with same label and their positions
+	vector<int> b_same_lab, b_same_lab_pos;
+	// previous mapping from root to self. COMPRESSED
+	// dummy denoted as negative number, length = ncol
+	vector<int> previous_mapping;
+	int dummy_pos; // position of dummy in previous_mapping, -1 if none.
+	// ONLY AVAILABLE FOR BRANCH VERTEX: constraints given to children, 
+	// as well as whether include itself or not. In the same order as children.
+	vector<vector<int>> chd_constraint;
+	vector<bool> chd_constraint_self;
 
 	SINode() { this->visited = false; }
 
@@ -100,8 +104,9 @@ ostream & operator << (ostream & os, const SINode & node)
 	os << "[Label: " << node.label 
 	   << " Neighbors: " << node.nbs
 	   << " Level: " << node.level
-	   << " Backward neighbors: " << node.b_nbs_pos
-	   << " compressed_prefix: " << node.compressed_prefix << "]";
+	   << " Backward neighbors: " << node.b_nbs
+	   << " Backward neighbors positions: " << node.b_nbs_pos
+	   << " previous_mapping: " << node.previous_mapping << "]";
 	return os;
 }
 
@@ -162,13 +167,13 @@ public:
 					}
 				}
 			}
+
 			vector<int> sequence;
 			this->dfs(this->root, 0, true, order, sequence);
 			this->addBranchNumber(this->root, 0, this->root);
 			this->initBuckets();
-
 			sequence.clear();
-			this->addCompressedPrefix(this->root, sequence, this->root);
+			this->addPrevMapping(this->root, sequence, -1);
 		}
 	}
 
@@ -248,7 +253,7 @@ public:
 		{
 			SINode* anc = &this->nodes[id];
 			if (anc->label == curr->label && anc->id != curr->id)
-				curr->b_same_lab_pos.push_back(anc->level);
+				curr->b_same_lab.push_back(this->id_ind[anc->id]);
 		}
 		sequence.push_back(currID);
 
@@ -265,7 +270,7 @@ public:
 			if (next->visited)
 			{
 				if (next->level != curr->level - 1)
-					curr->b_nbs_pos.push_back(next->level);
+					curr->b_nbs.push_back(this->id_ind[next->id]);
 			}
 			else
 			{
@@ -294,7 +299,7 @@ public:
 				int childID = sequence.back();
 				SINode *child = &this->nodes[childID];
 				if (child->children.empty() && child->ps_children_labels.empty() &&
-					child->b_nbs_pos.empty() && child->b_same_lab_pos.empty())
+					child->b_nbs.empty() && child->b_same_lab.empty())
 				{
 					int index, childLab = this->getLabel(childID);
 					for (index = 0; index < curr->ps_children_labels.size(); index++)
@@ -343,69 +348,95 @@ public:
 			this->addBranchNumber(curr->children[i], num, ancID);
 	}
 
-	bool hasForwardConnection(int ancestorID, int currID)
+	bool hasForwardConnection(int ancestorID, int currID, bool exists_gap)
 	{
-		// recursive helper function to addCompressedPrefix
+		// recursive helper function to addPrevMapping
 		// checks the connection between ancestorID and the subtree of currID
+		// exists_gap: ancestorID is not the direct parent of currID
 		if (this->getLabel(ancestorID) == this->getLabel(currID) ||
-			this->hasEdge(ancestorID, currID))
+			exists_gap && this->hasEdge(ancestorID, currID))
 			return true;
 		
 		SINode* curr = &this->nodes[currID];
 		for (int i = 0; i < curr->children.size(); i++)
-			if (this->hasForwardConnection(curr->children[i], currID))
+			if (this->hasForwardConnection(curr->children[i], currID, true))
 				return true;
 		
 		return false;
 	}
 
-	void addCompressedPrefix(int currID, vector<int> &sequence, int nbaID)
+	void addPrevMapping(int currID, vector<int> &previous_mapping, int dummy_pos)
 	{
 		// recursive function to add compressed prefix and update BNP and BSLP
 		SINode* curr = &this->nodes[currID];
-		sequence.push_back(currID);
+		for (int vID : previous_mapping)
+			curr->previous_mapping.push_back(vID);
+		curr->dummy_pos = dummy_pos;
 
-		if (curr->branch_number > 0)
+		// generate BNP and BSLP according to previous_mapping
+		int pos;
+		for (int b_nb: curr->b_nbs)
 		{
-			if (curr->is_branch)
+			for (pos = 0; previous_mapping[pos] != b_nb; pos++);
+			curr->b_nbs_pos.push_back(pos);
+		}
+		for (int b_sl: curr->b_same_lab)
+		{
+			for (pos = 0; previous_mapping[pos] != b_sl; pos++);
+			curr->b_same_lab_pos.push_back(pos);
+		}
+
+		int sz = curr->children.size();
+		if (curr->is_branch)
+		{   // set up chd_constraint for branch vertex
+			curr->chd_constraint.resize(sz);
+			curr->chd_constraint_self.resize(sz);
+			bool add_dummy = false;
+			for (int i = 0; i < sz; i++)
 			{
-				for (int ancestor : sequence) //level
+				int chd = curr->children[i];	
+				for (int ancestor : previous_mapping)
 				{
-					for (int i = 0; i < curr->children.size(); i++)
+					if (ancestor < 0) continue; //dummy					
+					if (this->hasForwardConnection(ancestor, chd, true))
 					{
-						if (this->hasForwardConnection(ancestor, curr->children[i]))
-						{
-							curr->compressed_prefix.push_back(ancestor);
-							break;
-						}
+						curr->chd_constraint[i].push_back(ancestor);
+						add_dummy = true;
+						break;
 					}
 				}
-				nbaID = currID;
+				curr->chd_constraint_self[i] = 
+						this->hasForwardConnection(currID, chd, false);
 			}
-			else
+
+			if (!add_dummy)
+				for (int i = 0; i < sz; i++)
+					curr->chd_constraint_self[i] = false;
+
+			for (int i = 0; i < sz; i++)
 			{
-				// update BNP and BSLP
-				vector<int> &nbacp = this->getCompressedPrefix(nbaID);
-				for (int i = 0; i < curr->b_nbs_pos.size(); i++)
-				{
-					int new_pos, old_pos = curr->b_nbs_pos[i];
-					for (new_pos = 0; nbacp[new_pos] != sequence[old_pos]; new_pos++);
-					curr->b_nbs_pos[i] = new_pos;
-				}
-				for (int i = 0; i < curr->b_same_lab_pos.size(); i++)
-				{
-					int new_pos, old_pos = curr->b_same_lab_pos[i];
-					for (new_pos = 0; nbacp[new_pos] != sequence[old_pos]; new_pos++);
-					curr->b_same_lab_pos[i] = new_pos;
-				}
+				vector<int> sequence = curr->chd_constraint[i];
+				// add_dummy & include_self: +--
+				// add_dummy & !include_self: --
+				// !add_dummy: +-
+				if (!add_dummy || (add_dummy && curr->chd_constraint_self[i]))
+					sequence.push_back(currID);
+				if (add_dummy)
+					sequence.push_back(-currID-1);
+				sequence.push_back(-currID-1);
+				this->addPrevMapping(curr->children[i], sequence, 
+					curr->chd_constraint[i].size());
 			}
+
 		}
-		
-		// dfs
-		for (size_t i = 0; i < curr->children.size(); i++)
+		else
 		{
-			this->addCompressedPrefix(curr->children[i], sequence, nbaID);
-			sequence.pop_back();
+			if (sz > 0)
+			{
+				previous_mapping.push_back(currID);
+				this->addPrevMapping(curr->children[0], previous_mapping, dummy_pos);
+				previous_mapping.pop_back();
+			}
 		}
 	}
 
@@ -459,8 +490,14 @@ public:
 	{ return this->nodes[id].b_nbs_pos; }
 	vector<int> &getBSameLabPos(int id)
 	{ return this->nodes[id].b_same_lab_pos; }
-	vector<int> &getCompressedPrefix(int id)
-	{ return this->nodes[id].compressed_prefix; }
+	vector<int> &getPrevMapping(int id)
+	{ return this->nodes[id].previous_mapping; }
+	bool getIncludeSelf(int id, int i)
+	{ return this->nodes[id].chd_constraint_self[i]; }
+	int getNCOL(int id)
+	{ return this->nodes[id].previous_mapping.size(); }
+	int getDummyPos(int id)
+	{ return this->nodes[id].dummy_pos; }
 	int getNearestBranchingAncestor(int id)
 	{ return this->nbancestors[id]; }
 

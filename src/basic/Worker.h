@@ -406,8 +406,8 @@ public:
 		}
 
 		//debug
-		cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
-		((QueryT*) global_query)->printOrder();
+		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
+		//((QueryT*) global_query)->printOrder();
 
 		//barrier for query loading
 		worker_barrier();

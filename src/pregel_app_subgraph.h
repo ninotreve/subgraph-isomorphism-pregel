@@ -3,20 +3,18 @@
 #include "utils/Query.h"
 using namespace std;
 
-#define NROW (msg.int2)
-#define NCOL (step_num()-1)
+#define LEVEL (step_num()-1)
 #define START_TIMING(T) (T) = get_current_time();
 #define STOP_TIMING(T, X, Y) this->timers[(X)][(Y)] += get_current_time() - (T);
 #define MPRINT(str) \
 	if (get_worker_id() == MASTER_RANK) \
 		printf("%s\n", (str));
 
-/*
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
 #define DEBUG_MODE_PARTIAL_RESULT 1
 #define DEBUG_MODE_RESULT 1
-*/
+
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -90,8 +88,8 @@ public:
 				{
 					for (size_t i = 0; i < value().degree; ++i)
 					{
-						if (value().nbs_vector[i].key.vID == msg.int1)
-							value().nbs_vector[i].label = msg.int2;
+						if (value().nbs_vector[i].key.vID == msg.nrow)
+							value().nbs_vector[i].label = msg.ncol;
 					}
 				}
 			}
@@ -112,6 +110,42 @@ public:
 			if (! this->value().hasNeighbor(mapping[b_level]))
 				return false;
 		return true;
+	}
+
+	SIMessage copy_message(SIMessage msg)
+	{
+		int new_ncol = msg.ncol;
+		switch (msg.type)
+		{
+			case BMAPPING_W_SELF:
+				new_ncol ++;
+			case BMAPPING_WO_SELF:
+				new_ncol ++;
+			case OUT_MAPPING:
+				new_ncol ++;			
+		}
+
+		int *mappings = new int[msg.nrow * new_ncol];
+		for (int i = 0, j; i < msg.nrow; i++)
+		{
+			for (j = 0; j < msg.ncol; j++)
+			{
+				mappings[i*new_ncol + j] = (*msg.send_mappings)[i][j];
+			}
+			if (msg.type == BMAPPING_W_SELF || msg.type == OUT_MAPPING)
+			{
+				mappings[i*new_ncol + j] = id.vID;
+				j++;
+			}
+			if (msg.type == BMAPPING_W_SELF || msg.type == BMAPPING_WO_SELF)
+			{
+				mappings[i*new_ncol + j] = (*msg.dummies)[i][0];
+				mappings[i*new_ncol + j + 1] = (*msg.dummies)[i][1];
+			}
+			cout << endl;
+		}
+		return SIMessage(MESSAGE_TYPES::IN_MAPPING, mappings,
+			msg.curr_u, msg.nrow, new_ncol);
 	}
 
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
@@ -142,9 +176,8 @@ public:
 
 		// arrange messages
 		START_TIMING(t);
-		vector<int> vector_u = query->getBucket(NCOL, value().label);
+		vector<int> vector_u = query->getBucket(LEVEL, value().label);
 		int n_u = vector_u.size();
-		int ncol = step_num() - 1;
 		vector<vector<int>> messages_classifier = vector<vector<int>>(n_u);
 		if (step_num() == 1)
 		{
@@ -168,7 +201,7 @@ public:
 		{
 			for (int i = 0; i < messages.size(); i++)
 			{
-				int bucket_num = query->getBucketNumber(messages[i].int1);
+				int bucket_num = query->getBucketNumber(messages[i].curr_u);
 				messages_classifier[bucket_num].push_back(i);
 			}
 		}
@@ -179,28 +212,35 @@ public:
 		for (int bucket_num = 0; bucket_num < n_u; bucket_num ++)
 		{
 			int curr_u = vector_u[bucket_num];
-			int type = MESSAGE_TYPES::OUT_MAPPING;
+			int ncol = query->getNCOL(curr_u);
 			//Loop through messages and check feasibilities
 			START_TIMING(t1);
 			vector<int*>* passed_mappings = new vector<int*>();
+			vector<int*>* send_mappings = new vector<int*>();;
 			vector<int*>* dummies = new vector<int*>();
 			for (int msgi : messages_classifier[bucket_num])
 			{
 				SIMessage &msg = messages[msgi];
-				for (int i = 0; i < NROW; i++)
-					if (check_feasibility(msg.mappings + i*NCOL, curr_u))
-						passed_mappings->push_back(msg.mappings + i*NCOL);
+				if (ncol != msg.ncol)
+					cout << "WRONG " << ncol << " " << msg.ncol << endl; 
+				for (int i = 0; i < msg.nrow; i++)
+					if (check_feasibility(msg.mappings + i*ncol, curr_u))
+						passed_mappings->push_back(msg.mappings + i*ncol);
 			}
 			STOP_TIMING(t1, 0, 1);
 
 			//Add dummy vertex for branch vertices
-			if (params.enumerate && query->isBranch(curr_u))
+			bool is_branch = query->isBranch(curr_u), include_self;
+			if (is_branch)
 			{
 				//Case 1: compressed_prefix.size() = 0, no constraint
 				//We don't need to build dummy vertex; the dummy vertex is itself.
-				type = MESSAGE_TYPES::BMAPPING;
-				int dummy_self[] = {id.vID, id.wID};
-				dummies.push_back(dummy_self);
+				//nrow=1, ncol=0+2
+				int *dummy_self = new int[2];
+				dummy_self[0] = id.vID;
+				dummy_self[1] = id.wID;
+				send_mappings->push_back(dummy_self);
+				dummies->push_back(dummy_self);
 				/*
 				ncol = query->getCompressedPrefix(curr_u).size() + 2;
 				for (int i = 0; i < passed_mappings->size(); i++)
@@ -215,6 +255,8 @@ public:
 				}
 				*/
 			}
+			else
+				send_mappings = passed_mappings;
 			
 
 			//Continue mapping
@@ -227,8 +269,11 @@ public:
 				START_TIMING(t2);
 				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
 				STOP_TIMING(t2, 2, 2);
-				for (int next_u : next_us)
+				for (int next_u_index = 0; next_u_index < next_us.size(); next_u_index++)
 				{
+					int next_u = next_us[next_u_index];
+					if (is_branch)
+						include_self = query->getIncludeSelf(curr_u, next_u_index);
 					//Construct neighbors_map: 
 				  	//Loop through neighbors and select out ones with right labels
 				    START_TIMING(t2);
@@ -253,31 +298,27 @@ public:
 
 					//Update out_message_buffer
 					START_TIMING(t2);
+					int type;
+					if (!is_branch)
+						type = MESSAGE_TYPES::OUT_MAPPING;
+					else if (include_self)
+						type = MESSAGE_TYPES::BMAPPING_W_SELF;
+					else
+						type = MESSAGE_TYPES::BMAPPING_WO_SELF;
+
+					int nrow = (LEVEL != 0) ? send_mappings->size() : 1;
+					SIMessage out_message = SIMessage(type, send_mappings, 
+						dummies, next_u, nrow, ncol, id.vID);
 					for (int wID = 0; wID < get_num_workers(); wID++)
 					{
 						if (neighbors_map[wID].empty())
 							continue;
 
 						if (wID == get_worker_id())
-						{ //Copy the message
-							int nrow = (NCOL != 0) ? passed_mappings->size() : 1;
-							int *mappings = new int[nrow * (NCOL+1)];
-							for (int i = 0, j; i < nrow; i++)
-							{
-								for (j = 0; j < NCOL; j++)
-									mappings[i*(NCOL+1)+j] = (*passed_mappings)[i][j];
-								mappings[i*(NCOL+1)+j] = id.vID;
-							}
 							send_messages(wID, neighbors_map[wID],
-								SIMessage(IN_MAPPING, next_u, nrow, mappings));
-						}
+								copy_message(out_message));
 						else
-						{
-							int nrow = (NCOL != 0) ? passed_mappings->size() : 1;
-							send_messages(wID, neighbors_map[wID],
-								SIMessage(type, passed_mappings, dummies,
-									next_u, nrow, ncol, id.vID));
-						}
+							send_messages(wID, neighbors_map[wID], out_message);
 					}
 					STOP_TIMING(t2, 1, 0);
 
@@ -294,7 +335,7 @@ public:
 				{
 					this->manual_active = true;
 					this->final_us.push_back(curr_u);
-					this->final_results.push_back(passed_mappings);
+					this->final_results = *passed_mappings;
 					/*
 					if (!ps_labs.empty())
 					{
@@ -303,6 +344,13 @@ public:
 							query->getPseudoLabelCount(curr_u));
 					}
 					*/
+					for (int j = 0; j < passed_mappings->size(); j++)
+					{
+						cout << "Final mapping: " << endl;
+						for (int k = 0; k < LEVEL + 1; k++)
+							cout << (*passed_mappings)[j][k] << " ";
+						cout << id.vID << endl;
+					}
 				}
 				STOP_TIMING(t2, 2, 1);
 			}
@@ -314,6 +362,7 @@ public:
 
 	void enumerate(MessageContainer & messages)
 	{
+		/*
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
 			 << " ACTIVE Vertex ID " << id.vID 
@@ -416,8 +465,9 @@ public:
 			}
 			this->timers[0][1] += get_current_time() - t;
 		}
+		 */
  		vote_to_halt();
-		 
+		
 	}
 
 //////////////////////////////////////////////////////////
@@ -941,9 +991,9 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 
 			SIQuery* query = (SIQuery*)getQuery();
 			int ncol = query->num;
-			for (size_t i = 0, j; i < v->final_results->size(); i++)
+			for (size_t i = 0, j; i < v->final_results.size(); i++)
 			{
-				int* mapping = (*v->final_results)[i];
+				int* mapping = v->final_results[i];
 				sprintf(buf, "# Match\n");
 				writer.write(buf);
 
@@ -971,14 +1021,14 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 		virtual void clear_messages(vector<SIMessage> &delete_messages)
 		{
 			SIQuery* query = (SIQuery*)getQuery();
-			if (query->max_level == NCOL)
+			if (query->max_level == LEVEL)
 				//We are going to use this later, don't free memory.
 				return;
 
 			for (SIMessage &msg : delete_messages)
 			{
 				if (msg.type == OUT_MAPPING)
-					vector<int*>().swap(*msg.passed_mappings);
+					vector<int*>().swap(*msg.send_mappings);
 				else
 					delete[] msg.mappings;
 			}

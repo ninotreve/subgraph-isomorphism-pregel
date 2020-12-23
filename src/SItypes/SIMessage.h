@@ -3,11 +3,10 @@
 
 struct SIMessage
 {
-	int type, curr_u, nrow, ncol, vID, dvID, dwID;
+	int type, curr_u, nrow, ncol, vID;
 	int *mappings;
-	vector<int*> *passed_mappings;
+	vector<int*> *send_mappings;
 	vector<int*> *dummies;
-	SIBranch *branch;
 
 	SIMessage()
 	{
@@ -20,19 +19,20 @@ struct SIMessage
 		this->nrow = label;
 	}
 	
-	SIMessage(int type, int int1, int int2, int *mappings)
+	SIMessage(int type, int *mappings, int curr_u, int nrow, int ncol)
 	{ //IN_MAPPING
 		this->type = type;
-		this->int1 = int1;
-		this->int2 = int2;
+		this->curr_u = curr_u;
+		this->nrow = nrow;
+		this->ncol = ncol;
 		this->mappings = mappings;
 	}
 
-	SIMessage(int type, vector<int*> *passed_mappings, vector<int*> *dummies,
+	SIMessage(int type, vector<int*> *send_mappings, vector<int*> *dummies,
 		int curr_u, int nrow, int ncol, int vID)
 	{ //OUT_MAPPING
 		this->type = type;
-		this->passed_mappings = passed_mappings;
+		this->send_mappings = send_mappings;
 		this->dummies = dummies;
 		this->curr_u = curr_u;
 		this->nrow = nrow;
@@ -92,7 +92,8 @@ enum MESSAGE_TYPES {
 	LABEL_INFOMATION = 0,
 	IN_MAPPING = 1,
 	OUT_MAPPING = 2,
-	BMAPPING = 3,
+	BMAPPING_W_SELF = 3,
+	BMAPPING_WO_SELF = 4
 };
 
 ibinstream & operator<<(ibinstream &m, const SIMessage &msg)
@@ -101,37 +102,35 @@ ibinstream & operator<<(ibinstream &m, const SIMessage &msg)
 	switch (msg.type)
 	{
 	case MESSAGE_TYPES::LABEL_INFOMATION:
-		m << msg.int1 << msg.int2;
+		m << msg.nrow << msg.ncol;
 	case MESSAGE_TYPES::OUT_MAPPING:
-		m << msg.vID << msg.curr_u; //vID & curr_u
-		m << msg.nrow;
+		m << msg.vID << msg.curr_u << msg.nrow << (msg.ncol + 1);
 		for (int i = 0; i < msg.nrow; i++)
 			for (int j = 0; j < msg.ncol; j++)
-				m << ((*msg.passed_mappings)[i])[j];
+				m << ((*msg.send_mappings)[i])[j];
 		break;
-	case MESSAGE_TYPES::BMAPPING:
-	// fill up this
-		/*
-	case MESSAGE_TYPES::DEGREE:
-		m << v.key << v.value;
+	case MESSAGE_TYPES::BMAPPING_W_SELF:
+		m << msg.curr_u << msg.nrow << (msg.ncol + 3);
+		for (int i = 0; i < msg.nrow; i++)
+		{
+			for (int j = 0; j < msg.ncol; j++)
+				m << ((*msg.send_mappings)[i])[j];
+			m << msg.vID;
+			for (int j = 0; j < 2; j++)
+				m << ((*msg.dummies)[i])[j];
+		}		
+	case MESSAGE_TYPES::BMAPPING_WO_SELF:
+		m << msg.curr_u << msg.nrow << (msg.ncol + 2);
+		for (int i = 0; i < msg.nrow; i++)
+		{
+			for (int j = 0; j < msg.ncol; j++)
+				m << (*msg.send_mappings)[i][j];
+			for (int j = 0; j < 2; j++)
+				m << (*msg.dummies)[i][j];
+		}
 		break;
-	case MESSAGE_TYPES::NEIGHBOR_PAIR:
-		m << v.p_int.first << v.p_int.second;
-		break;
-	case MESSAGE_TYPES::BRANCH_RESULT:
-		m << v.mapping << v.value;
-		break;
-	case MESSAGE_TYPES::BRANCH:
-		m << v.branch << v.value;
-		break;
-	case MESSAGE_TYPES::MAPPING_COUNT:
-		m << v.value;
-		break;
-	case MESSAGE_TYPES::CANDIDATE:
-		m << v.key << v.v_int;
-		break;
-		*/
 	}
+	cout << endl;
 	return m;
 }
 
@@ -141,43 +140,29 @@ obinstream & operator>>(obinstream &m, SIMessage &msg)
 	switch (msg.type)
 	{
 	case MESSAGE_TYPES::LABEL_INFOMATION:
-		m >> msg.int1 >> msg.int2;
+		m >> msg.nrow >> msg.ncol;
 	case MESSAGE_TYPES::OUT_MAPPING:
 		msg.type = MESSAGE_TYPES::IN_MAPPING;
-		int vID, ncol = step_num();
-		m >> vID;
-		m >> msg.int1; //curr_u
-		m >> msg.int2; //nrow
-		msg.mappings = new int[msg.int2 * ncol];
-		for (int i = 0; i < msg.int2 * ncol; i++)
+		m >> msg.vID >> msg.curr_u >> msg.nrow >> msg.ncol;
+		msg.mappings = new int[msg.nrow * msg.ncol];
+		for (int i = 0; i < msg.nrow * msg.ncol; i++)
 		{
-			if ((i+1)%ncol == 0)
-				msg.mappings[i] = vID;
+			if ((i+1) % (msg.ncol) == 0)
+				msg.mappings[i] = msg.vID;
 			else
 				m >> msg.mappings[i];
 		}
 		break;
-		/*
-	case MESSAGE_TYPES::DEGREE:
-		m >> v.key >> v.value;
+	case MESSAGE_TYPES::BMAPPING_W_SELF:
+	case MESSAGE_TYPES::BMAPPING_WO_SELF:
+		msg.type = MESSAGE_TYPES::IN_MAPPING;
+		m >> msg.curr_u >> msg.nrow >> msg.ncol;
+		msg.mappings = new int[msg.nrow * msg.ncol];
+		for (int i = 0; i < msg.nrow * msg.ncol; i++)
+			m >> msg.mappings[i];
 		break;
-	case MESSAGE_TYPES::NEIGHBOR_PAIR:
-		m >> v.p_int.first >> v.p_int.second;
-		break;
-	case MESSAGE_TYPES::BRANCH_RESULT:
-		m >> v.mapping >> v.value;
-		break;
-	case MESSAGE_TYPES::BRANCH:
-		m >> v.branch >> v.value;
-		break;
-	case MESSAGE_TYPES::MAPPING_COUNT:
-		m >> v.value;
-		break;
-	case MESSAGE_TYPES::CANDIDATE:
-		m >> v.key >> v.v_int;
-		break;
-		*/
 	}
+	cout << endl;
 	return m;
 }
 

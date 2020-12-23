@@ -1,7 +1,7 @@
 #ifndef SIBRANCH_H
 #define SIBRANCH_H
 
-
+/*
 //==========================================================================
 
 struct SIBranch;
@@ -97,6 +97,6 @@ obinstream& operator>>(obinstream& m, SIBranch& branch)
 
     return m;
 }
-
+*/
 
 #endif
