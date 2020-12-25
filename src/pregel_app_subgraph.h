@@ -43,7 +43,7 @@ public:
 	int eligible_neighbors = 1;
 	bool manual_active = true;
 	vector<int> final_us;
-	vector<int*> final_results;
+	vector<vector<int*>*> final_results; // for different curr_u
 
 	void preprocess(MessageContainer & messages, WorkerParams &params)
 	{
@@ -335,7 +335,7 @@ public:
 				{
 					this->manual_active = true;
 					this->final_us.push_back(curr_u);
-					this->final_results = *passed_mappings;
+					this->final_results.push_back(send_mappings);
 					/*
 					if (!ps_labs.empty())
 					{
@@ -362,7 +362,6 @@ public:
 
 	void enumerate(MessageContainer & messages)
 	{
-		/*
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
 			 << " ACTIVE Vertex ID " << id.vID 
@@ -465,7 +464,6 @@ public:
 			}
 			this->timers[0][1] += get_current_time() - t;
 		}
-		 */
  		vote_to_halt();
 		
 	}
@@ -991,9 +989,9 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 
 			SIQuery* query = (SIQuery*)getQuery();
 			int ncol = query->num;
-			for (size_t i = 0, j; i < v->final_results.size(); i++)
+			for (size_t i = 0, j; i < (v->final_results[0])->size(); i++)
 			{
-				int* mapping = v->final_results[i];
+				int* mapping = (*v->final_results[0])[i];
 				sprintf(buf, "# Match\n");
 				writer.write(buf);
 
