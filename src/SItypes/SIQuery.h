@@ -500,7 +500,8 @@ public:
 	{ return this->nodes[id].dummy_pos; }
 	int getNearestBranchingAncestor(int id)
 	{ return this->nbancestors[id]; }
-
+	bool isLeaf(int id)
+	{ return this->nodes[id].children.empty(); }
 	bool isBranch(int id)
 	{ return this->nodes[id].is_branch; }
 

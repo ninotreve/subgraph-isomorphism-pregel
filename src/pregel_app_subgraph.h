@@ -145,7 +145,7 @@ public:
 			cout << endl;
 		}
 		return SIMessage(MESSAGE_TYPES::IN_MAPPING, mappings,
-			msg.curr_u, msg.nrow, new_ncol);
+			msg.curr_u, msg.nrow, new_ncol, delete);
 	}
 
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
@@ -309,6 +309,8 @@ public:
 					int nrow = (LEVEL != 0) ? send_mappings->size() : 1;
 					SIMessage out_message = SIMessage(type, send_mappings, 
 						dummies, next_u, nrow, ncol, id.vID);
+					if (query->isLeaf(next_u))
+						out_message.delete = false;
 					for (int wID = 0; wID < get_num_workers(); wID++)
 					{
 						if (neighbors_map[wID].empty())
@@ -1025,6 +1027,8 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 
 			for (SIMessage &msg : delete_messages)
 			{
+				if (!msg.delete)
+					continue;
 				if (msg.type == OUT_MAPPING)
 					vector<int*>().swap(*msg.send_mappings);
 				else
