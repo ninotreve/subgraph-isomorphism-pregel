@@ -241,6 +241,7 @@ public:
 				dummy_self[1] = id.wID;
 				send_mappings->push_back(dummy_self);
 				dummies->push_back(dummy_self);
+				this->is_dummy = true;
 				/*
 				ncol = query->getCompressedPrefix(curr_u).size() + 2;
 				for (int i = 0; i < passed_mappings->size(); i++)
@@ -338,14 +339,6 @@ public:
 					this->manual_active = true;
 					this->final_us.push_back(curr_u);
 					this->final_results.push_back(send_mappings);
-					/*
-					if (!ps_labs.empty())
-					{
-						this->eligible_neighbors
-							= this->value().countOccurrences(ps_labs,
-							query->getPseudoLabelCount(curr_u));
-					}
-					*/
 					for (int j = 0; j < passed_mappings->size(); j++)
 					{
 						cout << "Final mapping: " << endl;
@@ -416,7 +409,57 @@ public:
 				vote_to_halt();
 				return;
 			}
+		}
 
+		// case 1: for leaf state, send the computed results to branch vertex
+		//	vector<int> final_us;
+		// vector<vector<int*>*> final_results; // for different curr_u
+		if (!this->is_dummy)
+		{
+			for (int i = 0; i < this->final_us.size(); i++)
+			{
+				int curr_u = this->final_us[i];
+				vector<int*> *result = this->final_results[i];
+				int branch_number = query->getBranchNumber(curr_u);
+				int dummy_pos = query->getDummyPos(curr_u);
+				int ncol = query->getNCOL(curr_u) -dummy_pos - 1;
+				if (dummy_pos == -1)
+				{
+					// path query. count the number directly.
+					vote_to_halt();
+					return;
+				}
+				if (branch_number + step_num() == query->max_branch_number + 1)
+				{
+					// continue_enum: send to dummies
+					int weight = 1;
+					vector<int> &ps_labs = query->getPseudoLabel(curr_u);
+					if (!ps_labs.empty())
+					{
+						weight = this->value().countOccurrences(ps_labs,
+							query->getPseudoLabelCount(curr_u));
+					}
+					for (int j = 0; j < result->size(); j++)
+					{
+						int *p = (*result)[j];
+						int vID = p[dummy_pos];
+						int wID = p[dummy_pos+1];
+						SIMessage out_msg = SIMessage(BRANCH_RESULT,
+							SIBranch(p+dummy_pos+2, ncol, weight));
+						if (wID == get_worker_id())
+							send_messages(wID, {vID}, copy_message(out_msg));
+						else
+							send_messages(wID, {vID}, out_msg);
+					}
+				}
+			}
+		}
+		else
+		{
+			
+		}
+
+		{
 			double t = get_current_time();
 			vector<int> vector_u = query->getBucket(query->max_level, value().label);
 			if (vector_u.size() == 1)

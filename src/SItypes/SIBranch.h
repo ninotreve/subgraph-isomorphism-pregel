@@ -7,17 +7,20 @@
 struct SIBranch
 {
 	int *prefix;
-	int nrow;
-	vector<vector<int>> psd_chd;
+	int ncol;
+	int weight = 1; // change weight if there is pseudo-children
 	vector<vector<SIBranch*>> chd;
-//-------
+
 	SIBranch() {};
 
-	SIBranch(Mapping p)
+	SIBranch(int *p, int ncol, int weight = 1)
 	{
-		this->p = p;
+		this->prefix = p;
+		this->ncol = ncol;
+		this->weight = weight;
 	}
 
+//-------
 	void addBranch(vector<SIBranch> branch)
 	{
 		this->branches.push_back(branch);
