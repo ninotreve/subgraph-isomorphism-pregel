@@ -444,8 +444,9 @@ public:
 						int *p = (*result)[j];
 						int vID = p[dummy_pos];
 						int wID = p[dummy_pos+1];
-						SIMessage out_msg = SIMessage(BRANCH_RESULT,
-							SIBranch(p+dummy_pos+2, ncol, weight));
+						// use dynamic memory
+						SIBranch *branch = new SIBranch(p+dummy_pos+2, ncol, weight);
+						SIMessage out_msg = SIMessage(BRANCH_RESULT, branch);
 						if (wID == get_worker_id())
 							send_messages(wID, {vID}, copy_message(out_msg));
 						else
@@ -454,9 +455,20 @@ public:
 				}
 			}
 		}
+		// case 2: for dummy state, aggregate the results into one SIbranch
+		// and forward it to its parent SIbranch
 		else
 		{
-			
+			for (i = 0; i < messages.size(); i++)
+			{
+				SIMessage &msg = messages[i];
+				// find out where to store the branch
+				for (j = 0; j < branch_u.size(); j++)
+					if (branch_u[j] == msg.value) break;
+				if (j == branch_u.size())
+					branch_u.push_back(msg.value);
+				b.branches[j].push_back(msg.branch);
+			}	
 		}
 
 		{
@@ -505,16 +517,7 @@ public:
 			b.branches.resize(query->getChildren(id.vID).size());
 			int i, j;
 			vector<int> branch_u;
-			for (i = 0; i < messages.size(); i++)
-			{
-				SIMessage & msg = messages[i];
-				// find out where to store the branch
-				for (j = 0; j < branch_u.size(); j++)
-					if (branch_u[j] == msg.value) break;
-				if (j == branch_u.size())
-					branch_u.push_back(msg.value);
-				b.branches[j].push_back(msg.branch);
-			}
+			
 			// make sure every child sends you result!
 			if (!b.isValid())
 			{

@@ -8,7 +8,7 @@ struct SIMessage
 	int *mappings;
 	vector<int*> *send_mappings;
 	vector<int*> *dummies;
-	SIBranch branch;
+	SIBranch *branch;
 
 	SIMessage()
 	{
@@ -44,7 +44,7 @@ struct SIMessage
 		this->vID = vID;
 	}
 
-	SIMessage(int type, SIBranch branch)
+	SIMessage(int type, SIBranch *branch)
 	{ // for BRANCH_RESULT
 		this->type = type;
 		this->branch = branch;
