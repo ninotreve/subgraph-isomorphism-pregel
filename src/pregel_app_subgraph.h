@@ -242,6 +242,7 @@ public:
 				send_mappings->push_back(dummy_self);
 				dummies->push_back(dummy_self);
 				this->is_dummy = true;
+				this->final_us.push_back(curr_u);
 				/*
 				ncol = query->getCompressedPrefix(curr_u).size() + 2;
 				for (int i = 0; i < passed_mappings->size(); i++)
@@ -422,7 +423,7 @@ public:
 				vector<int*> *result = this->final_results[i];
 				int branch_number = query->getBranchNumber(curr_u);
 				int dummy_pos = query->getDummyPos(curr_u);
-				int ncol = query->getNCOL(curr_u) -dummy_pos - 1;
+				int ncol = query->getNCOL(curr_u) - dummy_pos - 1;
 				if (dummy_pos == -1)
 				{
 					// path query. count the number directly.
@@ -446,7 +447,8 @@ public:
 						int wID = p[dummy_pos+1];
 						// use dynamic memory
 						SIBranch *branch = new SIBranch(p+dummy_pos+2, ncol, weight);
-						SIMessage out_msg = SIMessage(BRANCH_RESULT, branch);
+						SIMessage out_msg = SIMessage(BRANCH_RESULT, branch,
+							curr_u);
 						if (wID == get_worker_id())
 							send_messages(wID, {vID}, copy_message(out_msg));
 						else
@@ -459,16 +461,22 @@ public:
 		// and forward it to its parent SIbranch
 		else
 		{
-			for (i = 0; i < messages.size(); i++)
+			if (messages.empty())
+			{
+				vote_to_halt();
+				return;
+			}
+			int curr_u = this->final_us[0];
+			vector<int> &senders = query->getBranchSenders(curr_u);
+			SIBranch *branch = new SIBranch(p+dummy_pos+2, ncol, weight);
+			for (int i = 0; i < messages.size(); i++)
 			{
 				SIMessage &msg = messages[i];
 				// find out where to store the branch
-				for (j = 0; j < branch_u.size(); j++)
-					if (branch_u[j] == msg.value) break;
-				if (j == branch_u.size())
-					branch_u.push_back(msg.value);
+				int j;
+				for (j = 0; senders[j] == msg.curr_u; j++);
 				b.branches[j].push_back(msg.branch);
-			}	
+			}
 		}
 
 		{

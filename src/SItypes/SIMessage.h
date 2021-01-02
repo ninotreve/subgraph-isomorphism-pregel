@@ -44,10 +44,11 @@ struct SIMessage
 		this->vID = vID;
 	}
 
-	SIMessage(int type, SIBranch *branch)
+	SIMessage(int type, SIBranch *branch, int curr_u)
 	{ // for BRANCH_RESULT
 		this->type = type;
 		this->branch = branch;
+		this->curr_u = curr_u;
 	}
 /*
 	SIMessage(int type, int nrow, int ncol, SIKey *pKey)
