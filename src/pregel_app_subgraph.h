@@ -41,7 +41,11 @@ public:
 	SICandidate *candidate;
 	double timers[3][3];
 	bool manual_active = true;
+	// for dummies
 	bool is_dummy = false;
+	int *p;
+	int p_ncol;
+	// for leaves
 	vector<int> final_us;
 	vector<vector<int*>*> final_results; // for different curr_u
 
@@ -468,14 +472,15 @@ public:
 			}
 			int curr_u = this->final_us[0];
 			vector<int> &senders = query->getBranchSenders(curr_u);
-			SIBranch *branch = new SIBranch(p+dummy_pos+2, ncol, weight);
+			SIBranch *b = new SIBranch(p+dummy_pos+2, ncol, weight);
+			b->chd.resize(senders.size());
 			for (int i = 0; i < messages.size(); i++)
 			{
 				SIMessage &msg = messages[i];
 				// find out where to store the branch
 				int j;
 				for (j = 0; senders[j] == msg.curr_u; j++);
-				b.branches[j].push_back(msg.branch);
+				b->branches[j].push_back(msg.branch);
 			}
 		}
 
