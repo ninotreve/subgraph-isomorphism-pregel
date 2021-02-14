@@ -52,6 +52,9 @@ struct SINode
 	// as well as whether include itself or not. In the same order as children.
 	vector<vector<int>> chd_constraint;
 	vector<bool> chd_constraint_self;
+	// ONLY AVAILABLE FOR BRANCH VERTEX: branch_senders send branch result to it.
+	// In the same order as children.
+	vector<int> branch_senders;
 
 	SINode() { this->visited = false; }
 
@@ -328,6 +331,8 @@ public:
 	{
 		// recursive function to add branch number.
 		this->nbancestors[currID] = ancID;
+		if (curr->children.size() == 0)
+			this->nodes[ancID].branch_senders.push_back(currID);
 
 		SINode* curr = &this->nodes[currID];
 		int children_size = curr->children.size();
@@ -337,6 +342,7 @@ public:
 		{
 			curr->is_branch = true;
 			num ++;
+			this->nodes[ancID].branch_senders.push_back(currID);
 			ancID = currID;
 		}
 
@@ -492,6 +498,8 @@ public:
 	{ return this->nodes[id].b_same_lab_pos; }
 	vector<int> &getPrevMapping(int id)
 	{ return this->nodes[id].previous_mapping; }
+	vector<int> &getBranchSenders(int id)
+	{ return this->nodes[id].branch_senders; }
 	bool getIncludeSelf(int id, int i)
 	{ return this->nodes[id].chd_constraint_self[i]; }
 	int getNCOL(int id)
@@ -500,7 +508,8 @@ public:
 	{ return this->nodes[id].dummy_pos; }
 	int getNearestBranchingAncestor(int id)
 	{ return this->nbancestors[id]; }
-
+	bool isLeaf(int id)
+	{ return this->nodes[id].children.empty(); }
 	bool isBranch(int id)
 	{ return this->nodes[id].is_branch; }
 
