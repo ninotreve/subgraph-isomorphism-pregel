@@ -40,12 +40,9 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 public:
 	SICandidate *candidate;
 	double timers[3][3];
-<<<<<<< HEAD
 	int *mapping;
 	int mapping_count = 0;
 	bool is_dummy = false;
-=======
->>>>>>> 5fc8e337874a2b41e08870a7651227f5d75239a4
 	bool manual_active = true;
 	// for dummies
 	bool is_dummy = false;
@@ -53,11 +50,7 @@ public:
 	int p_ncol;
 	// for leaves
 	vector<int> final_us;
-<<<<<<< HEAD
-	vector<vector<int*>*> final_results;
-=======
 	vector<vector<int*>*> final_results; // for different curr_u
->>>>>>> 5fc8e337874a2b41e08870a7651227f5d75239a4
 
 	void preprocess(MessageContainer & messages, WorkerParams &params)
 	{
@@ -364,11 +357,7 @@ public:
 				{
 					this->manual_active = true;
 					this->final_us.push_back(curr_u);
-<<<<<<< HEAD
-					this->final_results.push_back(passed_mappings);
-=======
 					this->final_results.push_back(send_mappings);
->>>>>>> 5fc8e337874a2b41e08870a7651227f5d75239a4
 					for (int j = 0; j < passed_mappings->size(); j++)
 					{
 						cout << "Final mapping: " << endl;
@@ -385,44 +374,8 @@ public:
 		vote_to_halt();
 	}
 
-<<<<<<< HEAD
 	void build_branch(MessageContainer &messages, int *mapping, int dummy_pos)
 	{ // set up branch + send or expand
-=======
-	void continue_enum(SIBranch b, int curr_u, int anc_u)
-	{
-		double t = get_current_time();
-		SIQuery* query = (SIQuery*)getQuery();	
-		Mapping &m = b.p;
-		Mapping m1, m2;
-		int j;
-		SIKey to_key = m[query->getLevel(anc_u)];
-		for (j = 0; j <= query->getLevel(anc_u); j++)
-			m1.push_back(m[j]);
-		for (; j < (int) m.size(); j++)
-			m2.push_back(m[j]);
-		b.p = m2;
-		send_message(SIKey(anc_u, to_key.wID, m1), SIMessage(BRANCH, b, curr_u));
-#ifdef DEBUG_MODE_MSG
-		cout << "[DEBUG] Superstep " << step_num()
-		 	<< "\n\tMessage sent from (leaf) " << id.vID
-			<<	" to <" << to_key.vID << ", " << m1 << ">."
-			<< "\n\tType: BRANCH. "
-			<< "\n\tMapping: " << m2
-			<< ", curr_u: " << curr_u << endl;
-#endif
-		this->timers[1][0] += get_current_time() - t;
-		
-	}	
-
-	void enumerate(MessageContainer & messages)
-	{
-#ifdef DEBUG_MODE_ACTIVE
-		cout << "[DEBUG] STEP NUMBER " << step_num()
-			 << " ACTIVE Vertex ID " << id.vID 
-			 << " Manual active: " << manual_active << endl;
-#endif
->>>>>>> 5fc8e337874a2b41e08870a7651227f5d75239a4
 		SIQuery* query = (SIQuery*)getQuery();	
 
 		// Phase I: Organize branches
@@ -586,18 +539,6 @@ public:
 			}
 			this->timers[0][1] += get_current_time() - t;
 		}
-<<<<<<< HEAD
-							/*
-					if (!ps_labs.empty())
-					{
-						this->eligible_neighbors
-							= this->value().countOccurrences(ps_labs,
-							query->getPseudoLabelCount(curr_u));
-					}
-					*/
-
-=======
->>>>>>> 5fc8e337874a2b41e08870a7651227f5d75239a4
  		vote_to_halt();
 		
 	}
