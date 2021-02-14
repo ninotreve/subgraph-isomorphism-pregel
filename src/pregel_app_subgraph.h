@@ -40,10 +40,12 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 public:
 	SICandidate *candidate;
 	double timers[3][3];
-	int eligible_neighbors = 1;
+	int *mapping;
+	int mapping_count = 0;
+	bool is_dummy = false;
 	bool manual_active = true;
 	vector<int> final_us;
-	vector<int*> final_results;
+	vector<vector<int*>*> final_results;
 
 	void preprocess(MessageContainer & messages, WorkerParams &params)
 	{
@@ -144,6 +146,16 @@ public:
 			}
 			cout << endl;
 		}
+
+		// Print out the copied message
+		/*
+		cout << "[Message]" << endl;
+		cout << "nrow: " << msg.nrow << " ncol: " << new_ncol << endl;
+		for (int i = 0; i < msg.nrow*new_ncol; i++)
+			cout << mappings[i] << " ";
+		cout << endl;
+		*/
+
 		return SIMessage(MESSAGE_TYPES::IN_MAPPING, mappings,
 			msg.curr_u, msg.nrow, new_ncol);
 	}
@@ -165,7 +177,7 @@ public:
 			for (int j = 0; j < 3; j++)
 				this->timers[i][j] = 0.0;
 
-		if (this->id.vID < 0) //dummy vertex
+		if (this->is_dummy) //dummy vertex
 		{
 			for (int i = 0; i < 3; i++)
 				for (int j = 0; j < 3; j++)
@@ -230,6 +242,7 @@ public:
 			STOP_TIMING(t1, 0, 1);
 
 			//Add dummy vertex for branch vertices
+			// - turn on is_dummy
 			bool is_branch = query->isBranch(curr_u), include_self;
 			if (is_branch)
 			{
@@ -335,19 +348,11 @@ public:
 				{
 					this->manual_active = true;
 					this->final_us.push_back(curr_u);
-					this->final_results = *passed_mappings;
-					/*
-					if (!ps_labs.empty())
-					{
-						this->eligible_neighbors
-							= this->value().countOccurrences(ps_labs,
-							query->getPseudoLabelCount(curr_u));
-					}
-					*/
+					this->final_results.push_back(passed_mappings);
 					for (int j = 0; j < passed_mappings->size(); j++)
 					{
 						cout << "Final mapping: " << endl;
-						for (int k = 0; k < LEVEL + 1; k++)
+						for (int k = 0; k < ncol; k++)
 							cout << (*passed_mappings)[j][k] << " ";
 						cout << id.vID << endl;
 					}
@@ -360,21 +365,20 @@ public:
 		vote_to_halt();
 	}
 
-	void enumerate(MessageContainer & messages)
-	{
-		/*
-#ifdef DEBUG_MODE_ACTIVE
-		cout << "[DEBUG] STEP NUMBER " << step_num()
-			 << " ACTIVE Vertex ID " << id.vID 
-			 << " Manual active: " << manual_active << endl;
-#endif
+	void build_branch(MessageContainer &messages, int *mapping, int dummy_pos)
+	{ // set up branch + send or expand
 		SIQuery* query = (SIQuery*)getQuery();	
 
-		if (step_num() > query->max_branch_number + 1)
-		{
-			vote_to_halt();
-			return;
-		}
+		// Phase I: Organize branches
+		// 1.1. Receive messages
+		/*
+		for msg in msgs: arrange msgs according to curr_u
+		*/
+
+		// Phase II: Split branches
+		/*
+		Single out marked branches, and we obtain several branches
+		*/
 
 		// send mappings from leaves for supersteps [1, max_branch_number]
 		// if (step_num() > 0 && step_num() <= query->max_branch_number)
@@ -465,9 +469,54 @@ public:
 			}
 			this->timers[0][1] += get_current_time() - t;
 		}
-		 */
+							/*
+					if (!ps_labs.empty())
+					{
+						this->eligible_neighbors
+							= this->value().countOccurrences(ps_labs,
+							query->getPseudoLabelCount(curr_u));
+					}
+					*/
+
  		vote_to_halt();
 		
+	}
+
+	void enumerate(MessageContainer & messages)
+	{
+		SIQuery* query = (SIQuery*)getQuery();
+
+#ifdef DEBUG_MODE_ACTIVE
+		cout << "[DEBUG] STEP NUMBER " << step_num()
+			 << " ACTIVE Vertex ID " << id.vID 
+			 << " Manual active: " << manual_active << endl;
+#endif
+
+		if (manual_active && !is_dummy)
+		{ // leaf vertex
+			for (int i = 0 ; i < this->final_us.size(); i++)
+			{
+				int curr_u = this->final_us[i];
+				int branch_num = query->getBranchNumber(curr_u);
+				if (branch_num + step_num() != query->max_branch_number + 1)
+					continue;
+
+				vector<int*>* final_result = this->final_results[i];
+				int dummy_pos = query->getDummyPos(curr_u);
+				for (int j = 0; j < final_result->size(); j++)
+				{
+					int* mapping = (*final_result)[j];
+					build_branch(messages, mapping, dummy_pos);
+				}
+			}
+		}
+		else if (is_dummy)
+		{ // dummy vertex
+			int curr_u = this->final_us[0];
+			vector<int*>* final_result = this->final_results[0];
+			int dummy_pos = query->getDummyPos(curr_u);
+			build_branch(messages, this->mapping, dummy_pos);
+		}
 	}
 
 //////////////////////////////////////////////////////////
@@ -888,8 +937,7 @@ public:
     	else if (type == ENUMERATE)
     	{
 			if (v->manual_active)
-    			agg_mat[0][0] += v->final_results.size() * v->eligible_neighbors;
-			//Sorry I cheat here. Eligible neighbors are not saved.
+    			agg_mat[0][0] += v->mapping_count;
 
 			for (int i = 0; i < 3; i++)
 				for (int j = 0; j < 3; j++)
@@ -988,7 +1036,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 		{
 			if (!v->manual_active)
 				return;
-
+			/*
 			SIQuery* query = (SIQuery*)getQuery();
 			int ncol = query->num;
 			for (size_t i = 0, j; i < v->final_results.size(); i++)
@@ -1016,6 +1064,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 					query->getID(query->dfs_order[j]), v->id.vID);
 				writer.write(buf);
 			}
+			*/
 		}
 
 		virtual void clear_messages(vector<SIMessage> &delete_messages)

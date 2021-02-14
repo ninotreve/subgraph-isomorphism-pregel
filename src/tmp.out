@@ -4,129 +4,133 @@ Output graph path: /output
 Partition Method: 
 Preprocess Method: 1
 Filter Method: 0
-Order Method: degree
+Order Method: random
 Enumerate Method: 1
 
 Loading data graph...
-Loading data graph time : 1.380096 seconds
+Loading data graph time : 1.463112 seconds
 Preprocessing...
-Preprocessing time : 0.000878 seconds
-In total, offline time : 1.381004 seconds
+Preprocessing time : 0.000084 seconds
+In total, offline time : 1.463209 seconds
 
 Loading query graph...
 Worker 0: "hdfs://master:9000/gtQuery/query.txt" loaded
-Loading query graph time : 0.144401 seconds
+Loading query graph time : 0.099525 seconds
 Filtering...
 Filtering time : 0.000000 seconds
 Building query tree...
 # Query Vertices: 5
-Node 2: [Label: 99 Neighbors: [0, 1, 3] Level: 0 Backward neighbors: [] Backward neighbors positions: [] previous_mapping: []]. with 2 children and 0 pseudo children.
-Node 0: [Label: 97 Neighbors: [1, 2] Level: 1 Backward neighbors: [] Backward neighbors positions: [] previous_mapping: [2, -3]]. with 1 children and 0 pseudo children.
-Node 1: [Label: 98 Neighbors: [0, 2] Level: 2 Backward neighbors: [2] Backward neighbors positions: [0] previous_mapping: [2, -3, 0]]. with 0 children and 0 pseudo children.
-Node 3: [Label: 98 Neighbors: [2, 4] Level: 1 Backward neighbors: [] Backward neighbors positions: [] previous_mapping: [2, -3]]. with 0 children and 1 pseudo children.
+Node 0: [Label: 97 Neighbors: [1, 2] Level: 0 Backward neighbors: [] Backward neighbors positions: [] previous_mapping: []]. with 1 children and 0 pseudo children.
+Node 1: [Label: 98 Neighbors: [0, 2] Level: 1 Backward neighbors: [] Backward neighbors positions: [] previous_mapping: [0]]. with 1 children and 0 pseudo children.
+Node 2: [Label: 99 Neighbors: [0, 1, 3] Level: 2 Backward neighbors: [0] Backward neighbors positions: [0] previous_mapping: [0, 1]]. with 1 children and 0 pseudo children.
+Node 3: [Label: 98 Neighbors: [2, 4] Level: 3 Backward neighbors: [] Backward neighbors positions: [] previous_mapping: [0, 1, 2]]. with 0 children and 1 pseudo children.
 {100*1 }
-Node 4: [Label: 100 Neighbors: [3] Level: 2 Backward neighbors: [] Backward neighbors positions: [] previous_mapping: []]. with 0 children and 0 pseudo children.
-Building query tree time : 0.001306 seconds
+Node 4: [Label: 100 Neighbors: [3] Level: 4 Backward neighbors: [] Backward neighbors positions: [] previous_mapping: []]. with 0 children and 0 pseudo children.
+Building query tree time : 0.000050 seconds
 **Subgraph matching**
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 2 Worker ID 2 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 1 Worker ID 0 Manual active: 1
 
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 5 Worker ID 2 Manual active: 1
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 8 Worker ID 2 Manual active: 1
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 11 Worker ID 2 Manual active: 1
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 14 Worker ID 2 Manual active: 1
+[Message]
+nrow: 1 ncol: 1
+1 
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 2 Worker ID 0 Manual active: 1
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 3 Worker ID 0 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 4 Worker ID 0 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 5 Worker ID 0 Manual active: 1
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 6 Worker ID 0 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 7 Worker ID 0 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 8 Worker ID 0 Manual active: 1
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 9 Worker ID 0 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 10 Worker ID 0 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 11 Worker ID 0 Manual active: 1
+
+[Message]
+nrow: 1 ncol: 1
+11 
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 12 Worker ID 0 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 13 Worker ID 0 Manual active: 1
+[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 14 Worker ID 0 Manual active: 1
 [DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 15 Worker ID 0 Manual active: 1
+Superstep 1 done.Time elapsed: 0.000118971 seconds
+#msgs: 2, #vadd: 0
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 5 Worker ID 0 Manual active: 0
 
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 1 Worker ID 1 Manual active: 1
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 4 Worker ID 1 Manual active: 1
-
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 7 Worker ID 1 Manual active: 1
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 10 Worker ID 1 Manual active: 1
-[DEBUG] STEP NUMBER 1 ACTIVE Vertex ID 13 Worker ID 1 Manual active: 1
-sending out ...4312 
-
-sending out ...4012 
-
-sending out ...4312 
-
-sending out ...4012 
-sending out ...4312 
-
-
-sending out ...4312 
-
-Superstep 1 done.Time elapsed: 0.00941586 seconds
-#msgs: 9, #vadd: 0
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 3 Worker ID 0 Manual active: 0
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 1 Worker ID 1 Manual active: 0
-
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 5 Worker ID 2 Manual active: 0
-Final mapping: 
-4 1 5
-Final mapping: 
-2 2 5
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 11 Worker ID 2 Manual active: 0
-
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 14 Worker ID 2 Manual active: 0
-Final mapping: 
-15 0 14
-
-Final mapping: 
-4 1 3
-Final mapping: 
-2 2 3
-[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 9 Worker ID 0 Manual active: 0
-Final mapping: 
-4 1 9
+[Message]
+nrow: 1 ncol: 2
+1 5 
 [DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 12 Worker ID 0 Manual active: 0
-Final mapping: 
-15 0 12
 
+[Message]
+nrow: 1 ncol: 2
+11 12 
+[DEBUG] STEP NUMBER 2 ACTIVE Vertex ID 14 Worker ID 0 Manual active: 0
 
-Superstep 2 done.Time elapsed: 0.00184417 seconds
+[Message]
+nrow: 1 ncol: 2
+11 14 
+Superstep 2 done.Time elapsed: 7.00951e-05 seconds
 #msgs: 3, #vadd: 0
-[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 12 Worker ID 0 Manual active: 1
-[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 5 Worker ID 2 Manual active: 1
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 2 Worker ID 0 Manual active: 0
+
+[Message]
+nrow: 1 ncol: 3
+1 5 2 
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 4 Worker ID 0 Manual active: 0
+
+[Message]
+nrow: 1 ncol: 3
+1 5 4 
+[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 15 Worker ID 0 Manual active: 0
+
+
+[Message]
+nrow: 2 ncol: 3
+11 12 15 11 14 15 
+Superstep 3 done.Time elapsed: 5.57899e-05 seconds
+#msgs: 3, #vadd: 0
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 3 Worker ID 0 Manual active: 0
 Final mapping: 
-4 1 1 5
+1 5 2 3
 Final mapping: 
-2 2 1 5
-[DEBUG] STEP NUMBER 3 ACTIVE Vertex ID 14 Worker ID 2 Manual active: 1
+1 5 4 3
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 5 Worker ID 0 Manual active: 0
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 9 Worker ID 0 Manual active: 0
 Final mapping: 
-15 0 11 14
+1 5 4 9
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 12 Worker ID 0 Manual active: 0
 Final mapping: 
-15 0 11 12
-Superstep 3 done.Time elapsed: 0.000161886 seconds
+11 14 15 12
+[DEBUG] STEP NUMBER 4 ACTIVE Vertex ID 14 Worker ID 0 Manual active: 0
+Final mapping: 
+11 12 15 14
+Superstep 4 done.Time elapsed: 5.19753e-05 seconds
 #msgs: 0, #vadd: 0
 Subgraph matching done. 
-Total Computational Time : 0.011717 seconds
- - Active Compute Time : 0.000607 seconds
- - Sync Message Time : 0.004980 seconds
- - Agg Time : 0.000036 seconds
- - Sync Time (load imbalance) : 0.004098 seconds
- - Communication Time : 0.004981 seconds
-    - Serialization Time : 0.000244 seconds
-    - Transfer Time : 0.004733 seconds
-Total #msgs=12, Total #vadd=0
-Subgraph matching time : 0.011939 seconds
+Total Computational Time : 0.000358 seconds
+ - Active Compute Time : 0.000283 seconds
+ - Sync Message Time : 0.000007 seconds
+ - Agg Time : 0.000005 seconds
+ - Sync Time (load imbalance) : 0.000000 seconds
+ - Communication Time : 0.000005 seconds
+    - Serialization Time : 0.000002 seconds
+    - Transfer Time : 0.000002 seconds
+Total #msgs=8, Total #vadd=0
+Subgraph matching time : 0.000383 seconds
 [Detailed report]
-1. Arrange messages: 7.86781e-06 s
-2. Main Computation: 0.000286818 s
-2.1. Check feasibility: 5.72205e-06 s
-2.2. Continue mapping: 0.00027585 s
-2.2.0. Initiate neighbor map: 2.14577e-06 s
-2.2.1. Construct neighbor map: 9.53674e-07 s
-2.2.2. Update out messages buffer: 1.50204e-05 s
+1. Arrange messages: 9.53674e-07 s
+2. Main Computation: 0.000125408 s
+2.1. Check feasibility: 2.14577e-06 s
+2.2. Continue mapping: 0.000122309 s
+2.2.0. Initiate neighbor map: 0 s
+2.2.1. Construct neighbor map: 1.90735e-06 s
+2.2.2. Update out messages buffer: 8.39233e-05 s
 2.2.3. Clear out neighbor map: 0 s
-2.2.4. Leaf query vertex counting: 0.000253916 s
+2.2.4. Leaf query vertex counting: 3.17097e-05 s
 **Subgraph enumeration**
-Subgraph enumeration time : 0.000025 seconds
+Subgraph enumeration time : 0.000003 seconds
 Dumping results...
 Dumping results time : 0.000000 seconds
-In total, online time : 0.158022 seconds
+In total, online time : 0.100018 seconds
 ================ Final Report ===============
-Mapping count: 7
-COMPUTE Time : 0.013566 seconds
+Mapping count: 0
+COMPUTE Time : 0.000488 seconds

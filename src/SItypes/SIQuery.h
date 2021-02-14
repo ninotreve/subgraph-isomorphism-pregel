@@ -47,7 +47,7 @@ struct SINode
 	// previous mapping from root to self. COMPRESSED
 	// dummy denoted as negative number, length = ncol
 	vector<int> previous_mapping;
-	int dummy_pos; // position of dummy in previous_mapping, -1 if none.
+	int dummy_pos = -1; // position of dummy in previous_mapping, -1 if none.
 	// ONLY AVAILABLE FOR BRANCH VERTEX: constraints given to children, 
 	// as well as whether include itself or not. In the same order as children.
 	vector<vector<int>> chd_constraint;
@@ -298,9 +298,9 @@ public:
 				this->dfs(it->first, currID, false, order, sequence);
 				int childID = sequence.back();
 				SINode *child = &this->nodes[childID];
-				if (child->children.empty() && child->ps_children_labels.empty() &&
-					child->b_nbs.empty() && child->b_same_lab.empty())
-				{
+				if (child->children.empty() && child->b_nbs.empty() &&
+					child->ps_children_labels.empty())
+				{ // pseudo children of its parent
 					int index, childLab = this->getLabel(childID);
 					for (index = 0; index < curr->ps_children_labels.size(); index++)
 					{
