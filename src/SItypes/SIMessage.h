@@ -4,7 +4,7 @@
 struct SIMessage
 {
 	int type, curr_u, nrow, ncol, vID;
-	bool delete = true;
+	bool is_delete = true;
 	int *mappings;
 	vector<int*> *send_mappings;
 	vector<int*> *dummies;
@@ -22,14 +22,14 @@ struct SIMessage
 	}
 	
 	SIMessage(int type, int *mappings, int curr_u, int nrow, int ncol,
-		bool delete)
+		bool is_delete)
 	{ //IN_MAPPING
 		this->type = type;
 		this->curr_u = curr_u;
 		this->nrow = nrow;
 		this->ncol = ncol;
 		this->mappings = mappings;
-		this->delete = delete;
+		this->is_delete = is_delete;
 	}
 
 	SIMessage(int type, vector<int*> *send_mappings, vector<int*> *dummies,
@@ -44,11 +44,10 @@ struct SIMessage
 		this->vID = vID;
 	}
 
-	SIMessage(int type, SIBranch *branch, int curr_u)
+	SIMessage(int type, SIBranch *branch)
 	{ // for BRANCH_RESULT
 		this->type = type;
 		this->branch = branch;
-		this->curr_u = curr_u;
 	}
 /*
 	SIMessage(int type, int nrow, int ncol, SIKey *pKey)
@@ -98,7 +97,7 @@ enum MESSAGE_TYPES {
 ibinstream & operator<<(ibinstream &m, const SIMessage &msg)
 {
 	m << msg.type;
-	m << msg.delete;
+	m << msg.is_delete;
 	switch (msg.type)
 	{
 	case MESSAGE_TYPES::LABEL_INFOMATION:
@@ -137,7 +136,7 @@ ibinstream & operator<<(ibinstream &m, const SIMessage &msg)
 obinstream & operator>>(obinstream &m, SIMessage &msg)
 {
 	m >> msg.type;
-	m >> msg.delete;
+	m >> msg.is_delete;
 	switch (msg.type)
 	{
 	case MESSAGE_TYPES::LABEL_INFOMATION:

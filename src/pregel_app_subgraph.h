@@ -40,14 +40,14 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 public:
 	SICandidate *candidate;
 	double timers[3][3];
-	int *mapping;
 	int mapping_count = 0;
-	bool is_dummy = false;
 	bool manual_active = true;
-	// for dummies
+
+	// for dummy
+	int *mapping;
+	int ncol;
 	bool is_dummy = false;
-	int *p;
-	int p_ncol;
+	
 	// for leaves
 	vector<int> final_us;
 	vector<vector<int*>*> final_results; // for different curr_u
@@ -162,7 +162,7 @@ public:
 		*/
 
 		return SIMessage(MESSAGE_TYPES::IN_MAPPING, mappings,
-			msg.curr_u, msg.nrow, new_ncol, delete);
+			msg.curr_u, msg.nrow, new_ncol, msg.is_delete);
 	}
 
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
@@ -233,7 +233,7 @@ public:
 			//Loop through messages and check feasibilities
 			START_TIMING(t1);
 			vector<int*>* passed_mappings = new vector<int*>();
-			vector<int*>* send_mappings = new vector<int*>();;
+			vector<int*>* send_mappings = new vector<int*>();
 			vector<int*>* dummies = new vector<int*>();
 			for (int msgi : messages_classifier[bucket_num])
 			{
@@ -254,12 +254,16 @@ public:
 				//Case 1: compressed_prefix.size() = 0, no constraint
 				//We don't need to build dummy vertex; the dummy vertex is itself.
 				//nrow=1, ncol=0+2
+				//这里是不对的。对每个mapping，我们都要建立一个dummy。以后改。
 				int *dummy_self = new int[2];
 				dummy_self[0] = id.vID;
 				dummy_self[1] = id.wID;
 				send_mappings->push_back(dummy_self);
 				dummies->push_back(dummy_self);
 				this->is_dummy = true;
+				//this->mapping = new int[1];
+				//this->mapping[0] = id.vID;
+				this->ncol = 0;
 				this->final_us.push_back(curr_u);
 				/*
 				ncol = query->getCompressedPrefix(curr_u).size() + 2;
@@ -330,7 +334,7 @@ public:
 					SIMessage out_message = SIMessage(type, send_mappings, 
 						dummies, next_u, nrow, ncol, id.vID);
 					if (query->isLeaf(next_u))
-						out_message.delete = false;
+						out_message.is_delete = false;
 					for (int wID = 0; wID < get_num_workers(); wID++)
 					{
 						if (neighbors_map[wID].empty())
@@ -374,173 +378,83 @@ public:
 		vote_to_halt();
 	}
 
-	void build_branch(MessageContainer &messages, int *mapping, int dummy_pos)
+	void build_branch(MessageContainer &messages, int *mapping, int ncol,
+		int curr_u, int offset)
 	{ // set up branch + send or expand
-		SIQuery* query = (SIQuery*)getQuery();	
+		SIQuery* query = (SIQuery*)getQuery();
+		cout << "ncol: " << ncol << endl;
+		SIBranch *branch = new SIBranch(mapping+offset, id.vID, ncol-offset, curr_u);
+		vector<int> &branch_senders = query->getBranchSenders(curr_u);
+		int sz = branch_senders.size();
+		branch->chd.resize(sz);
 
 		// Phase I: Organize branches
 		// 1.1. Receive messages
-		/*
-		for msg in msgs: arrange msgs according to curr_u
-		*/
+		// for msg in msgs: arrange msgs according to msg's u
+		cout << "Number of messages: " << messages.size() << endl;
+		for (SIMessage &msg: messages)
+		{
+			int u = (msg.branch)->curr_u;
+			for (int i = 0; i < sz; i++)
+				if (branch_senders[i] == u)
+					branch->chd[i].push_back(msg.branch);
+		}
 
-		// Phase II: Split branches
+		// 1.2. Pseudo children
+		// continue_enum: send to dummies
+		vector<int> &ps_labs = query->getPseudoLabel(curr_u);
+		if (!ps_labs.empty())
+		{
+			branch->psd_chd.resize(ps_labs.size());
+			for (int i = 0; i < value().degree; ++i)
+			{
+				KeyLabel &kl = value().nbs_vector[i];
+				for (int j = 0; j < ps_labs.size(); j++)
+				{
+					if (ps_labs[j] == kl.label)
+					{
+						int u = query->getChildByLabel(curr_u, kl.label);
+						bool flag = true;
+						for (int &b_level : query->getBSameLabPos(u))
+						{
+							if (kl.key.vID == mapping[b_level])
+							{
+								flag = false;
+								break;
+							}
+						}
+						if (flag)
+							branch->psd_chd[j].push_back(kl.key.vID);
+					}
+				}
+			}
+		}
+		
+		if (!branch->isValid())
+			return;
+		else
+			branch->printBranch();
+
+		// Phase II: Split branches (including psd_chd)
 		/*
 		Single out marked branches, and we obtain several branches
 		*/
-
-		// send mappings from leaves for supersteps [1, max_branch_number]
-		// if (step_num() > 0 && step_num() <= query->max_branch_number)
-		if (step_num() == 1)
-		{
-			for (int i = 0; i < 3; i++)
-				for (int j = 0; j < 3; j++)
-					this->timers[i][j] = 0.0;
-
-			if (!this->manual_active)
-			{
-				vote_to_halt();
-				return;
-			}
-		}
-
-		// case 1: for leaf state, send the computed results to branch vertex
-		//	vector<int> final_us;
-		// vector<vector<int*>*> final_results; // for different curr_u
-		if (!this->is_dummy)
-		{
-			for (int i = 0; i < this->final_us.size(); i++)
-			{
-				int curr_u = this->final_us[i];
-				vector<int*> *result = this->final_results[i];
-				int branch_number = query->getBranchNumber(curr_u);
-				int dummy_pos = query->getDummyPos(curr_u);
-				int ncol = query->getNCOL(curr_u) - dummy_pos - 1;
-				if (dummy_pos == -1)
-				{
-					// path query. count the number directly.
-					vote_to_halt();
-					return;
-				}
-				if (branch_number + step_num() == query->max_branch_number + 1)
-				{
-					// continue_enum: send to dummies
-					int weight = 1;
-					vector<int> &ps_labs = query->getPseudoLabel(curr_u);
-					if (!ps_labs.empty())
-					{
-						weight = this->value().countOccurrences(ps_labs,
-							query->getPseudoLabelCount(curr_u));
-					}
-					for (int j = 0; j < result->size(); j++)
-					{
-						int *p = (*result)[j];
-						int vID = p[dummy_pos];
-						int wID = p[dummy_pos+1];
-						// use dynamic memory
-						SIBranch *branch = new SIBranch(p+dummy_pos+2, ncol, weight);
-						SIMessage out_msg = SIMessage(BRANCH_RESULT, branch,
-							curr_u);
-						if (wID == get_worker_id())
-							send_messages(wID, {vID}, copy_message(out_msg));
-						else
-							send_messages(wID, {vID}, out_msg);
-					}
-				}
-			}
-		}
-		// case 2: for dummy state, aggregate the results into one SIbranch
-		// and forward it to its parent SIbranch
-		else
-		{
-			if (messages.empty())
-			{
-				vote_to_halt();
-				return;
-			}
-			int curr_u = this->final_us[0];
-			vector<int> &senders = query->getBranchSenders(curr_u);
-			SIBranch *b = new SIBranch(p+dummy_pos+2, ncol, weight);
-			b->chd.resize(senders.size());
-			for (int i = 0; i < messages.size(); i++)
-			{
-				SIMessage &msg = messages[i];
-				// find out where to store the branch
-				int j;
-				for (j = 0; senders[j] == msg.curr_u; j++);
-				b->branches[j].push_back(msg.branch);
-			}
-		}
-
-		{
-			double t = get_current_time();
-			vector<int> vector_u = query->getBucket(query->max_level, value().label);
-			if (vector_u.size() == 1)
-			{
-				if (step_num() == query->max_branch_number + 1)
-				{
-					this->results_count += this->bucket.size();
-				}
-				else
-				{
-					int curr_u = vector_u[0];
-					int anc_u = query->getNearestBranchingAncestor(curr_u);
-					for (int i = 0; i < this->bucket.size(); i++)
-						continue_enum(SIBranch(this->bucket[i]), curr_u, anc_u);
-					this->bucket.clear();
-				}
-			}
-			else
-			{
-				for (int b = 0; b < this->buckets.size(); b++)
-				{
-					if (step_num() == query->max_branch_number + 1)
-					{
-						this->results_count += this->buckets[b].size();
-					}
-					else
-					{
-						int curr_u = vector_u[b];
-						int anc_u = query->getNearestBranchingAncestor(curr_u);
-						for (int i = 0; i < this->buckets[b].size(); i++)
-							continue_enum(SIBranch(this->buckets[b][i]), curr_u, anc_u);
-						
-						this->buckets[b].clear();
-					}
-				}
-			}
-			this->timers[0][1] += get_current_time() - t;
-		}
-		else
-		{
-			double t = get_current_time();
-			SIBranch b = SIBranch(id.partial_mapping);
-			b.branches.resize(query->getChildren(id.vID).size());
-			int i, j;
-			vector<int> branch_u;
-			
-			// make sure every child sends you result!
-			if (!b.isValid())
-			{
-				vote_to_halt();
-				return;
-			}
-			if (step_num() == query->max_branch_number + 1)
-			{
-				double t0 = get_current_time();
-				this->bucket = b.expand();
-				this->timers[1][1] += get_current_time() - t0;
-				this->results_count += this->bucket.size();
-			}
-			else
-			{
-				continue_enum(b, id.vID, query->getNearestBranchingAncestor(id.vID));
-				this->bucket.clear();
-			}
-			this->timers[0][1] += get_current_time() - t;
-		}
- 		vote_to_halt();
 		
+
+		// Phase III: Send to dummy or expand
+		if (offset == 0)
+		{
+			this->mapping_count += branch->expand();
+			cout << "branch->expand(): " << branch->expand() << endl;
+			this->manual_active = true;
+		}
+		else
+		{
+			int vID = mapping[offset-2];
+			int wID = mapping[offset-1];
+			SIMessage out_msg = SIMessage(BRANCH_RESULT, branch);
+			send_messages(wID, {vID}, out_msg);
+		}
 	}
 
 	void enumerate(MessageContainer & messages)
@@ -564,20 +478,38 @@ public:
 
 				vector<int*>* final_result = this->final_results[i];
 				int dummy_pos = query->getDummyPos(curr_u);
-				for (int j = 0; j < final_result->size(); j++)
+				int ncol = query->getNCOL(curr_u);
+				if (dummy_pos < 0)
 				{
-					int* mapping = (*final_result)[j];
-					build_branch(messages, mapping, dummy_pos);
+					for (int j = 0; j < final_result->size(); j++)
+					{
+						int* mapping = (*final_result)[j];
+						build_branch(messages, mapping, ncol, curr_u, 0);
+					}
+				}
+				else
+				{
+					for (int j = 0; j < final_result->size(); j++)
+					{
+						int* mapping = (*final_result)[j];
+						build_branch(messages, mapping, ncol, curr_u, dummy_pos+2);
+					}					
 				}
 			}
 		}
-		else if (is_dummy)
+		else if (is_dummy && !messages.empty())
 		{ // dummy vertex
 			int curr_u = this->final_us[0];
 			vector<int*>* final_result = this->final_results[0];
 			int dummy_pos = query->getDummyPos(curr_u);
-			build_branch(messages, this->mapping, dummy_pos);
+			if (dummy_pos < 0)
+				build_branch(messages, this->mapping, this->ncol,
+					curr_u, 0);
+			else
+				build_branch(messages, this->mapping, this->ncol,
+					curr_u, dummy_pos+2);			
 		}
+		vote_to_halt();
 	}
 
 //////////////////////////////////////////////////////////
@@ -1068,8 +1000,6 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 
 		virtual void toline(SIVertex* v, BufferedWriter & writer)
 		{
-			if (!v->manual_active)
-				return;
 			/*
 			SIQuery* query = (SIQuery*)getQuery();
 			int ncol = query->num;
@@ -1110,7 +1040,7 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 
 			for (SIMessage &msg : delete_messages)
 			{
-				if (!msg.delete)
+				if (!msg.is_delete)
 					continue;
 				if (msg.type == OUT_MAPPING)
 					vector<int*>().swap(*msg.send_mappings);

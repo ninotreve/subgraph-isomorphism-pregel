@@ -132,7 +132,7 @@ public:
 	int max_branch_number = 0;
 	int max_level = 0;
 	vector<int> dfs_order;
-	// nearest branch ancestor or root if it doesn't have one
+	// nearest branch ancestor or -1 if it doesn't have one
 	vector<int> nbancestors;
 
 	// bucket stat
@@ -173,7 +173,7 @@ public:
 
 			vector<int> sequence;
 			this->dfs(this->root, 0, true, order, sequence);
-			this->addBranchNumber(this->root, 0, this->root);
+			this->addBranchNumber(this->root, 0, -1);
 			this->initBuckets();
 			sequence.clear();
 			this->addPrevMapping(this->root, sequence, -1);
@@ -301,6 +301,7 @@ public:
 				this->dfs(it->first, currID, false, order, sequence);
 				int childID = sequence.back();
 				SINode *child = &this->nodes[childID];
+				// what kind of children are ps_children?
 				if (child->children.empty() && child->b_nbs.empty() &&
 					child->ps_children_labels.empty())
 				{ // pseudo children of its parent
@@ -330,11 +331,11 @@ public:
 	void addBranchNumber(int currID, int num, int ancID)
 	{
 		// recursive function to add branch number.
+		SINode* curr = &this->nodes[currID];
 		this->nbancestors[currID] = ancID;
-		if (curr->children.size() == 0)
+		if (curr->children.size() == 0 && ancID > 0)
 			this->nodes[ancID].branch_senders.push_back(currID);
 
-		SINode* curr = &this->nodes[currID];
 		int children_size = curr->children.size();
 		for (int index = 0; index < curr->ps_children_labels.size(); index++)
 			children_size += curr->ps_children_labels_count[index];
@@ -342,7 +343,8 @@ public:
 		{
 			curr->is_branch = true;
 			num ++;
-			this->nodes[ancID].branch_senders.push_back(currID);
+			if (ancID > 0)
+				this->nodes[ancID].branch_senders.push_back(currID);
 			ancID = currID;
 		}
 
@@ -488,6 +490,14 @@ public:
 	int getParent(int id) { return this->nodes[id].parent; }
 	vector<int> &getChildren(int id)
 	{ return this->nodes[id].children; }
+	int getChildByLabel(int id, int label)
+	{
+		vector<int> &children = this->nodes[id].children;
+		for (int child : children)
+			if (getLabel(child) == label)
+				return child;
+		return 0;
+	}
 	vector<int> &getPseudoLabel(int id)
 	{ return this->nodes[id].ps_children_labels; }
 	vector<int> &getPseudoLabelCount(int id)
