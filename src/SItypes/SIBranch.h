@@ -12,6 +12,7 @@ struct SIBranch
 	int curr_u;
 	vector<vector<SIBranch*>> chd;
 	vector<vector<int>> psd_chd;
+	vector<SIBranch*> special_chd; //0225
 
 	SIBranch() {};
 
@@ -40,6 +41,7 @@ struct SIBranch
 		this->psd_chd[index].push_back(nbr);
 	}
 
+/*
 	int expand()
 	{
 		int count = 1;
@@ -56,9 +58,43 @@ struct SIBranch
 
 		return count;
 	}
+*/
+
+	int expand()
+	{ // special case
+		int count = 1;
+		for (int i = 0; i < this->chd.size(); i++)
+		{
+			int counti = 0;
+			for (int j = 0; j < this->chd[i].size(); j++)
+				counti += this->chd[i][j]->expand();
+			count *= counti;
+		}
+
+		for (int i = 0; i < this->psd_chd.size(); i++)
+			count *= this->psd_chd[i].size();
+
+		for (int i = 0; i < this->special_chd.size(); i++)
+		{
+			int vertex = this->special_chd[i]->self;
+			int counti = 0;
+			for (int j = 0; j < this->chd[0].size(); j++)
+			{
+				if (this->chd[0][j]->self != vertex)
+					counti += this->chd[0][j]->expand();
+			}
+		
+			count += counti;
+		}
+
+		return count;
+	}
 
 	bool isValid()
 	{
+		if (!this->special_chd.empty()) //0225
+			return true;
+
 		for (int i = 0; i < this->chd.size(); i++)
 			if (this->chd[i].empty())
 				return false;

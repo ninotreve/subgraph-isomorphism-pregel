@@ -10,11 +10,12 @@ using namespace std;
 	if (get_worker_id() == MASTER_RANK) \
 		printf("%s\n", (str));
 
+/*
 #define DEBUG_MODE_ACTIVE 1
 #define DEBUG_MODE_MSG 1
 #define DEBUG_MODE_PARTIAL_RESULT 1
 #define DEBUG_MODE_RESULT 1
-
+*/
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -51,6 +52,10 @@ public:
 	// for leaves
 	vector<int> final_us;
 	vector<vector<int*>*> final_results; // for different curr_u
+
+	// impl. 1
+	int mapped_u = -1;
+	bool reused = false;
 
 	void preprocess(MessageContainer & messages, WorkerParams &params)
 	{
@@ -230,6 +235,12 @@ public:
 		{
 			int curr_u = vector_u[bucket_num];
 			int ncol = query->getNCOL(curr_u);
+			//impl. 1
+			if (this->mapped_u == -1)
+				this->mapped_u = curr_u;
+			else if (!query->isAncestor(this->mapped_u, curr_u))
+				this->reused = true;
+
 			//Loop through messages and check feasibilities
 			START_TIMING(t1);
 			vector<int*>* passed_mappings = new vector<int*>();
@@ -238,8 +249,8 @@ public:
 			for (int msgi : messages_classifier[bucket_num])
 			{
 				SIMessage &msg = messages[msgi];
-				if (ncol != msg.ncol)
-					cout << "WRONG " << ncol << " " << msg.ncol << endl; 
+				//if (ncol != msg.ncol)
+				//	cout << "WRONG " << ncol << " " << msg.ncol << endl; 
 				for (int i = 0; i < msg.nrow; i++)
 					if (check_feasibility(msg.mappings + i*ncol, curr_u))
 						passed_mappings->push_back(msg.mappings + i*ncol);
@@ -335,6 +346,10 @@ public:
 						dummies, next_u, nrow, ncol, id.vID);
 					if (query->isLeaf(next_u))
 						out_message.is_delete = false;
+					//impl. 1
+					//if (this->reused)
+					//	out_message.reused_vertex = this->mapped_u;
+
 					for (int wID = 0; wID < get_num_workers(); wID++)
 					{
 						if (neighbors_map[wID].empty())
@@ -362,6 +377,7 @@ public:
 					this->manual_active = true;
 					this->final_us.push_back(curr_u);
 					this->final_results.push_back(send_mappings);
+					/*
 					for (int j = 0; j < passed_mappings->size(); j++)
 					{
 						cout << "Final mapping: " << endl;
@@ -369,6 +385,7 @@ public:
 							cout << (*passed_mappings)[j][k] << " ";
 						cout << id.vID << endl;
 					}
+					*/
 				}
 				STOP_TIMING(t2, 2, 1);
 			}
@@ -382,7 +399,6 @@ public:
 		int curr_u, int offset)
 	{ // set up branch + send or expand
 		SIQuery* query = (SIQuery*)getQuery();
-		cout << "ncol: " << ncol << endl;
 		SIBranch *branch = new SIBranch(mapping+offset, id.vID, ncol-offset, curr_u);
 		vector<int> &branch_senders = query->getBranchSenders(curr_u);
 		int sz = branch_senders.size();
@@ -391,13 +407,21 @@ public:
 		// Phase I: Organize branches
 		// 1.1. Receive messages
 		// for msg in msgs: arrange msgs according to msg's u
-		cout << "Number of messages: " << messages.size() << endl;
 		for (SIMessage &msg: messages)
 		{
 			int u = (msg.branch)->curr_u;
+			/* original implementation
 			for (int i = 0; i < sz; i++)
 				if (branch_senders[i] == u)
 					branch->chd[i].push_back(msg.branch);
+			*/
+			//0225
+			if (branch_senders[0] == u) 
+				branch->chd[0].push_back(msg.branch);
+			else if (msg.reused)
+				branch->special_chd.push_back(msg.branch);
+			else
+				branch->chd[1].push_back(msg.branch);
 		}
 
 		// 1.2. Pseudo children
@@ -432,8 +456,8 @@ public:
 		
 		if (!branch->isValid())
 			return;
-		else
-			branch->printBranch();
+		//else
+		//	branch->printBranch();
 
 		// Phase II: Split branches (including psd_chd)
 		/*
@@ -445,14 +469,13 @@ public:
 		if (offset == 0)
 		{
 			this->mapping_count += branch->expand();
-			cout << "branch->expand(): " << branch->expand() << endl;
 			this->manual_active = true;
 		}
 		else
 		{
 			int vID = mapping[offset-2];
 			int wID = mapping[offset-1];
-			SIMessage out_msg = SIMessage(BRANCH_RESULT, branch);
+			SIMessage out_msg = SIMessage(BRANCH_RESULT, branch, this->reused);
 			send_messages(wID, {vID}, out_msg);
 		}
 	}

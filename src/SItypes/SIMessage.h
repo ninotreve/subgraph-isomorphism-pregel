@@ -5,6 +5,9 @@ struct SIMessage
 {
 	int type, curr_u, nrow, ncol, vID;
 	bool is_delete = true;
+	//impl. 1
+	bool reused = false;
+
 	int *mappings;
 	vector<int*> *send_mappings;
 	vector<int*> *dummies;
@@ -44,10 +47,11 @@ struct SIMessage
 		this->vID = vID;
 	}
 
-	SIMessage(int type, SIBranch *branch)
+	SIMessage(int type, SIBranch *branch, bool reused)
 	{ // for BRANCH_RESULT
 		this->type = type;
 		this->branch = branch;
+		this->reused = reused;
 	}
 /*
 	SIMessage(int type, int nrow, int ncol, SIKey *pKey)

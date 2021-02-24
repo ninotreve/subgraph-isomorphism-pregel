@@ -35,7 +35,7 @@ struct SINode
 	bool is_branch = false;
 	int branch_number;
 	int dfs_number; // 0-based
-	int parent;
+	int parent; // -1 if none
 	int level; // root: level 0. Used as an index in mapping.
 	vector<int> children;
 	// pseudo children: do not send messages
@@ -172,7 +172,7 @@ public:
 			}
 
 			vector<int> sequence;
-			this->dfs(this->root, 0, true, order, sequence);
+			this->dfs(this->root, -1, true, order, sequence);
 			this->addBranchNumber(this->root, 0, -1);
 			this->initBuckets();
 			sequence.clear();
@@ -237,6 +237,7 @@ public:
 		// only called when current node is not visited.
 		SINode* curr = &this->nodes[currID];
 		curr->visited = true;
+		curr->parent = parentID;
 		curr->dfs_number = this->dfs_order.size();
 		this->dfs_order.push_back(currID);
 
@@ -245,7 +246,6 @@ public:
 			curr->level = 0;
 		else
 		{
-			curr->parent = parentID;
 			curr->level = this->getLevel(parentID) + 1;
 			if (curr->level > this->max_level)
 				this->max_level = curr->level;
@@ -522,6 +522,15 @@ public:
 	{ return this->nodes[id].children.empty(); }
 	bool isBranch(int id)
 	{ return this->nodes[id].is_branch; }
+	bool isAncestor(int u, int v)
+	{ // return if u is an ancestor of v
+		while (this->getParent(v) != -1)
+		{
+			if (v == u) return true;
+			v = this->getParent(v);
+		}
+		return (v == u);
+	}
 
 	void initBuckets()
 	{
