@@ -159,8 +159,9 @@ public:
 		}
 		*/
 
-    void active_compute(int type, WorkerParams params, int wakeAll)
+    int active_compute(int type, WorkerParams params, int wakeAll)
     {
+        int compute_count = 0;
         active_count = 0;
         MessageBufT* mbuf = (MessageBufT*)get_message_buffer();
         vector<MessageContainerT>& v_msgbufs = mbuf->get_v_msg_bufs();
@@ -174,6 +175,9 @@ public:
             	(v_msgbufs[i].size() != 0)
             	)
             {
+                compute_count ++;
+                //if (type == ENUMERATE && global_step_num == 4)
+                    //cout << vertexes[i]->id.vID << " ";
                 switch (type)
 				{
 				case PREPROCESS:
@@ -196,6 +200,9 @@ public:
 					active_count++;
             }
         }
+        //if (type == ENUMERATE && global_step_num == 4)
+            //cout << endl;
+        return compute_count;
     }
 
     inline void add_vertex(VertexT* vertex)
@@ -363,12 +370,6 @@ public:
                 load_graph(it->c_str(), params);
         }
 
-        // reassigning worker id
-        if (params.partition == "complete")
-        {
-            // insert code here
-        }
-
         //send vertices according to hash_id (reduce)
         sync_graph();
 
@@ -415,10 +416,10 @@ public:
 
     //====================================================================
 
-    void build_query_tree(const string &order)
+    void build_query_tree(const string &order, bool pseudo)
 	{
     	QueryT* query = (QueryT*) global_query;
-		query->init(order);
+		query->init(order, pseudo);
 
 		//debug
 		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
@@ -436,13 +437,11 @@ public:
     void run_type(int type, const WorkerParams & params)
     {
         ResetTimer(WORKER_TIMER);
-        InitTimer(ACTIVE_COMPUTE_TIMER);
-        InitTimer(REDUCE_MESSAGE_TIMER);
-        InitTimer(SYNC_MESSAGE_TIMER);
-        InitTimer(SYNC_TIMER);
         InitTimer(COMMUNICATION_TIMER);
         InitTimer(SERIALIZATION_TIMER);
         InitTimer(TRANSFER_TIMER);
+        for (int timeri = 6; timeri < 14; timeri++)
+            InitTimer(timeri);
 
         //supersteps
         global_step_num = 0;
@@ -450,8 +449,10 @@ public:
         long long step_vadd_num;
         long long global_msg_num = 0;
         long long global_vadd_num = 0;
+        ResetTimer(AGG_TIMER);
         AggregatorT* agg = (AggregatorT*)get_aggregator();
         agg->init(type);
+        StopTimer(AGG_TIMER);
 
         vector<MessageT> delete_messages;
         
@@ -461,21 +462,35 @@ public:
             ResetTimer(SUPERSTEP_TIMER);
 
             // stopping criteria for MATCH and ENUMRATE
+            StartTimer(STOP_CRITERIA_TIMER);          
             char bits_bor = all_bor(global_bor_bitmap);
             if (getBit(FORCE_TERMINATE_ORBIT, bits_bor) == 1)
+            {
+                StopTimer(STOP_CRITERIA_TIMER);
                 break;
+            }
             get_vnum() = all_sum(vertexes.size());
             int wakeAll = getBit(WAKE_ALL_ORBIT, bits_bor);
-            if (wakeAll == 0) {
+            if (wakeAll == 0) 
+            {
                 active_vnum() = all_sum(active_count);
                 if (active_vnum() == 0 && getBit(HAS_MSG_ORBIT, bits_bor) == 0)
+                {
+                    StopTimer(STOP_CRITERIA_TIMER);
                     break; //all_halt AND no_msg, note that received msgs are not freed
+                }
             } else
                 active_vnum() = get_vnum();
             clearBits();
+            StopTimer(STOP_CRITERIA_TIMER);        
             
             StartTimer(ACTIVE_COMPUTE_TIMER);
-            active_compute(type, params, wakeAll);
+            int compute_count = active_compute(type, params, wakeAll);
+            if (_my_rank < 5 && !params.report && (type == MATCH || type == ENUMERATE)) 
+            {
+                cout << "[" << _my_rank << "] Superstep " << global_step_num << ": "
+                     << "#vertices computed: " << compute_count << endl;
+            }
             StopTimer(ACTIVE_COMPUTE_TIMER);
             
             StartTimer(REDUCE_MESSAGE_TIMER);
@@ -486,28 +501,36 @@ public:
                 global_msg_num += step_msg_num;
                 global_vadd_num += step_vadd_num;
             }
-            StopTimer(REDUCE_MESSAGE_TIMER);
-            
-            StartTimer(SYNC_MESSAGE_TIMER);
             vector<vector<msgpair<MessageT>>> &out_messages = 
                 message_buffer->out_messages.getBufs();
+            StopTimer(REDUCE_MESSAGE_TIMER);   
 
             //Messages sent to other machines: memory can be freed once they are sent
+            StartTimer(PUSH_BACK_SENT_MSG_TIMER);
             for (int wID = 0; wID < out_messages.size(); wID++)
                 if (wID != get_worker_id())
                     for (int j = 0; j < out_messages[wID].size(); j++)
                         delete_messages.push_back(out_messages[wID][j].msg);
+            StopTimer(PUSH_BACK_SENT_MSG_TIMER);
             
             //Sync Messages. After this, received msgs will no longer be used
+            StartTimer(SYNC_MESSAGE_TIMER);
             vector<VertexT*>& to_add = message_buffer->sync_messages();
+            StopTimer(SYNC_MESSAGE_TIMER);
 
             //Free memory (received msgs in the last step + sent msgs in this step) 
             //unless for the final step
+            StartTimer(CLEAR_MSG_TIMER);
             clear_messages(delete_messages);
+            StopTimer(CLEAR_MSG_TIMER);
 
             //Distribute received msgs to each vertex
-            message_buffer->distribute_messages(delete_messages);
-            StopTimer(SYNC_MESSAGE_TIMER);
+            StartTimer(DISTRIBUTE_MSG_TIMER);
+            if (type == MATCH)
+                message_buffer->distribute_messages(&delete_messages);
+            else
+                message_buffer->distribute_messages(NULL);
+            StopTimer(DISTRIBUTE_MSG_TIMER);
 
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);
@@ -518,13 +541,13 @@ public:
             worker_barrier();
             StopTimer(SYNC_TIMER);
             StopTimer(SUPERSTEP_TIMER);
-            if (_my_rank == MASTER_RANK && !params.report && type == MATCH) {
+            if (_my_rank == MASTER_RANK && !params.report && (type == MATCH || type == ENUMERATE)) {
                 cout << "Superstep " << global_step_num << " done."
                 	 << "Time elapsed: " << get_timer(SUPERSTEP_TIMER) << " seconds" << endl;
                 cout << "#msgs: " << step_msg_num << ", #vadd: " << step_vadd_num << endl;
             }
         } // end of while loop
-        ResetTimer(AGG_TIMER);
+        StartTimer(AGG_TIMER);
         for (size_t i = 0; i < vertexes.size(); i++)
         {
 			agg->stepPartial(vertexes[i], type);
@@ -537,12 +560,16 @@ public:
         StopTimer(SYNC_TIMER);
 
         StopTimer(WORKER_TIMER);
-        if (_my_rank == MASTER_RANK && !params.report && type == MATCH)
+        if (_my_rank == MASTER_RANK && !params.report && (type == MATCH || type == ENUMERATE))
     	{
-            cout << "Subgraph matching done. " << endl;
+            cout << "Subgraph matching/enumeration done. " << endl;
             PrintTimer("Total Computational Time", WORKER_TIMER);
             PrintTimer(" - Active Compute Time", ACTIVE_COMPUTE_TIMER);
-            PrintTimer(" - Sync Message Time", SYNC_MESSAGE_TIMER);
+            PrintTimer(" - Push back sent messages Time", PUSH_BACK_SENT_MSG_TIMER);
+            PrintTimer(" - Clear messages Time", CLEAR_MSG_TIMER);
+            PrintTimer(" - Distribute messages Time", DISTRIBUTE_MSG_TIMER);
+            PrintTimer(" - Stop criteria Time", STOP_CRITERIA_TIMER);
+            PrintTimer(" - Sync messages Time", SYNC_MESSAGE_TIMER);
             PrintTimer(" - Agg Time", AGG_TIMER);
             PrintTimer(" - Sync Time (load imbalance)", SYNC_TIMER);
             PrintTimer(" - Communication Time", COMMUNICATION_TIMER);

@@ -19,7 +19,7 @@ using namespace std;
 
 int _my_rank;
 int _num_workers;
-int _dummy_vertex_id = -1;
+int _dummy_vertex_id = 0;
 
 inline int get_worker_id()
 {
@@ -29,14 +29,18 @@ inline int get_num_workers()
 {
     return _num_workers;
 }
+inline int create_dummy_vertex_id()
+{
+    // only call once for each dummy vertex
+    // start from -1
+    _dummy_vertex_id--;
+    return _dummy_vertex_id;
+}
 inline int get_dummy_vertex_id()
 {
     return _dummy_vertex_id;
 }
-inline void dec_dummy_vertex_id()
-{
-    _dummy_vertex_id--;
-}
+
 
 void init_workers()
 {
@@ -229,20 +233,30 @@ bool notContainsDuplicate(vector<T> & v)
 }
 
 
+int math_choose(int m, int n)
+{
+    // implement m choose n
+    int prod = 1;
+    for (int i = 0; i < n; i++)
+        prod = prod * (m - i) / (i + 1);
+    return prod;
+}
+
+
 //========================================================================
 
 /* OptionKeyword:
     DataPath = 0,           // -d, the data file path (folder)
     QueryPath = 1,     		// -q, the query file path (folder)
     OutputPath = 2,      	// -out, output path (folder)
-    Partition = 3,        	// -partition, the strategy of partitioning
-    Preprocess = 4,     	// -preprocess, the strategy of preprocessing
-    Filter = 5,             // -filter, the strategy of filtering
-    Strategy = 6,           // -strategy, matching by path or by tree
-    Order = 7,             	// -order, the priority in deciding match order
-    Enumeration = 8, 		// -enumeration, the strategy of enumeration
-    Report = 9,				// -report, detailed report or concise report
-    Input = 10				// -input, default or g-thinker
+    Input = 3,        	    // -input, default or g-thinker
+    Report = 4,     	    // -report, detailed report or concise report
+    Order = 5,              // -order, the priority in deciding match order
+    Preprocess = 6,         // -preprocess
+    Filter = 7,             // -filter, optimization technique 1: filtering
+    Pseudo = 8, 	    	// -pseudo, optimization technique 2: pseudo-child
+    Leaf = 9,				// -leaf, optimization technique 3: leaf folding
+    Other = 10				// -other, other optimization technique
 */
 
 #define OPTIONS 11
@@ -270,9 +284,8 @@ class MatchingCommand{
 public:
     MatchingCommand(const int argc, char **argv)
     {
-    	options_key = {"-d", "-q", "-out", "-partition", "-preprocess",
-    			"-filter", "-strategy", "-order", "-enumeration",
-    			"-report", "-input"};
+    	options_key = {"-d", "-q", "-out", "-input", "-report", "-order",
+                "-preprocess", "-filter", "-pseudo",  "-leaf", "-other"};
     	for (int i = 1; i < argc; ++i)
             tokens.push_back(std::string(argv[i]));
         processOptions();
@@ -282,28 +295,28 @@ public:
     string getQueryPath() { return options_value[1]; }
     string getOutputPath() { return options_value[2]; }
 
-    string getPartition() { return options_value[3]; }
-    bool getPreprocessMethod() {
-        return (options_value[4] != "off");
+    bool getInputFormat() 
+    {
+    	return (options_value[3] != "g-thinker");
     }
-    bool getFilterMethod() {
-    	return (options_value[5] != "off");
+
+    bool getReport() 
+    {
+    	return (options_value[4] != "long");
     }
+    
     string getOrderMethod() {
-        if (options_value[7] == "candidate" || options_value[7] == "degree")
-            return options_value[7];
+        if (options_value[5] == "candidate" || options_value[5] == "degree")
+            return options_value[5];
         else
             return "random";
     }
-    bool getEnumerateMethod() {
-    	return (options_value[8] != "old");
+
+    bool isMethodOn(int i) 
+    {
+        return (options_value[i] == "on"); 
     }
-    bool getReport() {
-    	return (options_value[9] != "long");
-    }
-    bool getInputFormat() {
-    	return (options_value[10] != "g-thinker");
-    }
+
 };
 
 //------------------------
@@ -315,14 +328,11 @@ struct WorkerParams {
     string output_path;
     bool force_write;
 
-    string partition;
-    bool preprocess;
-    bool filter;
-    string order;
-    bool enumerate;
+    bool input; // 1 for default, 0 for g-thinker
     bool report;
-    bool input; // 1 for non-g-thinker, 0 for g-thinker
-
+    string order;
+    bool preprocess, filter, pseudo, leaf, other;   
+    
     WorkerParams()
     {
         force_write = true;
@@ -334,30 +344,35 @@ struct WorkerParams {
         query_path = command.getQueryPath();
         output_path = command.getOutputPath();
         force_write = fw;
-        partition = command.getPartition();
-        preprocess = command.getPreprocessMethod();
-        filter = command.getFilterMethod();
+        input = command.getInputFormat();
+        report = command.getReport();
         order = command.getOrderMethod();
+        preprocess = command.isMethodOn(6);
+        filter = command.isMethodOn(7);
+        pseudo = command.isMethodOn(8);
+        leaf = command.isMethodOn(9);
+        other = command.isMethodOn(10);
+        
         if (!filter && order == "candidate")
         {
             cout << "Warning: non-filter mode cannot have candidate as order." << endl;
             order = "random";
         }
-        enumerate = command.getEnumerateMethod();
-        report = command.getReport();
-        input = command.getInputFormat();
     }
 
     void print()
     {
         cout << "Data graph path: " << data_path << endl;
         cout << "Query graph path: " << query_path << endl;
+        cout << "Input Format (1 for default, 0 for g-thinker): " << input << endl;
         cout << "Output graph path: " << output_path << endl;
-        cout << "Partition Method: " << partition << endl;
-        cout << "Preprocess Method: " << preprocess << endl;
-        cout << "Filter Method: " << filter << endl;
         cout << "Order Method: " << order << endl;
-        cout << "Enumerate Method: " << enumerate << endl;
+        cout << "Optimization techniques: ";
+        if (preprocess) cout << "Preprocessing/";
+        if (filter) cout << "Filtering/";
+        if (pseudo) cout << "Pseudo-children Counting/";
+        if (leaf) cout << "Leaf Folding/";
+        cout << endl;
     }
 };
 

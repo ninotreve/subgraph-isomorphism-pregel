@@ -7,6 +7,10 @@
         "ostream": "cpp",
         "hash_set": "cpp",
         "system_error": "cpp",
-        "hash_map": "cpp"
+        "hash_map": "cpp",
+        "*.tcc": "cpp",
+        "unordered_map": "cpp",
+        "array": "cpp",
+        "initializer_list": "cpp"
     }
 }

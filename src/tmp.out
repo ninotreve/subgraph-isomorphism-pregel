@@ -1,8 +1,159 @@
-Data graph path: /gtGraph/labelyou.txt
-Query graph path: /gtQuery/query.txt
+Data graph path: /g-thinker/labelyou.txt
+Query graph path: /g-thinker/query-fudan/randomQuery/q-10-15-4-1.txt
+Input Format (1 for default, 0 for g-thinker): 0
 Output graph path: /output
-Partition Method: 
-Preprocess Method: 1
-Filter Method: 0
-Order Method: random
-Enumerate Method: 1
+Order Method: degree
+Optimization techniques: 
+
+Loading data graph...
+Loading data graph time : 7.683831 seconds
+Preprocessing...
+Preprocessing time : 1.508577 seconds
+In total, offline time : 9.192584 seconds
+
+Loading query graph...
+Worker 0: "hdfs://master:9000/g-thinker/query-fudan/randomQuery/q-10-15-4-1.txt" loaded
+Loading query graph time : 0.437233 seconds
+Filtering...
+Filtering time : 0.000000 seconds
+Building query tree...
+------- Print Query Graph ---------
+# Query Vertices: 10
+# Conflicts: 4
+Max Branch Number: 3
+Node 2: [Label: b Neighbors: [0, 1, 3, 5, 8] Level: 0 Branch number: 1 Children: [3, 8] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [] chd_types: [0, 0] chd_constraint_self: [0, 0] index_chain: [0]]. with 2 children and 0 pseudo children.
+Node 3: [Label: d Neighbors: [2, 4, 5, 7] Level: 1 Branch number: 2 Children: [4, 5] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [2, -3] chd_types: [0, 0] chd_constraint_self: [1, 0] index_chain: [0, 0]]. with 2 children and 0 pseudo children.
+Node 4: [Label: b Neighbors: [1, 3, 6, 7, 9] Level: 2 Branch number: 3 Children: [1, 6] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [0] previous_mapping: [2, 3, -4, -4] chd_types: [0, 0] chd_constraint_self: [1, 0] index_chain: [0, 0, 0]]. with 2 children and 0 pseudo children.
+Node 1: [Label: c Neighbors: [0, 2, 4] Level: 3 Branch number: 3 Children: [0] Backward neighbors: [2] Backward neighbors positions: [0] Backward same label positions: [] previous_mapping: [2, 3, 4, -5, -5] chd_types: [0] chd_constraint_self: [] index_chain: [0, 0, 0, 0]]. with 1 children and 0 pseudo children.
+Node 0: [Label: d Neighbors: [1, 2, 9] Level: 4 Branch number: 3 Children: [9] Backward neighbors: [2] Backward neighbors positions: [0] Backward same label positions: [1] previous_mapping: [2, 3, 4, -5, -5, 1] chd_types: [0] chd_constraint_self: [] index_chain: [0, 0, 0, 1]]. with 1 children and 0 pseudo children.
+Node 9: [Label: b Neighbors: [0, 4, 7] Level: 5 Branch number: 3 Children: [7] Backward neighbors: [4] Backward neighbors positions: [2] Backward same label positions: [0, 2] previous_mapping: [2, 3, 4, -5, -5, 1, 0] chd_types: [0] chd_constraint_self: [] index_chain: [0, 0, 0, 2]]. with 1 children and 0 pseudo children.
+Node 7: [Label: a Neighbors: [3, 4, 9] Level: 6 Branch number: 3 Children: [] Backward neighbors: [3, 4] Backward neighbors positions: [1, 2] Backward same label positions: [] previous_mapping: [2, 3, 4, -5, -5, 1, 0, 9] chd_types: [] chd_constraint_self: [] index_chain: [0, 0, 0, 3]]. with 0 children and 0 pseudo children.
+Node 6: [Label: c Neighbors: [4] Level: 3 Branch number: 3 Children: [] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [-5, -5] chd_types: [] chd_constraint_self: [] index_chain: [0, 0, 1, 0]]. with 0 children and 0 pseudo children.
+Node 5: [Label: d Neighbors: [2, 3] Level: 2 Branch number: 2 Children: [] Backward neighbors: [2] Backward neighbors positions: [0] Backward same label positions: [] previous_mapping: [2, -4, -4] chd_types: [] chd_constraint_self: [] index_chain: [0, 1, 0]]. with 0 children and 0 pseudo children.
+Node 8: [Label: b Neighbors: [2] Level: 1 Branch number: 1 Children: [] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [2, -3] chd_types: [] chd_constraint_self: [] index_chain: [1, 0]]. with 0 children and 0 pseudo children.
+------- Print Buckets ---------
+level 0
+[key] b [value] [2]
+level 1
+[key] d [value] [3]
+[key] b [value] [8]
+level 2
+[key] b [value] [4]
+[key] d [value] [5]
+level 3
+[key] c [value] [1, 6]
+level 4
+[key] d [value] [0]
+level 5
+[key] b [value] [9]
+level 6
+[key] a [value] [7]
+[0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+------- Print Conflicts ---------
+Conflict No. 0
+u1: 5 u2: 0 u1_state: 5 ca: 3
+index_chain_1: [1, 0]
+index_chain_2: [0, 0, 1]
+Conflict No. 1
+u1: 1 u2: 6 u1_state: 7 ca: 4
+index_chain_1: [0, 0]
+index_chain_2: [1, 0]
+Conflict No. 2
+u1: 8 u2: 4 u1_state: 8 ca: 2
+index_chain_1: [1, 0]
+index_chain_2: [0, 0, 0]
+Conflict No. 3
+u1: 8 u2: 9 u1_state: 8 ca: 2
+index_chain_1: [1, 0]
+index_chain_2: [0, 0, 0, 2]
+Building query tree time : 0.004436 seconds
+**Subgraph matching**
+[0] Superstep 1: #vertices computed: 1134890
+Superstep 1 done.Time elapsed: 0.482188 seconds
+#msgs: 10296, #vadd: 0
+[0] Superstep 2: #vertices computed: 9921
+Superstep 2 done.Time elapsed: 0.201086 seconds
+#msgs: 6508, #vadd: 9013
+[0] Superstep 3: #vertices computed: 17679
+Superstep 3 done.Time elapsed: 0.855236 seconds
+#msgs: 2398, #vadd: 177620
+[0] Superstep 4: #vertices computed: 180214
+Superstep 4 done.Time elapsed: 0.327914 seconds
+#msgs: 267, #vadd: 0
+[0] Superstep 5: #vertices computed: 1882
+Superstep 5 done.Time elapsed: 0.080071 seconds
+#msgs: 257, #vadd: 0
+[0] Superstep 6: #vertices computed: 1681
+Superstep 6 done.Time elapsed: 0.076715 seconds
+#msgs: 223, #vadd: 0
+[0] Superstep 7: #vertices computed: 1366
+Superstep 7 done.Time elapsed: 0.07512 seconds
+#msgs: 0, #vadd: 0
+Subgraph matching/enumeration done. 
+Total Computational Time : 2.235606 seconds
+ - Active Compute Time : 1.903268 seconds
+ - Push back sent messages Time : 0.000000 seconds
+ - Clear messages Time : 0.004193 seconds
+ - Distribute messages Time : 0.037793 seconds
+ - Stop criteria Time : 0.000051 seconds
+ - Sync messages Time : 0.141533 seconds
+ - Agg Time : 0.136511 seconds
+ - Sync Time (load imbalance) : 0.000025 seconds
+ - Communication Time : 0.000056 seconds
+    - Serialization Time : 0.000002 seconds
+    - Transfer Time : 0.000009 seconds
+Total #msgs=19949, Total #vadd=186633
+Subgraph matching time : 2.235767 seconds
+[Detailed report]
+1. Arrange messages: 0.0373638 s
+2. Main Computation: 0.431642 s
+2.1. Loop through messages and check feasibility: 0.348544 s
+2.1.1. For branch vertices: 0.0952957 s
+2.1.2. For leaf vertices: 0.207567 s
+2.1.3. For not-branch-nor-leaf vertices: 0.0396988 s
+2.2. Continue mapping: 0.0436192 s
+2.2.1. Construct neighbor map: 0.0112858 s
+2.2.2. Update out messages buffer: 0.0136056 s
+**Subgraph enumeration**
+[0] Superstep 1: #vertices computed: 1321523
+Superstep 1 done.Time elapsed: 1.12023 seconds
+#msgs: 416965, #vadd: 0
+[0] Superstep 2: #vertices computed: 63231
+Superstep 2 done.Time elapsed: 0.353642 seconds
+#msgs: 1273, #vadd: 0
+[0] Superstep 3: #vertices computed: 5734
+Superstep 3 done.Time elapsed: 0.100116 seconds
+#msgs: 8724, #vadd: 0
+[0] Superstep 4: #vertices computed: 4959
+Superstep 4 done.Time elapsed: 2.85824 seconds
+#msgs: 0, #vadd: 0
+Subgraph matching/enumeration done. 
+Total Computational Time : 4.594322 seconds
+ - Active Compute Time : 4.244188 seconds
+ - Push back sent messages Time : 0.000001 seconds
+ - Clear messages Time : 0.000002 seconds
+ - Distribute messages Time : 0.187961 seconds
+ - Stop criteria Time : 0.000025 seconds
+ - Sync messages Time : 0.000006 seconds
+ - Agg Time : 0.161712 seconds
+ - Sync Time (load imbalance) : 0.000008 seconds
+ - Communication Time : 0.000017 seconds
+    - Serialization Time : 0.000004 seconds
+    - Transfer Time : 0.000010 seconds
+Total #msgs=426962, Total #vadd=0
+Subgraph enumeration time : 4.594466 seconds
+[Detailed report]
+a) For leaf vertices: 0.679837 s
+b) For dummy vertices: 3.04312 s
+==build_branch==
+1. Organize branches: 0.229509 s
+2. Enumerate trees: 0.164524 s
+3. Send to dummies or expand: 3.2022 s
+3.1. Send to dummies: 0.391323 s
+3.2. Expand: 2.76976 s
+Dumping results...
+Dumping results time : 0.000000 seconds
+In total, online time : 7.272382 seconds
+================ Final Report ===============
+Mapping count: 9825545
+COMPUTE Time : 6.835106 seconds

@@ -155,7 +155,7 @@ void all_to_all(std::vector<T>& to_exchange)
     StopTimer(COMMUNICATION_TIMER);
 }
 
-// Modified
+// Modified (used)
 template <class T, class T1>
 void all_to_all_cat(std::vector<T>& to_exchange1, std::vector<T1>& to_exchange2)
 {

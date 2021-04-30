@@ -21,7 +21,7 @@ double get_current_time()
     return (double)t.tv_sec + (double)t.tv_usec / 1000000;
 }
 
-const int N_Timers = 14;
+const int N_Timers = 18;
 static double _timers[N_Timers]; // timers
 static double _acc_time[N_Timers]; // accumulated time
 
@@ -38,21 +38,26 @@ enum TIMERS {
     STAGE_TIMER = 1,
     COMPUTE_TIMER = 2,
 
-    // Timers inside MATCH
+    // Timers inside MATCH/COMPUTE
     WORKER_TIMER = 3,
     SUPERSTEP_TIMER = 4,
-    ACTIVE_COMPUTE_TIMER = 5,
-    SYNC_MESSAGE_TIMER = 6,
-    SYNC_TIMER = 7,
-    AGG_TIMER = 8,
+    AGG_TIMER = 5,
+    // Timers by superstep
+    ACTIVE_COMPUTE_TIMER = 6,
+    SYNC_MESSAGE_TIMER = 7,
+    PUSH_BACK_SENT_MSG_TIMER = 8,
+    CLEAR_MSG_TIMER = 9,
+    DISTRIBUTE_MSG_TIMER = 10,
+    STOP_CRITERIA_TIMER = 11,
+    SYNC_TIMER = 12,
+    REDUCE_MESSAGE_TIMER = 13,
 
     // Timers for COMMUNICATION
-    COMMUNICATION_TIMER = 9,
-    SERIALIZATION_TIMER = 10,
-    TRANSFER_TIMER = 11,
+    COMMUNICATION_TIMER = 14,
+    SERIALIZATION_TIMER = 15,
+    TRANSFER_TIMER = 16,
 
-    TMP_TIMER = 12,
-    REDUCE_MESSAGE_TIMER = 13
+    TMP_TIMER = 17
 };
 
 void start_timer(int i)

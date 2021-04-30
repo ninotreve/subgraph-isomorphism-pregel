@@ -104,7 +104,7 @@ public:
         return to_add;
     }
 
-    void distribute_messages(vector<MessageT> &delete_messages)
+    void distribute_messages(vector<MessageT> *delete_messages)
     {
         //================================================
         // gather all messages, distribute them to vertices
@@ -126,7 +126,8 @@ public:
                 }
 
                 //Their memory will be freed in the next iteration
-                delete_messages.push_back(msgBuf[i].msg);
+                if (delete_messages)
+                    delete_messages->push_back(msgBuf[i].msg);
             }
         }
 

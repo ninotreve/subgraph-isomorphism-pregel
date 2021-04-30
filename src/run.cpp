@@ -1,7 +1,7 @@
 #include "pregel_app_subgraph.h"
 
-int main(int argc, char* argv[]){
-
+int main(int argc, char* argv[])
+{
     MatchingCommand command(argc, argv);
     WorkerParams params = WorkerParams(command, true);
 
