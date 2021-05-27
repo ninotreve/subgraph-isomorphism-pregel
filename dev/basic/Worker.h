@@ -324,24 +324,11 @@ public:
     //====================================================================
 
     // load the query graph by MASTER and broadcast to SLAVEs, return load time
-    void load_query(const string& input_path)
-	{
-		//check path + init
-    	if (_my_rank == MASTER_RANK) {
-			if (dirCheck(input_path.c_str()) == -1)
-				exit(-1);
-		}
-		
+    void load_query(const char* inpath)
+	{		
 		if (_my_rank == MASTER_RANK)
 		{
-			// read query from HDFS
-			vector<string> files;
-			dispatchMaster(input_path.c_str(), files);
-			for (vector<string>::iterator it = files.begin();
-			                 it != files.end(); it++)
-			{
-				load_query_graph(it->c_str());
-			}
+			load_query_graph(inpath);
 			masterBcast(*((QueryT*) global_query));
 		}
 		else
@@ -359,19 +346,20 @@ public:
 
     //====================================================================
 
-    void build_query_tree(const string &order, bool pseudo, int &depth, int &bn)
+    void build_query_tree(const string &order, bool pseudo, vector<int> &properties)
 	{
     	QueryT* query = (QueryT*) global_query;
 		query->init(order, pseudo);
 
-        depth = query->max_level + 1;
-        bn = query->max_branch_number;
+        properties[0] = query->num;
+        properties[1] = query->edgenum;
+        properties[2] = query->max_level + 1;
+        properties[3] = query->max_branch_number;
+        properties[4] = query->conflicts.size();
 
 		//debug
 		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
         //((QueryT*) global_query)->printOrder();
-		if (_my_rank == MASTER_RANK)
-			((QueryT*) global_query)->printOrder();
 
 		//barrier for query tree build
 		worker_barrier(); 
@@ -383,156 +371,69 @@ public:
     void run_type(int type, const WorkerParams & params, int max_supersteps)
     {
         // always wakeAll in first superstep
-        ResetTimer(WORKER_TIMER);
-        InitTimer(COMMUNICATION_TIMER);
         InitTimer(SERIALIZATION_TIMER);
         InitTimer(TRANSFER_TIMER);
         for (int timeri = 6; timeri < 14; timeri++)
             InitTimer(timeri);
-
+        
         //supersteps
         global_step_num = 0;
         long long step_msg_num;
         long long step_vadd_num;
         long long global_msg_num = 0;
         long long global_vadd_num = 0;
-        ResetTimer(AGG_TIMER);
         AggregatorT* agg = (AggregatorT*)get_aggregator();
         agg->init();
-        StopTimer(AGG_TIMER);
 
         vector<MessageT> delete_messages;
         
         while (global_step_num < max_supersteps) 
         {
             global_step_num++;
-            ResetTimer(SUPERSTEP_TIMER);
 
             // stopping criteria for MATCH and ENUMRATE
-            StartTimer(STOP_CRITERIA_TIMER);        
-            /* 
-            char bits_bor = all_bor(global_bor_bitmap);
-            if (getBit(FORCE_TERMINATE_ORBIT, bits_bor) == 1)
-            {
-                StopTimer(STOP_CRITERIA_TIMER);
-                break;
-            }
-            get_vnum() = all_sum(vertexes.size());
-            int wakeAll = getBit(WAKE_ALL_ORBIT, bits_bor);
-            */
             int wakeAll = global_step_num == 1;
             if (wakeAll == 0) 
-            {
                 active_vnum() = all_sum(active_count);
-                /*
-                if (active_vnum() == 0 && getBit(HAS_MSG_ORBIT, bits_bor) == 0)
-                {
-                    StopTimer(STOP_CRITERIA_TIMER);
-                    break; //all_halt AND no_msg, note that received msgs are not freed
-                }
-                */
-            } else
+            else
                 active_vnum() = get_vnum();
-            clearBits();
-            StopTimer(STOP_CRITERIA_TIMER);        
+            clearBits();    
             
-            StartTimer(ACTIVE_COMPUTE_TIMER);
             int compute_count = active_compute(type, params, wakeAll);
-            if (_my_rank < 5 && params.report > 0 && (type == MATCH || type == ENUMERATE)) 
-            {
-                cout << "[" << _my_rank << "] Superstep " << global_step_num << ": "
-                     << "#vertices computed: " << compute_count << endl;
-            }
-            StopTimer(ACTIVE_COMPUTE_TIMER);
-            
-            StartTimer(REDUCE_MESSAGE_TIMER);
-            //message_buffer->combine();
-            if (params.report == 2)
-            {
-                step_msg_num = master_sum_LL(message_buffer->get_total_msg());
-                step_vadd_num = master_sum_LL(message_buffer->get_total_vadd());
-                if (_my_rank == MASTER_RANK) {
-                    global_msg_num += step_msg_num;
-                    global_vadd_num += step_vadd_num;
-                }
-            }
-            StopTimer(REDUCE_MESSAGE_TIMER);   
 
             vector<vector<msgpair<MessageT>>> &out_messages = 
                 message_buffer->out_messages.getBufs();
             //Messages sent to other machines: memory can be freed once they are sent
-            StartTimer(PUSH_BACK_SENT_MSG_TIMER);
             for (int wID = 0; wID < out_messages.size(); wID++)
                 if (wID != get_worker_id())
                     for (int j = 0; j < out_messages[wID].size(); j++)
                         delete_messages.push_back(out_messages[wID][j].msg);
-            StopTimer(PUSH_BACK_SENT_MSG_TIMER);
             
             //Sync Messages. After this, received msgs will no longer be used
-            StartTimer(SYNC_MESSAGE_TIMER);
             vector<VertexT*>& to_add = message_buffer->sync_messages();
-            StopTimer(SYNC_MESSAGE_TIMER);
 
             //Free memory (received msgs in the last step + sent msgs in this step) 
             //unless for the final step
-            StartTimer(CLEAR_MSG_TIMER);
             clear_messages(delete_messages);
-            StopTimer(CLEAR_MSG_TIMER);
 
             //Distribute received msgs to each vertex
-            StartTimer(DISTRIBUTE_MSG_TIMER);
             if (type == MATCH)
                 message_buffer->distribute_messages(&delete_messages);
             else
                 message_buffer->distribute_messages(NULL);
-            StopTimer(DISTRIBUTE_MSG_TIMER);
 
             for (size_t i = 0; i < to_add.size(); i++)
                 add_vertex(to_add[i]);
             to_add.clear();
 
             //===================
-            StartTimer(SYNC_TIMER);
             worker_barrier();
-            StopTimer(SYNC_TIMER);
-            StopTimer(SUPERSTEP_TIMER);
-            if (_my_rank == MASTER_RANK && params.report > 0 && (type == MATCH || type == ENUMERATE)) {
-                cout << "Superstep " << global_step_num << " done."
-                	 << "Time elapsed: " << get_timer(SUPERSTEP_TIMER)
-                     << " seconds" << endl;
-                if (params.report == 2)
-                    cout << "#msgs: " << step_msg_num << ", #vadd: " 
-                         << step_vadd_num << endl;
-            }
+            
         } // end of while loop
-        StartTimer(AGG_TIMER);
+
         agg_sync();
-        StopTimer(AGG_TIMER);
-
-        StartTimer(SYNC_TIMER);
+        clear_messages(delete_messages);
         worker_barrier();
-        StopTimer(SYNC_TIMER);
-
-        StopTimer(WORKER_TIMER);
-        if (_my_rank == MASTER_RANK && params.report > 0 && (type == MATCH || type == ENUMERATE))
-    	{
-            cout << "Subgraph matching/enumeration done. " << endl;
-            PrintTimer("Total Computational Time", WORKER_TIMER);
-            PrintTimer(" - Active Compute Time", ACTIVE_COMPUTE_TIMER);
-            PrintTimer(" - Push back sent messages Time", PUSH_BACK_SENT_MSG_TIMER);
-            PrintTimer(" - Reduce messages Time", REDUCE_MESSAGE_TIMER);
-            PrintTimer(" - Clear messages Time", CLEAR_MSG_TIMER);
-            PrintTimer(" - Distribute messages Time", DISTRIBUTE_MSG_TIMER);
-            PrintTimer(" - Stop criteria Time", STOP_CRITERIA_TIMER);
-            PrintTimer(" - Sync messages Time", SYNC_MESSAGE_TIMER);
-            PrintTimer(" - Agg Time", AGG_TIMER);
-            PrintTimer(" - Sync Time (load imbalance)", SYNC_TIMER);
-            PrintTimer(" - Communication Time", COMMUNICATION_TIMER);
-            PrintTimer("    - Serialization Time", SERIALIZATION_TIMER);
-            PrintTimer("    - Transfer Time", TRANSFER_TIMER);
-            cout << "Total #msgs=" << global_msg_num << ", "
-                "Total #vadd=" << global_vadd_num << endl;
-    	}
     }
 
     void dump_graph(const string& output_path, bool force_write)

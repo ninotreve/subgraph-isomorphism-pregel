@@ -1,3 +1,4 @@
+// dev version
 #include "basic/pregel-dev.h"
 #include "utils/type.h"
 #include "utils/Query.h"
@@ -40,8 +41,7 @@ using namespace std;
 class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 public:
-	SICandidate *candidate;
-	long mapping_count = 0;
+	long mapping_count;
 	
 	// the following two vectors have the same length
 	// for leaf vertex, final_u > 0; for dummy vertex, final_u < 0
@@ -184,7 +184,7 @@ public:
 		*/
 
 		return SIMessage(MESSAGE_TYPES::IN_MAPPING, mappings,
-			msg.curr_u, msg.nrow, new_ncol, msg.is_delete, msg.markers);
+			msg.curr_u, msg.nrow, new_ncol, msg.markers);
 	}
 
 	void addPsdChildren(SIBranch *b, int u_index, int msg_vID, int msg_wID, 
@@ -254,8 +254,7 @@ public:
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
 			 << " ACTIVE Vertex ID " << id.vID
-			 << " Worker ID " << id.wID
-			 << endl;
+			 << " Worker ID " << id.wID << endl;
 #endif
 
 		if (id.vID < 0) //that newly built dummy vertex
@@ -288,9 +287,12 @@ public:
 		int curr_u;
 		vector<vector<int>> messages_classifier = vector<vector<int>>(n_u);
 		if (step_num() == 1)
-		{
-			if ((!params.filter) && 
-				(value().label != query->getLabel(query->root)))
+		{ // initialize
+			this->final_us.clear();
+			this->final_results.clear();
+			this->mapped_us.clear();
+
+			if ((value().label != query->getLabel(query->root)))
 			{
 				vote_to_halt();
 				return;
@@ -324,7 +326,7 @@ public:
 		STOP_TIMING(agg, t, 0, 0);
 
 		// main computation
-		//cout << "main computation checked" << endl;
+		// cout << "main computation checked" << endl;
 		START_TIMING(t);
 		for (int bucket_num = 0; bucket_num < n_u; bucket_num ++)
 		{
@@ -476,22 +478,12 @@ public:
 					//Construct neighbors_map: 
 				  	//Loop through neighbors and select out ones with right labels
 				    START_TIMING(t2);
-					if (params.filter)
-					{ //With filtering
-						hash_set<SIKey> &keys = candidate->candidates[curr_u][next_u];
-						auto it = keys.begin(); auto iend = keys.end();
-						for (; it != iend; ++it)
-							neighbors_map[it->wID].push_back(it->vID);
-					}
-					else
-					{ //Without filtering
-						int next_label = query->getLabel(next_u);
-						for (int i = 0; i < value().degree; ++i)
-						{
-							KeyLabel &kl = value().nbs_vector[i];
-							if (kl.label == next_label)
-								neighbors_map[kl.key.wID].push_back(kl.key.vID);
-						}
+					int next_label = query->getLabel(next_u);
+					for (int i = 0; i < value().degree; ++i)
+					{
+						KeyLabel &kl = value().nbs_vector[i];
+						if (kl.label == next_label)
+							neighbors_map[kl.key.wID].push_back(kl.key.vID);
 					}
 					STOP_TIMING(agg, t2, 1, 1);
 
@@ -623,6 +615,7 @@ public:
 			cout << "this->mapping_count = " << this->mapping_count << endl;
 #endif
 			STOP_TIMING(agg, t1, 1, 2);
+			delete branch;
 		}
 		else
 		{
@@ -646,11 +639,13 @@ public:
 #ifdef DEBUG_MODE_ACTIVE
 		cout << "[DEBUG] STEP NUMBER " << step_num()
 			 << " ACTIVE Vertex ID " << id.vID 
-			 << " Worker ID " << id.wID
-			 << endl;
+			 << " Worker ID " << id.wID << endl;
 #endif
 		bool to_halt = true;
 		double t;
+
+		if (step_num() == 1) // initialize
+			this->mapping_count = 0;
 
 		// might have multiple leaf u and at most one dummy u
 		for (int i = 0 ; i < this->final_us.size(); i++)
@@ -809,14 +804,18 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 						vector<int>().swap(*msg.dummy_vs);
 					case OUT_MAPPING:
 						vector<int*>().swap(*msg.passed_mappings);
-						break;
+						//vector<int>().swap(*msg.markers);
+						break;					
 					case IN_MAPPING:
-						if (msg.is_delete)
-							delete[] msg.mappings;
+						delete[] msg.mappings;
 						break;
+					
 					case BRANCH_RESULT:
 						if (msg.is_delete)
+						{
 							delete msg.branch;
+							msg.branch = NULL;
+						}
 						break;						
 				}				
 			}
@@ -837,12 +836,6 @@ void pregel_subgraph(const WorkerParams & params)
 	init_timers();
 	StartTimer(TOTAL_TIMER);
 
-	SIQuery query;
-	worker.setQuery(&query);
-
-	SIAgg agg;
-	worker.setAggregator(&agg);
-
 	// STAGE 1: Load data graph
 	MPRINT("Loading data graph...")
 	ResetTimer(STAGE_TIMER);
@@ -853,6 +846,8 @@ void pregel_subgraph(const WorkerParams & params)
 	// STAGE 2: Preprocessing
 	MPRINT("Preprocessing...")
 	ResetTimer(STAGE_TIMER);
+	SIAgg agg;
+	worker.setAggregator(&agg);
 	worker.run_type(PREPROCESS, params, 2);
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Preprocessing time", STAGE_TIMER)
@@ -862,117 +857,72 @@ void pregel_subgraph(const WorkerParams & params)
 
 //=============================================================================
 	// ONLINE STAGE
-	MPRINT("");
 	ResetTimer(TOTAL_TIMER);
+	InitTimer(COMMUNICATION_TIMER);
 
-	// STAGE 1: Load query graph
-	MPRINT("Loading query graph...")
-	ResetTimer(STAGE_TIMER);
-	worker.load_query(params.query_path);
-	StopTimer(STAGE_TIMER);
-	PrintTimer("Loading query graph time", STAGE_TIMER)
-
-	//=============== The most important timer starts here!!! =================
-	StartTimer(COMPUTE_TIMER);
-
-	// STAGE 2: Filtering
-	MPRINT("Filtering...")
-	ResetTimer(STAGE_TIMER);
-	if (params.filter)
-		worker.run_type(FILTER, params, 0);
-
-	StopTimer(STAGE_TIMER);
-	PrintTimer("Filtering time", STAGE_TIMER)
-
-	// STAGE 3: Build query tree
-	MPRINT("Building query tree...")
-	ResetTimer(STAGE_TIMER);
-	int depth, bn;
-	worker.build_query_tree(params.order, params.pseudo, depth, bn);
-	if (_my_rank == MASTER_RANK)
-		cout << "depth = " << depth << " max branch number = " << bn << endl;
-	StopTimer(STAGE_TIMER);
-	PrintTimer("Building query tree time", STAGE_TIMER)
-
-	// STAGE 4: Subgraph matching
-	MPRINT("**Subgraph matching**")
-	ResetTimer(STAGE_TIMER);
-	worker.run_type(MATCH, params, depth+1);
-	StopTimer(STAGE_TIMER);
-	PrintTimer("Subgraph matching time", STAGE_TIMER)
-
-	if (_my_rank == MASTER_RANK)
+	if (dirCheck(params.query_path.c_str()) == -1)
+		exit(-1);
+	vector<string> files;
+	dispatchMaster(params.query_path.c_str(), files);
+	if (get_worker_id() == MASTER_RANK)
 	{
-		cout << "[Detailed report]" << endl;
-		auto mat = *((AggMat*)global_agg);
-		cout << "1. Arrange messages: " <<
-			mat[0][0] << " s" << endl;
-		cout << "2. Main Computation: " <<
-			mat[0][1] << " s" << endl;
-		cout << "2.1. Loop through messages and check feasibility: " <<
-			mat[0][2] << " s" << endl;
-		cout << "2.1.1. For branch vertices: " <<
-			mat[2][0] << " s" << endl;		
-		cout << "2.1.2. For leaf vertices: " <<
-			mat[2][1] << " s" << endl;
-		cout << "2.1.3. For not-branch-nor-leaf vertices: " <<
-			mat[2][2] << " s" << endl;
-		cout << "2.2. Continue mapping: " <<
-			mat[1][0] << " s" << endl;	
-		cout << "2.2.1. Construct neighbor map: " <<
-			mat[1][1] << " s" << endl;
-		cout << "2.2.2. Update out messages buffer: " <<
-			mat[1][2] << " s" << endl;
+		cout << "# queries = " << files.size() << endl << endl;
+		cout << "Query No., |V(Q)|, |E(Q)|, depth, max_bn, conflicts, #mappings, "
+		 	 << "compute_time, match_time, enum_time, comm_time" << endl;
 	}
-
-	// STAGE 5: Subgraph enumeration
-	MPRINT("**Subgraph enumeration**")
-	ResetTimer(STAGE_TIMER);
-	worker.run_type(ENUMERATE, params, bn+1);
-	StopTimer(STAGE_TIMER);
-	PrintTimer("Subgraph enumeration time", STAGE_TIMER)
-
-	if (_my_rank == MASTER_RANK)
+	int query_index = 1;
+	for (vector<string>::iterator it = files.begin(); it != files.end(); it++)
 	{
-		cout << "[Detailed report]" << endl;
-		auto mat = *((AggMat*)global_agg);
-		cout << "a) For leaf vertices: " <<
-			mat[2][1] << " s" << endl;
-		cout << "b) For dummy vertices: " <<
-			mat[0][1] << " s" << endl;
-		cout << "==build_branch==" << endl;
-		cout << "1. Organize branches: " <<
-			mat[0][2] << " s" << endl;	
-		cout << "2. Enumerate trees: " <<
-			mat[1][0] << " s" << endl;		
-		cout << "3. Send to dummies or expand: " <<
-			mat[1][1] << " s" << endl;
-		cout << "3.1. Send to dummies: " <<
-			mat[2][0] << " s" << endl;
-		cout << "3.2. Expand: " <<
-			mat[1][2] << " s" << endl;
+		for (string order : params.orders)
+		{
+			// Reset and load query
+			SIQuery query;
+			worker.setQuery(&query);
+			SIAgg agg;
+			worker.setAggregator(&agg);
+			worker.load_query(it->c_str());
+		
+			ResetTimer(COMPUTE_TIMER);
+			InitTimer(COMMUNICATION_TIMER);
+
+			// Build query tree
+			vector<int> properties = vector<int>(5); // |V|, |E|, depth, max_bn, conflicts
+			worker.build_query_tree(order, params.pseudo, properties);
+			
+			// Subgraph matching
+			ResetTimer(STAGE_TIMER);
+			worker.run_type(MATCH, params, properties[2]+1);
+			StopTimer(STAGE_TIMER);
+			double match_time = get_timer(STAGE_TIMER);
+
+			// Subgraph enumeration
+			ResetTimer(STAGE_TIMER);
+			worker.run_type(ENUMERATE, params, properties[3]+1);
+			StopTimer(STAGE_TIMER);
+			double enum_time = get_timer(STAGE_TIMER);
+			long mapping_count = (*((AggMat*)global_agg))[0][0];
+			StopTimer(COMPUTE_TIMER);
+
+			double comp_time = get_timer(COMPUTE_TIMER);
+			double comm_time = get_timer(COMMUNICATION_TIMER);
+
+			if (get_worker_id() == MASTER_RANK)
+				cout << query_index << "-" << order << ", "
+					<< properties[0] << ", "
+					<< properties[1] << ", "
+					<< properties[2] << ", "
+					<< properties[3] << ", "
+					<< properties[4] << ", "
+					<< mapping_count << ", "
+					<< comp_time << ", "
+					<< match_time << ", "
+					<< enum_time << ", "
+					<< comm_time << endl;
+		}
+		query_index ++;
 	}
-
-	StopTimer(COMPUTE_TIMER);
-	//=============== The most important timer stops here!!! =================
-
-	// STAGE 6: Dumping
-	MPRINT("Dumping results...")
-	ResetTimer(STAGE_TIMER);
-	//worker.dump_graph(params.output_path, params.force_write);
-	StopTimer(STAGE_TIMER);
-	PrintTimer("Dumping results time", STAGE_TIMER)
 
 	StopTimer(TOTAL_TIMER);
-	PrintTimer("In total, online time", TOTAL_TIMER)
-
-	if (_my_rank == MASTER_RANK)
-	{
-		cout << "================ Final Report ===============" << endl;
-		cout << "Mapping count: " <<
-				(long) (*((AggMat*)global_agg))[0][0] << endl;
-	}
-
-	PrintTimer("COMPUTE Time", COMPUTE_TIMER);
+	PrintTimer("\nIn total, online time", TOTAL_TIMER)
 
 }

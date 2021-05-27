@@ -310,11 +310,12 @@ public:
     	    return 1;
     }
     
-    string getOrderMethod() {
-        if (options_value[5] == "candidate" || options_value[5] == "degree")
-            return options_value[5];
+    vector<string> getOrderMethod() {
+        if (options_value[5] == "random" || options_value[5] == "degree"
+            || options_value[5] == "ri")
+            return {options_value[5]};
         else
-            return "random";
+            return {"random", "degree", "ri"};
     }
 
     bool isMethodOn(int i) 
@@ -335,7 +336,7 @@ struct WorkerParams {
 
     bool input; // 1 for default, 0 for g-thinker
     int report; // 0 for short, 1 for long, 2 for long+step_msg
-    string order;
+    vector<string> orders;
     bool preprocess, filter, pseudo, leaf, other;   
     
     WorkerParams()
@@ -351,18 +352,13 @@ struct WorkerParams {
         force_write = fw;
         input = command.getInputFormat();
         report = command.getReport();
-        order = command.getOrderMethod();
+        orders = command.getOrderMethod();
         preprocess = command.isMethodOn(6);
         filter = command.isMethodOn(7);
         pseudo = command.isMethodOn(8);
         leaf = command.isMethodOn(9);
         other = command.isMethodOn(10);
         
-        if (!filter && order == "candidate")
-        {
-            cout << "Warning: non-filter mode cannot have candidate as order." << endl;
-            order = "random";
-        }
     }
 
     void print()
@@ -371,7 +367,6 @@ struct WorkerParams {
         cout << "Query graph path: " << query_path << endl;
         cout << "Input Format (1 for default, 0 for g-thinker): " << input << endl;
         cout << "Output graph path: " << output_path << endl;
-        cout << "Order Method: " << order << endl;
         cout << "Optimization techniques: ";
         if (preprocess) cout << "Preprocessing/";
         if (filter) cout << "Filtering/";

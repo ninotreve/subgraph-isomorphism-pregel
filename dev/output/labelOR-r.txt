@@ -1,0 +1,25 @@
+Data graph path: /g-thinker/labelOR.txt
+Query graph path: /g-thinker/query-fudan/query5
+Input Format (1 for default, 0 for g-thinker): 0
+Output graph path: /output
+Optimization techniques: Pseudo-children Counting/
+
+Loading data graph...
+Loading data graph time : 105.783167 seconds
+Preprocessing...
+Preprocessing time : 2.970215 seconds
+In total, offline time : 108.753483 seconds
+# queries = 3
+
+Query No., |V(Q)|, |E(Q)|, depth, max_bn, conflicts, #mappings, compute_time, match_time, enum_time, comm_time
+1-random, 5, 5, 5, 0, 0, 217228142, 6.97184, 4.48127, 2.47683, 4.12842
+1-degree, 5, 5, 3, 1, 1, 217228142, 3.72817, 1.33184, 2.39191, 2.08312
+1-ri, 5, 5, 3, 1, 1, 217228142, 4.18161, 1.34512, 2.82283, 2.65385
+2-random, 5, 8, 5, 0, 0, 930976, 2.5683, 2.27206, 0.283434, 1.66816
+2-degree, 5, 8, 4, 1, 1, 930976, 2.93965, 2.08278, 0.847026, 1.52722
+2-ri, 5, 8, 5, 0, 0, 930976, 2.50349, 2.17643, 0.316091, 1.5994
+3-random, 5, 6, 5, 0, 0, 31151860, 11.8634, 7.5657, 4.29659, 7.72818
+3-degree, 5, 6, 3, 1, 2, 31151860, 59.9689, 1.64039, 58.3232, 43.2235
+3-ri, 5, 6, 3, 1, 2, 31151860, 45.7433, 2.18507, 43.4958, 28.5278
+
+In total, online time : 146.538145 seconds

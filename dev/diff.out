@@ -1,0 +1,666 @@
+6c6
+< Optimization techniques: 
+---
+> Optimization techniques: Pseudo-children Counting/
+9c9
+< Loading data graph time : 9.124789 seconds
+---
+> Loading data graph time : 8.971205 seconds
+11,12c11,12
+< Preprocessing time : 1.521971 seconds
+< In total, offline time : 10.646889 seconds
+---
+> Preprocessing time : 1.650612 seconds
+> In total, offline time : 10.621959 seconds
+16c16
+< Loading query graph time : 0.477094 seconds
+---
+> Loading query graph time : 0.520315 seconds
+18c18
+< Filtering time : 0.000001 seconds
+---
+> Filtering time : 0.000000 seconds
+24c24
+< Node 2: [Label: b Neighbors: [0, 1, 3, 5, 8] Level: 0 Branch number: 1 Children: [3, 8] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [] chd_types: [0, 0] chd_constraint_self: [0, 0] index_chain: [0]]. with 2 children and 0 pseudo children.
+---
+> Node 2: [Label: b Neighbors: [0, 1, 3, 5, 8] Level: 0 Branch number: 1 Children: [3] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [] chd_types: [0, 1] chd_constraint_self: [0] index_chain: [0]]. with 1 children and 1 pseudo children.
+33c33
+< Node 8: [Label: b Neighbors: [2] Level: 1 Branch number: 1 Children: [] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [2, -3] chd_types: [] chd_constraint_self: [] index_chain: [1, 0]]. with 0 children and 0 pseudo children.
+---
+> Node 8: [Label: b Neighbors: [2] Level: 1 Branch number: 1 Children: [] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [] chd_types: [] chd_constraint_self: [] index_chain: [1, 0]]. with 0 children and 0 pseudo children.
+51c51
+< Building query tree time : 0.004261 seconds
+---
+> Building query tree time : 0.003931 seconds
+53c53
+< Subgraph matching time : 3.584369 seconds
+---
+> Subgraph matching time : 3.800007 seconds
+55,63c55,63
+< 1. Arrange messages: 0.828704 s
+< 2. Main Computation: 0.30023 s
+< 2.1. Loop through messages and check feasibility: 0.213048 s
+< 2.1.1. For branch vertices: 0.111827 s
+< 2.1.2. For leaf vertices: 0.0235848 s
+< 2.1.3. For not-branch-nor-leaf vertices: 0.0714774 s
+< 2.2. Continue mapping: 0.0429819 s
+< 2.2.1. Construct neighbor map: 0.0108299 s
+< 2.2.2. Update out messages buffer: 0.0134318 s
+---
+> 1. Arrange messages: 0.823745 s
+> 2. Main Computation: 0.353554 s
+> 2.1. Loop through messages and check feasibility: 0.263135 s
+> 2.1.1. For branch vertices: 0.152318 s
+> 2.1.2. For leaf vertices: 0.0184155 s
+> 2.1.3. For not-branch-nor-leaf vertices: 0.0856781 s
+> 2.2. Continue mapping: 0.0426524 s
+> 2.2.1. Construct neighbor map: 0.00806117 s
+> 2.2.2. Update out messages buffer: 0.01109 s
+67c67
+< /// ti = 1 marker = 9696 conflux = 8
+---
+> /// ti = 1 marker = 9920 conflux = 8
+71c71
+< /// ti = 2 marker = 9696 conflux = 8
+---
+> /// ti = 2 marker = 9920 conflux = 8
+75,83c75,83
+< /// ti = 3 marker = 1392 conflux = 8
+<  conflicts = -1 9868
+< ci = 0 count_ci = 155 conflicts = -1 9868
+< ci = 1 count_ci = 31 conflicts = -1 9868
+< /// ti = 4 marker = 1392 conflux = 8
+<  conflicts = -1 43907
+< ci = 0 count_ci = 155 conflicts = -1 43907
+< ci = 1 count_ci = 31 conflicts = -1 43907
+< /// ti = 5 marker = 9696 conflux = 8
+---
+> /// ti = 3 marker = 1616 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 155 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 4 marker = 1568 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 155 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 5 marker = 10224 conflux = 8
+87c87
+< /// ti = 6 marker = 2512 conflux = 4
+---
+> /// ti = 6 marker = 3040 conflux = 4
+91c91
+< /// ti = 7 marker = 9696 conflux = 8
+---
+> /// ti = 7 marker = 10224 conflux = 8
+95,103c95,99
+< /// ti = 8 marker = 9696 conflux = 8
+<  conflicts = -1 882
+< ci = 0 count_ci = 134 conflicts = -1 882
+< ci = 1 count_ci = 30 conflicts = -1 882
+< /// ti = 9 marker = 1392 conflux = 8
+<  conflicts = -1 882
+< ci = 0 count_ci = 133 conflicts = -1 882
+< ci = 1 count_ci = 30 conflicts = -1 882
+< /// ti = 10 marker = 976 conflux = 0
+---
+> /// ti = 8 marker = 10448 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 134 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 9 marker = 2144 conflux = 0
+107,123c103
+< /// ti = 11 marker = 2512 conflux = 4
+<  conflicts = 803 -1
+< ci = 0 count_ci = 133 conflicts = 803 -1
+< ci = 1 count_ci = 30 conflicts = 803 -1
+< /// ti = 12 marker = 1392 conflux = 8
+<  conflicts = -1 943
+< ci = 0 count_ci = 266 conflicts = -1 943
+< ci = 1 count_ci = 30 conflicts = -1 943
+< /// ti = 13 marker = 1392 conflux = 8
+<  conflicts = -1 9868
+< ci = 0 count_ci = 266 conflicts = -1 9868
+< ci = 1 count_ci = 31 conflicts = -1 9868
+< /// ti = 14 marker = 9696 conflux = 8
+<  conflicts = -1 882
+< ci = 0 count_ci = 134 conflicts = -1 882
+< ci = 1 count_ci = 30 conflicts = -1 882
+< /// ti = 15 marker = 1392 conflux = 8
+---
+> /// ti = 10 marker = 1712 conflux = 8
+127c107,123
+< /// ti = 16 marker = 976 conflux = 0
+---
+> /// ti = 11 marker = 3248 conflux = 12
+>  conflicts = 803 882
+> ci = 0 count_ci = 133 conflicts = 803 882
+> ci = 1 count_ci = 29 conflicts = 803 882
+> /// ti = 12 marker = 1920 conflux = 8
+>  conflicts = -1 943
+> ci = 0 count_ci = 266 conflicts = -1 943
+> ci = 1 count_ci = 30 conflicts = -1 943
+> /// ti = 13 marker = 1952 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 266 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 14 marker = 10448 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 134 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 15 marker = 2144 conflux = 0
+131,135c127,135
+< /// ti = 17 marker = 2512 conflux = 4
+<  conflicts = 803 -1
+< ci = 0 count_ci = 133 conflicts = 803 -1
+< ci = 1 count_ci = 30 conflicts = 803 -1
+< /// ti = 18 marker = 1392 conflux = 8
+---
+> /// ti = 16 marker = 1712 conflux = 8
+>  conflicts = -1 882
+> ci = 0 count_ci = 133 conflicts = -1 882
+> ci = 1 count_ci = 30 conflicts = -1 882
+> /// ti = 17 marker = 3248 conflux = 12
+>  conflicts = 803 882
+> ci = 0 count_ci = 133 conflicts = 803 882
+> ci = 1 count_ci = 29 conflicts = 803 882
+> /// ti = 18 marker = 1920 conflux = 8
+139,163c139,167
+< /// ti = 19 marker = 1392 conflux = 8
+<  conflicts = -1 9868
+< ci = 0 count_ci = 133 conflicts = -1 9868
+< ci = 1 count_ci = 31 conflicts = -1 9868
+< /// ti = 20 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 12 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 21 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 12 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 22 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 12 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 23 marker = 9696 conflux = 8
+<  conflicts = -1 882
+< ci = 0 count_ci = 10 conflicts = -1 882
+< ci = 1 count_ci = 30 conflicts = -1 882
+< /// ti = 24 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 134 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 25 marker = 1392 conflux = 8
+---
+> /// ti = 19 marker = 1952 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 133 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 20 marker = 10672 conflux = 12
+>  conflicts = 8498 210
+> ci = 0 count_ci = 12 conflicts = 8498 210
+> ci = 1 count_ci = 30 conflicts = 8498 210
+> /// ti = 21 marker = 10672 conflux = 12
+>  conflicts = 8498 210
+> ci = 0 count_ci = 12 conflicts = 8498 210
+> ci = 1 count_ci = 30 conflicts = 8498 210
+> /// ti = 22 marker = 10672 conflux = 12
+>  conflicts = 8498 210
+> ci = 0 count_ci = 12 conflicts = 8498 210
+> ci = 1 count_ci = 30 conflicts = 8498 210
+> /// ti = 23 marker = 10016 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 10 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 24 marker = 11104 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 134 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 25 marker = 2800 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 133 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 26 marker = 2368 conflux = 8
+167c171,187
+< /// ti = 26 marker = 976 conflux = 0
+---
+> /// ti = 27 marker = 3904 conflux = 12
+>  conflicts = 803 210
+> ci = 0 count_ci = 133 conflicts = 803 210
+> ci = 1 count_ci = 29 conflicts = 803 210
+> /// ti = 28 marker = 11104 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 134 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 29 marker = 11104 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 134 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 30 marker = 11104 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 134 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 31 marker = 2800 conflux = 0
+171,187c191
+< /// ti = 27 marker = 2512 conflux = 4
+<  conflicts = 803 -1
+< ci = 0 count_ci = 133 conflicts = 803 -1
+< ci = 1 count_ci = 30 conflicts = 803 -1
+< /// ti = 28 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 134 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 29 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 134 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 30 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 134 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 31 marker = 1392 conflux = 8
+---
+> /// ti = 32 marker = 2368 conflux = 8
+191c195,211
+< /// ti = 32 marker = 976 conflux = 0
+---
+> /// ti = 33 marker = 3904 conflux = 12
+>  conflicts = 803 210
+> ci = 0 count_ci = 133 conflicts = 803 210
+> ci = 1 count_ci = 29 conflicts = 803 210
+> /// ti = 34 marker = 11104 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 134 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 35 marker = 11104 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 134 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 36 marker = 10448 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 134 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 37 marker = 2144 conflux = 0
+195,211c215
+< /// ti = 33 marker = 2512 conflux = 4
+<  conflicts = 803 -1
+< ci = 0 count_ci = 133 conflicts = 803 -1
+< ci = 1 count_ci = 30 conflicts = 803 -1
+< /// ti = 34 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 134 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 35 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 134 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 36 marker = 9696 conflux = 8
+<  conflicts = -1 882
+< ci = 0 count_ci = 134 conflicts = -1 882
+< ci = 1 count_ci = 30 conflicts = -1 882
+< /// ti = 37 marker = 1392 conflux = 8
+---
+> /// ti = 38 marker = 1712 conflux = 8
+215,223c219,223
+< /// ti = 38 marker = 976 conflux = 0
+<  conflicts = -1 -1
+< ci = 0 count_ci = 133 conflicts = -1 -1
+< ci = 1 count_ci = 31 conflicts = -1 -1
+< /// ti = 39 marker = 2512 conflux = 4
+<  conflicts = 803 -1
+< ci = 0 count_ci = 133 conflicts = 803 -1
+< ci = 1 count_ci = 30 conflicts = 803 -1
+< /// ti = 40 marker = 1392 conflux = 8
+---
+> /// ti = 39 marker = 3248 conflux = 12
+>  conflicts = 803 882
+> ci = 0 count_ci = 133 conflicts = 803 882
+> ci = 1 count_ci = 29 conflicts = 803 882
+> /// ti = 40 marker = 1920 conflux = 8
+227,231c227,231
+< /// ti = 41 marker = 1392 conflux = 8
+<  conflicts = -1 9868
+< ci = 0 count_ci = 133 conflicts = -1 9868
+< ci = 1 count_ci = 31 conflicts = -1 9868
+< /// ti = 42 marker = 9696 conflux = 8
+---
+> /// ti = 41 marker = 1952 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 133 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 42 marker = 10432 conflux = 8
+235c235
+< /// ti = 43 marker = 2512 conflux = 4
+---
+> /// ti = 43 marker = 3248 conflux = 4
+239c239
+< /// ti = 44 marker = 9696 conflux = 8
+---
+> /// ti = 44 marker = 10208 conflux = 8
+243c243
+< /// ti = 45 marker = 2512 conflux = 4
+---
+> /// ti = 45 marker = 3024 conflux = 4
+247c247
+< /// ti = 46 marker = 9696 conflux = 8
+---
+> /// ti = 46 marker = 10208 conflux = 8
+251c251
+< /// ti = 47 marker = 7776 conflux = 0
+---
+> /// ti = 47 marker = 8288 conflux = 0
+255c255
+< /// ti = 48 marker = 9696 conflux = 8
+---
+> /// ti = 48 marker = 10432 conflux = 8
+259c259
+< /// ti = 49 marker = 2512 conflux = 4
+---
+> /// ti = 49 marker = 3248 conflux = 4
+263c263
+< /// ti = 50 marker = 9696 conflux = 8
+---
+> /// ti = 50 marker = 10208 conflux = 8
+267c267
+< /// ti = 51 marker = 2512 conflux = 4
+---
+> /// ti = 51 marker = 3024 conflux = 4
+271c271
+< /// ti = 52 marker = 9696 conflux = 8
+---
+> /// ti = 52 marker = 10208 conflux = 8
+275c275
+< /// ti = 53 marker = 7776 conflux = 0
+---
+> /// ti = 53 marker = 8288 conflux = 0
+279,287c279,283
+< /// ti = 54 marker = 9696 conflux = 8
+<  conflicts = -1 882
+< ci = 0 count_ci = 402 conflicts = -1 882
+< ci = 1 count_ci = 30 conflicts = -1 882
+< /// ti = 55 marker = 1392 conflux = 8
+<  conflicts = -1 882
+< ci = 0 count_ci = 399 conflicts = -1 882
+< ci = 1 count_ci = 30 conflicts = -1 882
+< /// ti = 56 marker = 976 conflux = 0
+---
+> /// ti = 54 marker = 10448 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 402 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 55 marker = 2144 conflux = 0
+291,295c287,295
+< /// ti = 57 marker = 2512 conflux = 4
+<  conflicts = 803 -1
+< ci = 0 count_ci = 399 conflicts = 803 -1
+< ci = 1 count_ci = 30 conflicts = 803 -1
+< /// ti = 58 marker = 9696 conflux = 8
+---
+> /// ti = 56 marker = 1712 conflux = 8
+>  conflicts = -1 882
+> ci = 0 count_ci = 399 conflicts = -1 882
+> ci = 1 count_ci = 30 conflicts = -1 882
+> /// ti = 57 marker = 3248 conflux = 12
+>  conflicts = 803 882
+> ci = 0 count_ci = 399 conflicts = 803 882
+> ci = 1 count_ci = 29 conflicts = 803 882
+> /// ti = 58 marker = 10176 conflux = 8
+299c299
+< /// ti = 59 marker = 1392 conflux = 8
+---
+> /// ti = 59 marker = 1872 conflux = 8
+303c303
+< /// ti = 60 marker = 976 conflux = 0
+---
+> /// ti = 60 marker = 1456 conflux = 0
+307c307
+< /// ti = 61 marker = 2512 conflux = 4
+---
+> /// ti = 61 marker = 2992 conflux = 4
+311,319c311,315
+< /// ti = 62 marker = 9696 conflux = 8
+<  conflicts = -1 882
+< ci = 0 count_ci = 402 conflicts = -1 882
+< ci = 1 count_ci = 30 conflicts = -1 882
+< /// ti = 63 marker = 1392 conflux = 8
+<  conflicts = -1 882
+< ci = 0 count_ci = 399 conflicts = -1 882
+< ci = 1 count_ci = 30 conflicts = -1 882
+< /// ti = 64 marker = 976 conflux = 0
+---
+> /// ti = 62 marker = 10448 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 402 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 63 marker = 2144 conflux = 0
+323,327c319,327
+< /// ti = 65 marker = 2512 conflux = 4
+<  conflicts = 803 -1
+< ci = 0 count_ci = 399 conflicts = 803 -1
+< ci = 1 count_ci = 30 conflicts = 803 -1
+< /// ti = 66 marker = 1392 conflux = 8
+---
+> /// ti = 64 marker = 1712 conflux = 8
+>  conflicts = -1 882
+> ci = 0 count_ci = 399 conflicts = -1 882
+> ci = 1 count_ci = 30 conflicts = -1 882
+> /// ti = 65 marker = 3248 conflux = 12
+>  conflicts = 803 882
+> ci = 0 count_ci = 399 conflicts = 803 882
+> ci = 1 count_ci = 29 conflicts = 803 882
+> /// ti = 66 marker = 1920 conflux = 8
+331,383c331,383
+< /// ti = 67 marker = 1392 conflux = 8
+<  conflicts = -1 9868
+< ci = 0 count_ci = 532 conflicts = -1 9868
+< ci = 1 count_ci = 31 conflicts = -1 9868
+< /// ti = 68 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 96 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 69 marker = 1392 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 93 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 70 marker = 2512 conflux = 4
+<  conflicts = 882 -1
+< ci = 0 count_ci = 93 conflicts = 882 -1
+< ci = 1 count_ci = 30 conflicts = 882 -1
+< /// ti = 71 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 128 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 72 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 96 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 73 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 96 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 74 marker = 1392 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 93 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 75 marker = 2512 conflux = 4
+<  conflicts = 882 -1
+< ci = 0 count_ci = 93 conflicts = 882 -1
+< ci = 1 count_ci = 30 conflicts = 882 -1
+< /// ti = 76 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 128 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 77 marker = 9696 conflux = 8
+<  conflicts = -1 210
+< ci = 0 count_ci = 96 conflicts = -1 210
+< ci = 1 count_ci = 30 conflicts = -1 210
+< /// ti = 78 marker = 1392 conflux = 8
+<  conflicts = -1 9868
+< ci = 0 count_ci = 124 conflicts = -1 9868
+< ci = 1 count_ci = 31 conflicts = -1 9868
+< /// ti = 79 marker = 1392 conflux = 8
+<  conflicts = -1 43907
+< ci = 0 count_ci = 124 conflicts = -1 43907
+< ci = 1 count_ci = 31 conflicts = -1 43907
+< /// ti = 80 marker = 9696 conflux = 8
+---
+> /// ti = 67 marker = 1952 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 532 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 68 marker = 10768 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 96 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 69 marker = 2464 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 93 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 70 marker = 3568 conflux = 12
+>  conflicts = 882 210
+> ci = 0 count_ci = 93 conflicts = 882 210
+> ci = 1 count_ci = 29 conflicts = 882 210
+> /// ti = 71 marker = 10768 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 128 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 72 marker = 10768 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 96 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 73 marker = 10768 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 96 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 74 marker = 2464 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 93 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 75 marker = 3568 conflux = 12
+>  conflicts = 882 210
+> ci = 0 count_ci = 93 conflicts = 882 210
+> ci = 1 count_ci = 29 conflicts = 882 210
+> /// ti = 76 marker = 10768 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 128 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 77 marker = 10768 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 96 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 78 marker = 1616 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 124 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 79 marker = 1568 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 124 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 80 marker = 9920 conflux = 8
+387c387
+< /// ti = 81 marker = 9696 conflux = 8
+---
+> /// ti = 81 marker = 9920 conflux = 8
+391,407c391,407
+< /// ti = 82 marker = 1392 conflux = 8
+<  conflicts = -1 9868
+< ci = 0 count_ci = 124 conflicts = -1 9868
+< ci = 1 count_ci = 31 conflicts = -1 9868
+< /// ti = 83 marker = 1392 conflux = 8
+<  conflicts = -1 43907
+< ci = 0 count_ci = 124 conflicts = -1 43907
+< ci = 1 count_ci = 31 conflicts = -1 43907
+< /// ti = 84 marker = 2512 conflux = 4
+<  conflicts = 71268 -1
+< ci = 0 count_ci = 3 conflicts = 71268 -1
+< ci = 1 count_ci = 30 conflicts = 71268 -1
+< /// ti = 85 marker = 2512 conflux = 4
+<  conflicts = 71268 -1
+< ci = 0 count_ci = 3 conflicts = 71268 -1
+< ci = 1 count_ci = 30 conflicts = 71268 -1
+< /// ti = 86 marker = 7776 conflux = 0
+---
+> /// ti = 82 marker = 1616 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 124 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 83 marker = 1568 conflux = 0
+>  conflicts = -1 -1
+> ci = 0 count_ci = 124 conflicts = -1 -1
+> ci = 1 count_ci = 31 conflicts = -1 -1
+> /// ti = 84 marker = 3456 conflux = 12
+>  conflicts = 71268 210
+> ci = 0 count_ci = 3 conflicts = 71268 210
+> ci = 1 count_ci = 29 conflicts = 71268 210
+> /// ti = 85 marker = 3456 conflux = 12
+>  conflicts = 71268 210
+> ci = 0 count_ci = 3 conflicts = 71268 210
+> ci = 1 count_ci = 29 conflicts = 71268 210
+> /// ti = 86 marker = 9184 conflux = 0
+411c411
+< /// ti = 87 marker = 9696 conflux = 8
+---
+> /// ti = 87 marker = 10432 conflux = 8
+415c415
+< /// ti = 88 marker = 2512 conflux = 4
+---
+> /// ti = 88 marker = 3248 conflux = 4
+419c419
+< /// ti = 89 marker = 9696 conflux = 8
+---
+> /// ti = 89 marker = 10208 conflux = 8
+423c423
+< /// ti = 90 marker = 2512 conflux = 4
+---
+> /// ti = 90 marker = 3024 conflux = 4
+427c427
+< /// ti = 91 marker = 9696 conflux = 8
+---
+> /// ti = 91 marker = 10432 conflux = 8
+431c431
+< /// ti = 92 marker = 2512 conflux = 4
+---
+> /// ti = 92 marker = 3248 conflux = 4
+435c435
+< /// ti = 93 marker = 7776 conflux = 0
+---
+> /// ti = 93 marker = 9184 conflux = 0
+439,443c439,443
+< /// ti = 94 marker = 2512 conflux = 4
+<  conflicts = 71268 -1
+< ci = 0 count_ci = 4 conflicts = 71268 -1
+< ci = 1 count_ci = 30 conflicts = 71268 -1
+< Subgraph enumeration time : 0.750491 seconds
+---
+> /// ti = 94 marker = 3456 conflux = 12
+>  conflicts = 71268 210
+> ci = 0 count_ci = 4 conflicts = 71268 210
+> ci = 1 count_ci = 29 conflicts = 71268 210
+> Subgraph enumeration time : 0.771077 seconds
+445,446c445,446
+< a) For leaf vertices: 0.00440645 s
+< b) For dummy vertices: 0.076905 s
+---
+> a) For leaf vertices: 0.00476098 s
+> b) For dummy vertices: 0.0541363 s
+448,452c448,452
+< 1. Organize branches: 0.00941801 s
+< 2. Enumerate trees: 0.0015738 s
+< 3. Send to dummies or expand: 0.064657 s
+< 3.1. Send to dummies: 0.00230956 s
+< 3.2. Expand: 0.0620666 s
+---
+> 1. Organize branches: 0.00243402 s
+> 2. Enumerate trees: 0.00161481 s
+> 3. Send to dummies or expand: 0.0523472 s
+> 3.1. Send to dummies: 0.00240278 s
+> 3.2. Expand: 0.0496771 s
+455c455
+< In total, online time : 4.816843 seconds
+---
+> In total, online time : 5.100566 seconds
+457,458c457,458
+< Mapping count: 10016913
+< COMPUTE Time : 4.339708 seconds
+---
+> Mapping count: 10024663
+> COMPUTE Time : 4.580211 seconds
