@@ -128,7 +128,7 @@ public:
 
 		SIVertex* v = new SIVertex;
 		v->id = SIKey(dummyID, id.wID);
-		v->final_us.push_back(-(b->curr_u));
+		v->final_us.push_back(-1);
 		v->final_results.resize(1);
 		v->final_results[0].push_back(b);
 		this->add_vertex(v);

@@ -1,127 +1,126 @@
 Data graph path: /g-thinker/labelyou.txt
-Query graph path: /g-thinker/query-fudan/randomQuery/q-8-10-4-1.txt
+Query graph path: /g-thinker/query-fudan/test0525/q/q-6-7-3.txt
 Input Format (1 for default, 0 for g-thinker): 0
-Output graph path: 
+Output graph path: /output
 Order Method: degree
-Optimization techniques: 
+Optimization techniques: Pseudo-children Counting/
 
 Loading data graph...
-Loading data graph time : 8.180825 seconds
+Loading data graph time : 7.664095 seconds
 Preprocessing...
-Preprocessing time : 1.422616 seconds
-In total, offline time : 9.603582 seconds
+Preprocessing time : 1.416512 seconds
+In total, offline time : 9.080767 seconds
 
 Loading query graph...
-Loading query graph time : 0.485305 seconds
+Loading query graph time : 0.497821 seconds
 Filtering...
 Filtering time : 0.000000 seconds
 Building query tree...
 ------- Print Query Graph ---------
-# Query Vertices: 8
-# Conflicts: 2
-Max Branch Number: 1
-Node 1: [Label: c Neighbors: [0, 2, 4, 6] Level: 0 Branch number: 0 Children: [4] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [] chd_types: [0] chd_constraint_self: [] index_chain: [0]]. with 1 children and 0 pseudo children.
-Node 4: [Label: b Neighbors: [1, 3, 5, 7] Level: 1 Branch number: 1 Children: [3, 5, 7] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [1] chd_types: [0, 0, 0] chd_constraint_self: [1, 0, 0] index_chain: [1]]. with 3 children and 0 pseudo children.
-Node 3: [Label: d Neighbors: [2, 4] Level: 2 Branch number: 1 Children: [2] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [1, 4, -5, -5] chd_types: [0] chd_constraint_self: [] index_chain: [0, 0]]. with 1 children and 0 pseudo children.
-Node 2: [Label: b Neighbors: [1, 3] Level: 3 Branch number: 1 Children: [] Backward neighbors: [1] Backward neighbors positions: [0] Backward same label positions: [1] previous_mapping: [1, 4, -5, -5, 3] chd_types: [] chd_constraint_self: [] index_chain: [0, 1]]. with 0 children and 0 pseudo children.
-Node 5: [Label: d Neighbors: [0, 4] Level: 2 Branch number: 1 Children: [0] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [1, -5, -5] chd_types: [0] chd_constraint_self: [] index_chain: [1, 0]]. with 1 children and 0 pseudo children.
-Node 0: [Label: d Neighbors: [1, 5] Level: 3 Branch number: 1 Children: [] Backward neighbors: [1] Backward neighbors positions: [0] Backward same label positions: [] previous_mapping: [1, -5, -5, 5] chd_types: [] chd_constraint_self: [] index_chain: [1, 1]]. with 0 children and 0 pseudo children.
-Node 7: [Label: a Neighbors: [4, 6] Level: 2 Branch number: 1 Children: [6] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [1, -5, -5] chd_types: [0] chd_constraint_self: [] index_chain: [2, 0]]. with 1 children and 0 pseudo children.
-Node 6: [Label: c Neighbors: [1, 7] Level: 3 Branch number: 1 Children: [] Backward neighbors: [1] Backward neighbors positions: [0] Backward same label positions: [0] previous_mapping: [1, -5, -5, 7] chd_types: [] chd_constraint_self: [] index_chain: [2, 1]]. with 0 children and 0 pseudo children.
+# Query Vertices: 6
+# Conflicts: 3
+Max Branch Number: 2
+Node 1: [Label: c Neighbors: [0, 2, 3, 4, 5] Level: 0 Branch number: 1 Children: [0] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [] chd_types: [0, 1, 1] chd_constraint_self: [0] index_chain: [0]]. with 1 children and 2 pseudo children.
+Node 0: [Label: a Neighbors: [1, 2, 5] Level: 1 Branch number: 2 Children: [2, 5] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [1, -2] chd_types: [0, 0] chd_constraint_self: [0, 0] index_chain: [0, 0]]. with 2 children and 0 pseudo children.
+Node 2: [Label: b Neighbors: [0, 1] Level: 2 Branch number: 2 Children: [] Backward neighbors: [1] Backward neighbors positions: [0] Backward same label positions: [] previous_mapping: [1, -1, -1] chd_types: [] chd_constraint_self: [] index_chain: [0, 0, 0]]. with 0 children and 0 pseudo children.
+Node 5: [Label: a Neighbors: [0, 1] Level: 2 Branch number: 2 Children: [] Backward neighbors: [1] Backward neighbors positions: [0] Backward same label positions: [] previous_mapping: [1, -1, -1] chd_types: [] chd_constraint_self: [] index_chain: [0, 1, 0]]. with 0 children and 0 pseudo children.
+Node 3: [Label: b Neighbors: [1] Level: 1 Branch number: 1 Children: [] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [] chd_types: [] chd_constraint_self: [] index_chain: [1, 0]]. with 0 children and 0 pseudo children.
+Node 4: [Label: a Neighbors: [1] Level: 1 Branch number: 1 Children: [] Backward neighbors: [] Backward neighbors positions: [] Backward same label positions: [] previous_mapping: [] chd_types: [] chd_constraint_self: [] index_chain: [2, 0]]. with 0 children and 0 pseudo children.
 ------- Print Buckets ---------
 level 0
 [key] c [value] [1]
 level 1
-[key] b [value] [4]
+[key] a [value] [4, 0]
+[key] b [value] [3]
 level 2
-[key] d [value] [3, 5]
-[key] a [value] [7]
-level 3
-[key] d [value] [0]
 [key] b [value] [2]
-[key] c [value] [6]
-[0, 0, 0, 0, 0, 1, 0, 0]
+[key] a [value] [5]
+[1, 0, 0, 0, 0, 0]
 ------- Print Conflicts ---------
 Conflict No. 0
-u1: 3 u2: 0 u1_state: 2 ca: 4
-index_chain_1: [0, 0]
-index_chain_2: [1, 1]
+u1: 4 u2: 0 u1_state: 4 ca: 1
+index_chain_1: [2, 0]
+index_chain_2: [0, 0]
 Conflict No. 1
-u1: 3 u2: 5 u1_state: 2 ca: 4
-index_chain_1: [0, 0]
-index_chain_2: [1, 0]
-depth = 4 max branch number = 1
-Building query tree time : 0.003308 seconds
+u1: 3 u2: 2 u1_state: 3 ca: 1
+index_chain_1: [1, 0]
+index_chain_2: [0, 0, 0]
+Conflict No. 2
+u1: 4 u2: 5 u1_state: 4 ca: 1
+index_chain_1: [2, 0]
+index_chain_2: [0, 1, 0]
+depth = 3 max branch number = 2
+Building query tree time : 0.002681 seconds
 **Subgraph matching**
 [0] Superstep 1: #vertices computed: 1134890
-Superstep 1 done.Time elapsed: 0.38396 seconds
-[0] Superstep 2: #vertices computed: 5297
-Superstep 2 done.Time elapsed: 0.188401 seconds
-[0] Superstep 3: #vertices computed: 15324
-Superstep 3 done.Time elapsed: 0.129146 seconds
-[0] Superstep 4: #vertices computed: 9069
-Superstep 4 done.Time elapsed: 0.152857 seconds
-[0] Superstep 5: #vertices computed: 0
-Superstep 5 done.Time elapsed: 0.060859 seconds
+Superstep 1 done.Time elapsed: 0.472251 seconds
+[0] Superstep 2: #vertices computed: 10545
+Superstep 2 done.Time elapsed: 0.267113 seconds
+[0] Superstep 3: #vertices computed: 23905
+Superstep 3 done.Time elapsed: 0.113137 seconds
+[0] Superstep 4: #vertices computed: 0
+Superstep 4 done.Time elapsed: 0.0636191 seconds
 Subgraph matching/enumeration done. 
-Total Computational Time : 0.915720 seconds
- - Active Compute Time : 0.825486 seconds
- - Push back sent messages Time : 0.000001 seconds
- - Reduce messages Time : 0.000000 seconds
- - Clear messages Time : 0.003182 seconds
- - Distribute messages Time : 0.030904 seconds
- - Stop criteria Time : 0.000024 seconds
- - Sync messages Time : 0.054935 seconds
- - Agg Time : 0.000049 seconds
- - Sync Time (load imbalance) : 0.000009 seconds
- - Communication Time : 0.000125 seconds
-    - Serialization Time : 0.000029 seconds
-    - Transfer Time : 0.000009 seconds
-Total #msgs=0, Total #vadd=0
-Subgraph matching time : 0.916258 seconds
-[Detailed report]
-1. Arrange messages: 0.0222437 s
-2. Main Computation: 0.258839 s
-2.1. Loop through messages and check feasibility: 0.145707 s
-2.1.1. For branch vertices: 0.0386531 s
-2.1.2. For leaf vertices: 0.0745275 s
-2.1.3. For not-branch-nor-leaf vertices: 0.0258489 s
-2.2. Continue mapping: 0.0679226 s
-2.2.1. Construct neighbor map: 0.0195212 s
-2.2.2. Update out messages buffer: 0.0284822 s
-**Subgraph enumeration**
-[0] Superstep 1: #vertices computed: 1144142
-Superstep 1 done.Time elapsed: 0.171319 seconds
-[0] Superstep 2: #vertices computed: 2351
-Superstep 2 done.Time elapsed: 0.115581 seconds
-Subgraph matching/enumeration done. 
-Total Computational Time : 0.287202 seconds
- - Active Compute Time : 0.276471 seconds
+Total Computational Time : 0.916474 seconds
+ - Active Compute Time : 0.798248 seconds
  - Push back sent messages Time : 0.000000 seconds
  - Reduce messages Time : 0.000001 seconds
- - Clear messages Time : 0.000000 seconds
- - Distribute messages Time : 0.010413 seconds
- - Stop criteria Time : 0.000006 seconds
- - Sync messages Time : 0.000004 seconds
- - Agg Time : 0.000024 seconds
- - Sync Time (load imbalance) : 0.000004 seconds
- - Communication Time : 0.000011 seconds
-    - Serialization Time : 0.000002 seconds
+ - Clear messages Time : 0.002748 seconds
+ - Distribute messages Time : 0.061505 seconds
+ - Stop criteria Time : 0.000019 seconds
+ - Sync messages Time : 0.052893 seconds
+ - Agg Time : 0.000026 seconds
+ - Sync Time (load imbalance) : 0.000009 seconds
+ - Communication Time : 0.000016 seconds
+    - Serialization Time : 0.000005 seconds
     - Transfer Time : 0.000008 seconds
 Total #msgs=0, Total #vadd=0
-Subgraph enumeration time : 0.287314 seconds
+Subgraph matching time : 0.917130 seconds
 [Detailed report]
-a) For leaf vertices: 0.0363479 s
-b) For dummy vertices: 0.0629587 s
+1. Arrange messages: 0.0354326 s
+2. Main Computation: 0.242574 s
+2.1. Loop through messages and check feasibility: 0.160723 s
+2.1.1. For branch vertices: 0.118215 s
+2.1.2. For leaf vertices: 0.0217683 s
+2.1.3. For not-branch-nor-leaf vertices: 0 s
+2.2. Continue mapping: 0.0358231 s
+2.2.1. Construct neighbor map: 0.00631928 s
+2.2.2. Update out messages buffer: 0.0121493 s
+**Subgraph enumeration**
+[0] Superstep 1: #vertices computed: 1144179
+Superstep 1 done.Time elapsed: 0.154395 seconds
+[0] Superstep 2: #vertices computed: 11814
+Superstep 2 done.Time elapsed: 0.0618179 seconds
+[0] Superstep 3: #vertices computed: 108
+Superstep 3 done.Time elapsed: 0.0632949 seconds
+Subgraph matching/enumeration done. 
+Total Computational Time : 0.279694 seconds
+ - Active Compute Time : 0.277636 seconds
+ - Push back sent messages Time : 0.000000 seconds
+ - Reduce messages Time : 0.000000 seconds
+ - Clear messages Time : 0.000001 seconds
+ - Distribute messages Time : 0.001844 seconds
+ - Stop criteria Time : 0.000012 seconds
+ - Sync messages Time : 0.000007 seconds
+ - Agg Time : 0.000021 seconds
+ - Sync Time (load imbalance) : 0.000006 seconds
+ - Communication Time : 0.000013 seconds
+    - Serialization Time : 0.000003 seconds
+    - Transfer Time : 0.000008 seconds
+Total #msgs=0, Total #vadd=0
+Subgraph enumeration time : 0.279795 seconds
+[Detailed report]
+a) For leaf vertices: 0.00487185 s
+b) For dummy vertices: 0.0139277 s
 ==build_branch==
-1. Organize branches: 0.0163198 s
-2. Enumerate trees: 0.00895166 s
-3. Send to dummies or expand: 0.0677638 s
-3.1. Send to dummies: 0.0209453 s
-3.2. Expand: 0.0446317 s
+1. Organize branches: 0.00221205 s
+2. Enumerate trees: 0.00167465 s
+3. Send to dummies or expand: 0.0125535 s
+3.1. Send to dummies: 0.00230527 s
+3.2. Expand: 0.00999498 s
 Dumping results...
 Dumping results time : 0.000000 seconds
-In total, online time : 1.693251 seconds
+In total, online time : 1.698139 seconds
 ================ Final Report ===============
-Mapping count: 1092895
-COMPUTE Time : 1.207870 seconds
+Mapping count: 11992980
+COMPUTE Time : 1.200243 seconds

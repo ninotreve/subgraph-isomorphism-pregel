@@ -128,7 +128,7 @@ public:
 
 		SIVertex* v = new SIVertex;
 		v->id = SIKey(dummyID, id.wID);
-		v->final_us.push_back(-(b->curr_u));
+		v->final_us.push_back(-1); // curr_u = b->curr_u
 		v->final_results.resize(1);
 		v->final_results[0].push_back(b);
 		this->add_vertex(v);
@@ -376,7 +376,7 @@ public:
 #ifdef DEBUG_MODE_BRANCH
 					b->print();
 #endif
-					this->final_us.push_back(-1);
+					this->final_us.push_back(-1); // curr_u = b->curr_u
 					this->final_results.resize(1);
 					this->final_results[0].push_back(b);
 				}
@@ -633,6 +633,9 @@ public:
 			if (wID == get_worker_id())
 				out_msg.is_delete = false;
 			send_messages(wID, {vID}, out_msg);
+#ifdef DEBUG_MODE_MSG
+			cout << "send to " << vID << endl;
+#endif
 			STOP_TIMING(agg, t1, 2, 0);
 		}
 		STOP_TIMING(agg, t, 1, 1);
@@ -656,6 +659,8 @@ public:
 		for (int i = 0 ; i < this->final_us.size(); i++)
 		{
 			int curr_u = this->final_us[i];
+			//cout << "curr_u = " << curr_u << endl;
+			
 			vector<SIBranch*> final_result = this->final_results[i];
 			if (curr_u >= 0) // leaf vertex
 			{

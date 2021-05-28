@@ -416,7 +416,7 @@ public:
 		// pseudo children also considered as they will use their index chain.
 		SINode* curr = &this->nodes[currID];
 		this->nbancestors[currID] = ancID;
-		if (curr->children.size() == 0 && ancID > 0)
+		if (curr->children.size() == 0 && ancID >= 0)
 			this->nodes[ancID].branch_senders.push_back(currID);
 
 		int children_size = curr->children.size() + curr->ps_children.size();
@@ -424,7 +424,7 @@ public:
 		{
 			curr->is_branch = true;
 			num ++;
-			if (ancID > 0)
+			if (ancID >= 0)
 				this->nodes[ancID].branch_senders.push_back(currID);
 			ancID = currID;
 		}
