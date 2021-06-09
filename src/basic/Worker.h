@@ -215,7 +215,7 @@ public:
     }
 
     //user-defined graphLoader ==============================
-    virtual VertexT* toVertex(char* line, const WorkerParams & params) = 0;
+    virtual VertexT* toVertex(char* line) = 0;
 
     void load_vertex(VertexT* v)
     { //called by load_graph
@@ -231,7 +231,7 @@ public:
         while (true) {
             reader.readLine();
             if (!reader.eof())
-                load_vertex(toVertex(reader.getLine(), params));
+                load_vertex(toVertex(reader.getLine()));
             else
                 break;
         }
@@ -240,7 +240,7 @@ public:
         //cout<<"Worker "<<_my_rank<<": \""<<inpath<<"\" loaded"<<endl;//DEBUG !!!!!!!!!!
     }
 
-    void load_query_graph(const char* inpath)
+    void load_query_graph_HDFS(const char* inpath)
 	{
 		hdfsFS fs = getHdfsFS();
 		hdfsFile in = getRHandle(inpath, fs);
@@ -255,6 +255,28 @@ public:
 		hdfsCloseFile(fs, in);
 		hdfsDisconnect(fs);
 		//cout<<"Worker "<<_my_rank<<": \""<<inpath<<"\" loaded"<<endl;//DEBUG !!!!!!!!!!
+	}
+
+    void load_query_graph_local(const string &inpath)
+	{
+        ifstream myfile;
+        myfile.open(inpath);
+
+		if (!myfile.is_open())
+        {
+            cout << "Read from " << inpath << " error." << endl;
+            exit(-1);
+        }
+		
+        string line;
+        char c[100];
+		while (getline(myfile, line))
+        {
+            strcpy(c, line.c_str()); 
+			((QueryT*) global_query)->addNode(c);
+        }
+
+        myfile.close();		
 	}
     //=======================================================
 
@@ -324,24 +346,29 @@ public:
     //====================================================================
 
     // load the query graph by MASTER and broadcast to SLAVEs, return load time
-    void load_query(const string& input_path)
+    void load_query(const string& input_path, bool input_HDFS)
 	{
-		//check path + init
-    	if (_my_rank == MASTER_RANK) {
-			if (dirCheck(input_path.c_str()) == -1)
-				exit(-1);
-		}
-		
 		if (_my_rank == MASTER_RANK)
 		{
-			// read query from HDFS
-			vector<string> files;
-			dispatchMaster(input_path.c_str(), files);
-			for (vector<string>::iterator it = files.begin();
-			                 it != files.end(); it++)
-			{
-				load_query_graph(it->c_str());
-			}
+            if (input_HDFS)
+            {
+                if (dirCheck(input_path.c_str()) == -1)
+				    exit(-1);
+
+                // read query from HDFS
+                vector<string> files;
+                dispatchMaster(input_path.c_str(), files);
+                for (vector<string>::iterator it = files.begin();
+                                it != files.end(); it++)
+                {
+                    load_query_graph_HDFS(it->c_str());
+                }
+            }
+            else
+            {
+                // read query from local
+                load_query_graph_local(input_path);
+            }
 			masterBcast(*((QueryT*) global_query));
 		}
 		else

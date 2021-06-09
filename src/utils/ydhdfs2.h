@@ -9,7 +9,9 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <sstream>
+#include <filesystem>
 #include "global.h"
 using namespace std;
 
@@ -513,7 +515,7 @@ struct LineWriter {
         //set fileName
         char fname[20];
         strcpy(fname, "part_");
-        char buffer[10];
+        char buffer[20];
         if (me >= 0) {
             sprintf(buffer, "%d", me);
             strcat(fname, buffer);
@@ -1213,5 +1215,6 @@ void dispatchMaster(const char* inDir, vector<string>& files)
     hdfsFreeFileInfo(fileinfo, numFiles);
     hdfsDisconnect(fs);
 }
+
 
 #endif

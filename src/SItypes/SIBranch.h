@@ -15,6 +15,7 @@ struct SIBranch
 
 	vector<SIBranch*> chd_pointers;
 	// the following three all have length |#children|
+	// <pi, ti> (for pseudo, it's vID + marker)
 	vector<vector<pair<int, int>>> unmarked_branches;
 	vector<vector<pair<int, int>>> marked_branches;
 
@@ -55,15 +56,25 @@ struct SIBranch
 		return sr;
 	}
 
+	inline int getChdType(int si)
+	{
+		SIQuery* query = (SIQuery*)getQuery();
+		return query->getChdTypes(this->curr_u)[si];
+	}
+
 	int getChdMarker(int si, int ci)
 	{
 		if (ci == 0)
 			return 0;
 		else
 		{
+			int chd_type = this->getChdType(si);
 			int pi = this->marked_branches[si][ci-1].first;
 			int ti = this->marked_branches[si][ci-1].second;
-			return this->chd_pointers[pi]->tree_markers[ti];
+			if (chd_type == 0) // ordinary child
+				return this->chd_pointers[pi]->tree_markers[ti];
+			else
+				return ti;
 		}
 	}
 
@@ -94,7 +105,7 @@ struct SIBranch
 			ceil[i] = mi + 1;
 			this->T *= (mi + 1);
 		}
-
+		
 		this->tree_markers.resize(this->T);
 		this->conflux_values.resize(this->T);
 
@@ -106,7 +117,7 @@ struct SIBranch
 			for (int j : blank_states)
 			{ if (v[j] == 0) { flag = true; break;} }
 			if (flag) continue;
-
+			
 			this->tree_indices.push_back(ti);
 			int marker = this->mapping_marker;
 			for (int j = 0; j < s; j++)
@@ -115,6 +126,7 @@ struct SIBranch
 			tree_markers[ti] = marker & (~cv);
 			conflux_values[ti] = marker & cv;
 		}
+
 		return true;
 	}
 
@@ -134,16 +146,19 @@ struct SIBranch
 		while (ind < index_chain_2.size() - 1)
 		{
 			si = index_chain_2[ind];
-			ci = chd->getStateRep(ti)[si]; // > 1
+			ci = chd->getStateRep(ti)[si]; // > 1, since marked
 			pi = chd->marked_branches[si][ci-1].first;
 			ti = chd->marked_branches[si][ci-1].second;
-			chd = chd->chd_pointers[pi];
+			if (index_chain_2[ind+1] == -1)
+				return pi;
+			else
+				chd = chd->chd_pointers[pi];
 			ind ++;
 		}
 		return chd->extractMapping(index_chain_2[ind]);
 	}
 
-	int expand(int ti, vector<int> conflict_vs)
+	long expand(int ti, vector<int> conflict_vs)
 	{
 		// expand the ti-th tree in trees.
 		// recursively calls its children to expand.
@@ -154,23 +169,26 @@ struct SIBranch
 		vector<int> cis = query->getRelatedConflictIndices(this->curr_u);
 		for (int ci: cis)
 		{
+			//cout << "ci = " << ci << endl;
 			Conflict c = query->getConflict(ci);
 			if (this->curr_u == c.common_ancestor)
 				if ((this->conflux_values[ti] >> ci) & 1)
 					conflict_vs[ci] = this->extractConflictVertex(ti, c.index_chain_2);
 			
-			if (this->curr_u == c.u1_state)
+			if (this->curr_u == c.u1_state) // this is true only if !isPseudo(u1)
 				if (this->extractMapping(c.index_chain_1[c.index_chain_1.size()-1]) 
 					== conflict_vs[ci]) 
 					return 0;
+
+			//cout << "conflict_vs[ci] = " << conflict_vs[ci] << endl;
 		}
 
-		int count = 1;
+		long count = 1;
 		for (int ci = 0; ci < choices.size(); ci++)
 		{
-			int count_ci = 0;
+			long count_ci = 0;
 			int choice_i = choices[ci];
-			int chd_type = query->getChdTypes(this->curr_u)[ci];
+			int chd_type = this->getChdType(ci);
 			if (choice_i == 0)
 			{ // unmarked branches
 				if (chd_type == 0) // ordinary child
@@ -203,6 +221,8 @@ struct SIBranch
 				}
 				else if (chd_type > 1) // multi-psd chd
 					count_ci = math_choose(this->unmarked_branches[ci].size(), chd_type);
+				else
+					count_ci = 1;
 			}
 			else // marked branch (only one)
 			{
@@ -211,8 +231,9 @@ struct SIBranch
 					count_ci = this->chd_pointers[p.first]->expand(p.second, conflict_vs);
 				else // psd_chd
 				{
-					int chd_u = query->getBranchSender(this->curr_u, ci);
-					vector<int> psd_conflict_vs;
+					int chd_sz = query->getChildren(this->curr_u).size();
+					int chd_u = query->getPseudoChildren(this->curr_u)[ci-chd_sz];
+					vector<int> psd_conflict_vs;									
 					count_ci = 1;
 					for (int chd_ci : query->getRelatedConflictIndices(chd_u))
 					{
@@ -267,7 +288,7 @@ struct SIBranch
 				for (int ci = 0; ci < (*p)[si].size(); ci++)
 				{
 					cout << "\t \t - ";
-					int chd_type = query->getChdTypes(this->curr_u)[si];
+					int chd_type = this->getChdType(si);
 					if (chd_type > 0)
 						cout << "(Psd Child) " << (*p)[si][ci].first << endl;
 					else if (chd_type == 0)

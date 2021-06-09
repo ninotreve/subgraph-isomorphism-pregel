@@ -10,12 +10,12 @@ using namespace std;
 	if (get_worker_id() == MASTER_RANK) \
 		printf("%s\n", (str));
 
-
-//#define DEBUG_MODE_ACTIVE 1
-//#define DEBUG_MODE_BRANCH 1
-//#define DEBUG_MODE_MSG 1 
-//#define DEBUG_MODE_RESULT_COUNT 1
-
+/*
+#define DEBUG_MODE_ACTIVE 1
+#define DEBUG_MODE_BRANCH 1
+#define DEBUG_MODE_MSG 1 
+#define DEBUG_MODE_RESULT_COUNT 1
+*/
 
 //input line format:
 //  vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
@@ -53,50 +53,13 @@ public:
 	vector<int> mapped_us;
 
 	void preprocess(MessageContainer & messages, WorkerParams &params)
-	{
-		if (step_num() == 1)
+	{		
+		//convert vector to set
+		for (int i = 0; i < value().degree; ++i)
 		{
-			if (params.input)
-			{
-				//Construct neighbors_map: 
-				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
-				for (int i = 0; i < value().degree; ++i)
-				{
-					KeyLabel &kl = value().nbs_vector[i];
-					neighbors_map[kl.key.wID].push_back(kl.key.vID);
-				}
-
-				//Send label and degree to neighbors
-				SIMessage msg = SIMessage(LABEL_INFOMATION);
-				msg.vID = id.vID;
-				msg.wID = value().label;
-				for (int wID = 0; wID < get_num_workers(); ++wID)
-					send_messages(wID, neighbors_map[wID], msg);
-			}
-
-			//convert vector to set & build nblab_dist
-			for (int i = 0; i < value().degree; ++i)
-			{
-				value().nbs_set.insert(value().nbs_vector[i].key.vID);
-			}
-			vote_to_halt();
+			value().nbs_set.insert(value().nbs_vector[i].key.vID);
 		}
-		else
-		{   // receive label and degree from neighbors
-			for (size_t i = 0; i < messages.size(); ++i)
-			{
-				SIMessage & msg = messages[i];
-				if (msg.type == LABEL_INFOMATION)
-				{
-					for (size_t i = 0; i < value().degree; ++i)
-					{
-						if (value().nbs_vector[i].key.vID == msg.vID)
-							value().nbs_vector[i].label = msg.curr_u;
-					}
-				}
-			}
-			vote_to_halt();
-		}
+		vote_to_halt();
 	}
 
 	void filter(MessageContainer & messages)
@@ -264,7 +227,7 @@ public:
 			{
 				SIMessage &msg = messages[i];
 #ifdef DEBUG_MODE_MSG
-				cout << "Message: " << i << endl;
+				cout << "Received Message: " << i << endl;
 				msg.print();
 #endif
 				if (msg.type == PSD_RESPONSE)
@@ -302,7 +265,7 @@ public:
 			{
 				SIMessage &msg = messages[i];
 #ifdef DEBUG_MODE_MSG
-				cout << "Message: " << i << endl;
+				cout << "Received Message: " << i << endl;
 				msg.print();
 #endif
 				if (msg.type == PSD_RESPONSE)
@@ -361,6 +324,7 @@ public:
 						SIMessage(PSD_RESPONSE, conflict_number, msg.u_index, 
 							id.vID, id.wID, msg.nrow, msg.ncol));
 				}
+				continue;
 			}
 
 			if (is_branch)
@@ -376,7 +340,10 @@ public:
 #ifdef DEBUG_MODE_BRANCH
 					b->print();
 #endif
-					this->final_us.push_back(-1); // curr_u = b->curr_u
+					if (query->isLeaf(curr_u))
+						this->final_us.push_back(curr_u);
+					else
+						this->final_us.push_back(-1); // curr_u = b->curr_u
 					this->final_results.resize(1);
 					this->final_results[0].push_back(b);
 				}
@@ -515,6 +482,7 @@ public:
 						dummy_vs, next_u, nrow, ncol, id.vID, id.wID, markers,
 						chd_constraint);
 #ifdef DEBUG_MODE_MSG
+					cout << "Send out message" << endl;
 					out_message.print();
 #endif
 
@@ -617,7 +585,9 @@ public:
 			for (int ti : branch->tree_indices)
 			{
 				vector<int> conflict_vs = vector<int>(k, -1);
-				this->mapping_count += branch->expand(ti, conflict_vs);
+				int n = branch->expand(ti, conflict_vs);
+				this->mapping_count += n;
+				//cout << "&& ti = " << ti << " n = " << n << endl;
 			}
 #ifdef DEBUG_MODE_RESULT_COUNT
 			cout << "this->mapping_count = " << this->mapping_count << endl;
@@ -634,7 +604,7 @@ public:
 				out_msg.is_delete = false;
 			send_messages(wID, {vID}, out_msg);
 #ifdef DEBUG_MODE_MSG
-			cout << "send to " << vID << endl;
+			cout << "message send to " << vID << endl;
 #endif
 			STOP_TIMING(agg, t1, 2, 0);
 		}
@@ -715,58 +685,31 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 	public:
 		// C version
 		// input line format:
-		// vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
-		virtual SIVertex* toVertex(char* line, const WorkerParams & params)
+		// vertexID labelID \t neighbor1 neighbor1ID neighbor2 neighbor2ID ...
+		virtual SIVertex* toVertex(char* line)
 		{
 			char * pch;
 			SIVertex* v = new SIVertex;
-			bool default_format = params.input;
 
-			if (default_format)
+			pch = strtok(line, " \t");
+			if (*pch == '#') return NULL;
+			int id = atoi(pch);
+			v->id = SIKey(id, id % _num_workers);
+
+			pch = strtok(NULL, " \t");
+			v->value().label = (int) *pch;
+
+			SIKey key;
+			while ((pch = strtok(NULL, " ")) != NULL)
 			{
-				pch = strtok(line, " ");
-				if (*pch == '#') return NULL;
-				int id = atoi(pch);
-				v->id = SIKey(id, id % _num_workers);
-
+				id = atoi(pch);
+				key = SIKey(id, id % _num_workers);
 				pch = strtok(NULL, " ");
-				v->value().label = atoi(pch);
-
-				pch = strtok(NULL, " ");
-				int num = atoi(pch);
-				v->value().degree = num;
-				SIKey key;
-				for (int k = 0; k < num; ++k)
-				{
-					pch = strtok(NULL, " ");
-					id = atoi(pch);
-					key = SIKey(id, id % _num_workers);
-					v->value().nbs_vector.push_back(KeyLabel(key, 0));
-					//v->value().nbs_set.insert(id);
-				}
+				v->value().nbs_vector.push_back(KeyLabel(key, (int) *pch));
+				//v->value().nbs_set.insert(id);
 			}
-			else
-			{
-				pch = strtok(line, " \t");
-				if (*pch == '#') return NULL;
-				int id = atoi(pch);
-				v->id = SIKey(id, id % _num_workers);
-
-				pch = strtok(NULL, " \t");
-				v->value().label = (int) *pch;
-
-				SIKey key;
-				while ((pch = strtok(NULL, " ")) != NULL)
-				{
-					id = atoi(pch);
-					key = SIKey(id, id % _num_workers);
-					pch = strtok(NULL, " ");
-					v->value().nbs_vector.push_back(KeyLabel(key, (int) *pch));
-					//v->value().nbs_set.insert(id);
-				}
-				size_t sz = v->value().nbs_vector.size();
-				v->value().degree = sz;
-			}
+			size_t sz = v->value().nbs_vector.size();
+			v->value().degree = sz;
 			return v;
 		}
 
@@ -858,7 +801,7 @@ void pregel_subgraph(const WorkerParams & params)
 	// STAGE 2: Preprocessing
 	MPRINT("Preprocessing...")
 	ResetTimer(STAGE_TIMER);
-	worker.run_type(PREPROCESS, params, 2);
+	worker.run_type(PREPROCESS, params, 1);
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Preprocessing time", STAGE_TIMER)
 
@@ -873,7 +816,7 @@ void pregel_subgraph(const WorkerParams & params)
 	// STAGE 1: Load query graph
 	MPRINT("Loading query graph...")
 	ResetTimer(STAGE_TIMER);
-	worker.load_query(params.query_path);
+	worker.load_query(params.query_path, params.input);
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Loading query graph time", STAGE_TIMER)
 
@@ -881,13 +824,6 @@ void pregel_subgraph(const WorkerParams & params)
 	StartTimer(COMPUTE_TIMER);
 
 	// STAGE 2: Filtering
-	MPRINT("Filtering...")
-	ResetTimer(STAGE_TIMER);
-	if (params.filter)
-		worker.run_type(FILTER, params, 0);
-
-	StopTimer(STAGE_TIMER);
-	PrintTimer("Filtering time", STAGE_TIMER)
 
 	// STAGE 3: Build query tree
 	MPRINT("Building query tree...")

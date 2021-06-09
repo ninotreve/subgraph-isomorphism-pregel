@@ -50,6 +50,11 @@ public:
         agg_mat[0][0] += count;
     }
 
+    void addTreeCount(long count)
+    {
+        agg_mat[2][2] += count;
+    }
+
 };
 
 #endif

@@ -215,7 +215,7 @@ public:
     }
 
     //user-defined graphLoader ==============================
-    virtual VertexT* toVertex(char* line, const WorkerParams & params) = 0;
+    virtual VertexT* toVertex(char* line) = 0;
 
     void load_vertex(VertexT* v)
     { //called by load_graph
@@ -231,7 +231,7 @@ public:
         while (true) {
             reader.readLine();
             if (!reader.eof())
-                load_vertex(toVertex(reader.getLine(), params));
+                load_vertex(toVertex(reader.getLine()));
             else
                 break;
         }
@@ -240,7 +240,7 @@ public:
         //cout<<"Worker "<<_my_rank<<": \""<<inpath<<"\" loaded"<<endl;//DEBUG !!!!!!!!!!
     }
 
-    void load_query_graph(const char* inpath)
+    void load_query_graph_HDFS(const char* inpath)
 	{
 		hdfsFS fs = getHdfsFS();
 		hdfsFile in = getRHandle(inpath, fs);
@@ -255,6 +255,28 @@ public:
 		hdfsCloseFile(fs, in);
 		hdfsDisconnect(fs);
 		//cout<<"Worker "<<_my_rank<<": \""<<inpath<<"\" loaded"<<endl;//DEBUG !!!!!!!!!!
+	}
+
+    void load_query_graph_local(const string &inpath)
+	{
+        ifstream myfile;
+        myfile.open(inpath);
+
+		if (!myfile.is_open())
+        {
+            cout << "Read from " << inpath << " error." << endl;
+            exit(-1);
+        }
+		
+        string line;
+        char c[100];
+		while (getline(myfile, line))
+        {
+            strcpy(c, line.c_str()); 
+			((QueryT*) global_query)->addNode(c);
+        }
+
+        myfile.close();		
 	}
     //=======================================================
 
@@ -324,21 +346,26 @@ public:
     //====================================================================
 
     // load the query graph by MASTER and broadcast to SLAVEs, return load time
-    void load_query(const char* inpath)
+    void load_query(const string &file, bool input_HDFS)
 	{		
 		if (_my_rank == MASTER_RANK)
 		{
-			load_query_graph(inpath);
+            if (input_HDFS)
+            {
+                if (dirCheck(file.c_str()) == -1)
+				    exit(-1);
+			    load_query_graph_HDFS(file.c_str());
+            }
+            else
+            {
+                load_query_graph_local(file);
+            }
 			masterBcast(*((QueryT*) global_query));
 		}
 		else
 		{
 			slaveBcast(*((QueryT*) global_query));
 		}
-
-		//debug
-		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
-		//((QueryT*) global_query)->printOrder();
 
 		//barrier for query loading
 		worker_barrier();
@@ -390,6 +417,7 @@ public:
         while (global_step_num < max_supersteps) 
         {
             global_step_num++;
+            //cout << "global_step_num = " << global_step_num << endl;
 
             // stopping criteria for MATCH and ENUMRATE
             int wakeAll = global_step_num == 1;

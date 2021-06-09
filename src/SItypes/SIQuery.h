@@ -38,11 +38,15 @@ struct SINode
 
 	// for depth-first search
 	bool visited;
-	bool is_branch = false;
+	bool is_branch = false; // decide whether to build dummy
 	bool is_pseudo = false;
 	// branch number and index chain are called BNIC
 	int branch_number;
-	vector<int> index_chain;
+	// index_chain has the following format: [x_1, x_2, ..., x_k, y] 
+	// where x_i indicates the x_i-th child of the i-th branching vertex on the path
+	// y indicates the position in the mapping. 
+	// y = -1 means pseudo (needs to get back to the previous level)
+	vector<int> index_chain; 
 	int dfs_number; // 0-based
 	int parent; // -1 if none
 	int level; // root: level 0. Used as an index in mapping.
@@ -152,7 +156,8 @@ ostream & operator << (ostream & os, const SINode & node)
 	   << " previous_mapping: " << node.previous_mapping
 	   << " chd_types: " << node.chd_types
 	   << " chd_constraint_self: " << node.chd_constraint_self
-	   << " index_chain: " << node.index_chain << "]";
+	   << " index_chain: " << node.index_chain
+	   << " branch_senders: " << node.branch_senders << "]";
 	return os;
 }
 
@@ -166,8 +171,8 @@ bool sortByVal(const pair<int, int> &a, const pair<int, int> &b)
 struct Conflict
 {
 	// the order is fixed, which means u1 is always being mapped before u2.
-	// u1 = mapped_u; u2 = curr_u (v2 marked)
-	// u1_state = the state that checks if conflict vertex exists
+	// u1 = mapped_u; u2 = curr_u (u2 marked)
+	// u1_state = the state that checks if conflict vertex exists. lower than u1.
 	int u1;
 	int u2;
 	int u1_state;
@@ -232,6 +237,19 @@ public:
 			{
 				this->root = 0;
 			}
+			else if (order == "anti-degree")
+			{
+				int value, min_value;
+				for (int i = 0; i < this->nodes.size(); ++i)
+				{
+					value = this->nodes[i].nbs.size();
+					if (i == 0 || value < min_value)
+					{
+						min_value = value;
+						this->root = i;
+					}
+				}				
+			}
 			else
 			{
 				size_t value, min_value;
@@ -262,22 +280,20 @@ public:
 	virtual void addNode(char* line)
 	{
 		char * pch;
-		pch = strtok(line, " ");
+		pch = strtok(line, " \t");
 		int id = atoi(pch);
 
-		pch = strtok(NULL, " ");
-		int label = atoi(pch);
+		pch = strtok(NULL, " \t");
+		int label = (int) *pch;
 
 		int i1 = this->nodes.size();
 		this->nodes.push_back(SINode(id, label));
 		this->id_ind[id] = i1;
 
-		pch = strtok(NULL, " ");
-		int num = atoi(pch);
-		for (int k = 0; k < num; k++)
+		while ((pch = strtok(NULL, " ")) != NULL)
 		{
-			pch=strtok(NULL, " ");
 			int neighbor = atoi(pch);
+			pch = strtok(NULL, " ");
 			if (this->id_ind.find(neighbor) != this->id_ind.end())
 			{
 				int i2 = this->id_ind[neighbor];
@@ -370,6 +386,8 @@ public:
 					value = 0;
 				else if (order == "degree")
 					value = - next->nbs.size(); // default asc
+				else if (order == "anti-degree")
+					value = next->nbs.size();
 				else if (order == "candidate")
 				{
 					if (currID > nextID)
@@ -419,7 +437,12 @@ public:
 			this->nodes[ancID].branch_senders.push_back(currID);
 
 		int children_size = curr->children.size() + curr->ps_children.size();
-		if (curr->children.size() >= 1 && children_size > 1)
+		// A vertex with only pseudo children is not branching vertex, 
+		// which means there's no need to build dummy vertex, 
+		// simply put pseudo children into SIBranch.
+		// But root vertex is an exception since there's no mapping. 
+		// We treat it as branch && leaf.
+		if (children_size > 1 && (curr->children.size() >= 1 || currID == this->root))
 		{
 			curr->is_branch = true;
 			num ++;
@@ -437,7 +460,10 @@ public:
 		if (num > this->max_branch_number)
 			this->max_branch_number = num;
 
-		if (curr->is_branch)
+		if (children_size == 1 & curr->children.size() == 1)
+			this->addBNIC(curr->children[0], num, ancID, index_chain, 
+				mapping_index+1);
+		else
 		{
 			int chd_sz = curr->children.size();
 			for (int i = 0; i < chd_sz; i++)
@@ -450,14 +476,13 @@ public:
 			for (int i = 0; i < curr->ps_children.size(); i++)
 			{
 				index_chain.push_back(chd_sz+i);
-				this->addBNIC(curr->ps_children[i], num, ancID,
-					index_chain, 0);
+				this->addBNIC(curr->ps_children[i], num, -1,
+					index_chain, -1);
+				// ancID = -1: no need to add to branch_senders
+				// mapping_index = -1: pseudo
 				index_chain.pop_back();
 			}
-		}
-		else if (curr->children.size() == 1)
-			this->addBNIC(curr->children[0], num, ancID, index_chain, 
-				mapping_index+1);
+		} 
 	}
 
 	bool hasForwardConnection(int ancestorID, int currID, bool exists_gap)
@@ -565,10 +590,13 @@ public:
 					this->addPrevMapping(curr->ps_children[i-sz], previous_mapping, -1);
 			}
 		}
-		else if (sz > 0)
+		else // not branch vertex
 		{
 			previous_mapping.push_back(currID);
-			this->addPrevMapping(curr->children[0], previous_mapping, dummy_pos);
+			for (int i = 0; i < sz; i++)
+				this->addPrevMapping(curr->children[i], previous_mapping, dummy_pos);
+			for (int i = 0; i < psz; i++)
+				this->addPrevMapping(curr->ps_children[i], previous_mapping, dummy_pos);
 			previous_mapping.pop_back();
 		}
 	}
@@ -585,6 +613,14 @@ public:
 		this->nodes[caoc].rci.push_back(index);
 		this->nodes[caoc].caoc_value += 1 << index;
 		this->nodes[u1_state].rci.push_back(index);
+	}
+
+	int moveToBOL(int u)
+	{
+		// a helper function to move u to the next branching or leaf
+		while (getChildren(u).size() == 1 && getPseudoChildren(u).size() == 0) 
+			u = getChildren(u)[0];
+		return u;
 	}
 
 	void addConflicts()
@@ -620,6 +656,8 @@ public:
 					u2 = v2;
 				}
 
+				//cout << "u1 = " << u1 << " u2 = " << u2 << endl;
+
 				// 2 <= u1->index_chain.size() <= u2->index_chain.size()
 				// if i == u1->index_chain.size() - 2 
 				// then index_chain[i] must be different
@@ -629,13 +667,14 @@ public:
 				vector<int> index_chain_2 = getIndexChain(u2);
 				while (true)
 				{
-					while (!this->isBranch(ca)) 
-						ca = getChildren(ca)[0]; // move ca to branch vertex
+					ca = moveToBOL(ca);
 					if (index_chain_1[i] != index_chain_2[i])
-						break;					
+						break;
 					ca = getChildren(ca)[index_chain_1[i]];
 					i++;
 				}
+
+				//cout << "ca = " << ca << endl;
 				
 				// the case of pseudo children
 				if (isPseudo(u2))
@@ -653,10 +692,7 @@ public:
 					}
 				}
 
-				int u1_state = u1;
-				while (!this->isBranch(u1_state) && !this->isLeaf(u1_state)) 
-					u1_state = this->getChildren(u1_state)[0];
-				
+				int u1_state = moveToBOL(u1);				
 				Conflict c = Conflict(u1, u2, u1_state, ca, index_chain_1, index_chain_2, i);
 				this->addCIRCI(u1, u2, u1_state, ca, this->conflicts.size());
 				this->conflicts.push_back(c); 
@@ -829,7 +865,10 @@ public:
 				int l, label = this->getLabel(curr->ps_children[j]);
 				for (l = 0; l < labels.size() && labels[l] != label; l++);
 				if (l == labels.size()) // not found
+				{
 					curr->chd_types.push_back(1);
+					labels.push_back(label);
+				}
 				else // found
 				{
 					bool first = true;
@@ -851,9 +890,12 @@ public:
 		}
 	}
 
-	// get functions regarding buckets &&&
+	// get functions regarding buckets
 	vector<int> getBucket(int level, int label)
 	{
+		if (level >= this->bucket_size_key.size())
+			return vector<int>();
+			
 		vector<int> &k = this->bucket_size_key[level];
 		size_t sz = k.size();
 		for (size_t j = 0; j < sz; ++j)

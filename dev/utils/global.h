@@ -235,10 +235,11 @@ bool notContainsDuplicate(vector<T> & v)
 
 int math_choose(int m, int n)
 {
-    // implement m choose n
+    // implement P(m, n), m >= n
+    if (m < n) return 0;
     int prod = 1;
     for (int i = 0; i < n; i++)
-        prod = prod * (m - i) / (i + 1);
+        prod = prod * (m - i);
     return prod;
 }
 
@@ -295,12 +296,12 @@ public:
     string getQueryPath() { return options_value[1]; }
     string getOutputPath() { return options_value[2]; }
 
-    bool getInputFormat() 
+    bool getInputMethod() 
     {
-    	return (options_value[3] != "g-thinker");
+    	return (options_value[3] == "HDFS");
     }
 
-    int getReport() 
+    int getReportMethod() 
     {
         if (options_value[4] == "short")
             return 0;
@@ -314,8 +315,12 @@ public:
         if (options_value[5] == "random" || options_value[5] == "degree"
             || options_value[5] == "ri")
             return {options_value[5]};
-        else
+        else if (options_value[5] == "dad")
+            return {"degree", "anti-degree"};
+        else if (options_value[5] == "rdr")
             return {"random", "degree", "ri"};
+        else
+            return {"random", "degree", "ri", "anti-degree"};
     }
 
     bool isMethodOn(int i) 
@@ -334,7 +339,7 @@ struct WorkerParams {
     string output_path;
     bool force_write;
 
-    bool input; // 1 for default, 0 for g-thinker
+    bool input; // 1 for HDFS, 0 for local
     int report; // 0 for short, 1 for long, 2 for long+step_msg
     vector<string> orders;
     bool preprocess, filter, pseudo, leaf, other;   
@@ -350,8 +355,8 @@ struct WorkerParams {
         query_path = command.getQueryPath();
         output_path = command.getOutputPath();
         force_write = fw;
-        input = command.getInputFormat();
-        report = command.getReport();
+        input = command.getInputMethod();
+        report = command.getReportMethod();
         orders = command.getOrderMethod();
         preprocess = command.isMethodOn(6);
         filter = command.isMethodOn(7);
@@ -364,7 +369,9 @@ struct WorkerParams {
     void print()
     {
         cout << "Data graph path: " << data_path << endl;
-        cout << "Query graph path: " << query_path << endl;
+        cout << "Query graph path ";
+        if (input) cout << "(HDFS): " << query_path << endl;
+        else cout << "(local): " << query_path << endl;
         cout << "Input Format (1 for default, 0 for g-thinker): " << input << endl;
         cout << "Output graph path: " << output_path << endl;
         cout << "Optimization techniques: ";

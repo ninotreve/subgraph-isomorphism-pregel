@@ -5,8 +5,6 @@
 using namespace std;
 
 #define LEVEL (step_num()-1)
-#define START_TIMING(T) (T) = get_current_time();
-#define STOP_TIMING(A, T, X, Y) (A)->addTime((X), (Y), get_current_time() - (T));
 #define MPRINT(str) \
 	if (get_worker_id() == MASTER_RANK) \
 		printf("%s\n", (str));
@@ -42,6 +40,7 @@ class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
 public:
 	long mapping_count;
+	long tree_count;
 	
 	// the following two vectors have the same length
 	// for leaf vertex, final_u > 0; for dummy vertex, final_u < 0
@@ -54,49 +53,12 @@ public:
 
 	void preprocess(MessageContainer & messages, WorkerParams &params)
 	{
-		if (step_num() == 1)
+		//convert vector to set & build nblab_dist
+		for (int i = 0; i < value().degree; ++i)
 		{
-			if (params.input)
-			{
-				//Construct neighbors_map: 
-				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
-				for (int i = 0; i < value().degree; ++i)
-				{
-					KeyLabel &kl = value().nbs_vector[i];
-					neighbors_map[kl.key.wID].push_back(kl.key.vID);
-				}
-
-				//Send label and degree to neighbors
-				SIMessage msg = SIMessage(LABEL_INFOMATION);
-				msg.vID = id.vID;
-				msg.wID = value().label;
-				for (int wID = 0; wID < get_num_workers(); ++wID)
-					send_messages(wID, neighbors_map[wID], msg);
-			}
-
-			//convert vector to set & build nblab_dist
-			for (int i = 0; i < value().degree; ++i)
-			{
-				value().nbs_set.insert(value().nbs_vector[i].key.vID);
-			}
-			vote_to_halt();
+			value().nbs_set.insert(value().nbs_vector[i].key.vID);
 		}
-		else
-		{   // receive label and degree from neighbors
-			for (size_t i = 0; i < messages.size(); ++i)
-			{
-				SIMessage & msg = messages[i];
-				if (msg.type == LABEL_INFOMATION)
-				{
-					for (size_t i = 0; i < value().degree; ++i)
-					{
-						if (value().nbs_vector[i].key.vID == msg.vID)
-							value().nbs_vector[i].label = msg.curr_u;
-					}
-				}
-			}
-			vote_to_halt();
-		}
+		vote_to_halt();
 	}
 
 	void filter(MessageContainer & messages)
@@ -281,7 +243,6 @@ public:
 		}
 
 		// arrange messages
-		START_TIMING(t);
 		vector<int> vector_u = query->getBucket(LEVEL, value().label);
 		int n_u = vector_u.size();
 		int curr_u;
@@ -323,11 +284,9 @@ public:
 				}
 			}
 		}
-		STOP_TIMING(agg, t, 0, 0);
-
+		
 		// main computation
 		// cout << "main computation checked" << endl;
-		START_TIMING(t);
 		for (int bucket_num = 0; bucket_num < n_u; bucket_num ++)
 		{
 			if (step_num() != 1 && messages_classifier[bucket_num].empty())
@@ -353,7 +312,6 @@ public:
 			//cout << "is_branch : " << is_branch << " is_leaf : " << is_leaf << endl;
 
 			// loop through messages and check feasibilities
-			START_TIMING(t1);
 			if (is_pseudo)
 			{
 				for (int msgi : messages_classifier[bucket_num])
@@ -363,12 +321,11 @@ public:
 						SIMessage(PSD_RESPONSE, conflict_number, msg.u_index, 
 							id.vID, id.wID, msg.nrow, msg.ncol));
 				}
+				continue;
 			}
 
 			if (is_branch)
 			{
-				START_TIMING(t2);
-
 				// special case: root branch vertex
 				if (step_num() == 1)
 				{
@@ -378,7 +335,10 @@ public:
 #ifdef DEBUG_MODE_BRANCH
 					b->print();
 #endif
-					this->final_us.push_back(-1);
+					if (query->isLeaf(curr_u))
+						this->final_us.push_back(curr_u);
+					else
+						this->final_us.push_back(-1); // curr_u = b->curr_u
 					this->final_results.resize(1);
 					this->final_results[0].push_back(b);
 				}
@@ -406,11 +366,9 @@ public:
 						}
 					}
 				}
-				STOP_TIMING(agg, t2, 2, 0);
 			}
 			else if (is_leaf)
 			{
-				START_TIMING(t2);
 				int final_index = this->final_us.size();
 				this->final_us.push_back(curr_u);
 				this->final_results.push_back(vector<SIBranch*>());
@@ -433,11 +391,9 @@ public:
 						}
 					}
 				}
-				STOP_TIMING(agg, t2, 2, 1);
 			}
 			else // not branch nor leaf
 			{
-				START_TIMING(t2);
 				for (int msgi : messages_classifier[bucket_num])
 				{
 					SIMessage &msg = messages[msgi];
@@ -451,12 +407,9 @@ public:
 						}
 					}
 				}
-				STOP_TIMING(agg, t2, 2, 2);
 			}
-			STOP_TIMING(agg, t1, 0, 2);
 
 			//Continue mapping: send mappings to children
-			START_TIMING(t1);
 			if (!passed_mappings->empty() || step_num() == 1)
 			{
 				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
@@ -477,7 +430,6 @@ public:
 
 					//Construct neighbors_map: 
 				  	//Loop through neighbors and select out ones with right labels
-				    START_TIMING(t2);
 					int next_label = query->getLabel(next_u);
 					for (int i = 0; i < value().degree; ++i)
 					{
@@ -485,10 +437,8 @@ public:
 						if (kl.label == next_label)
 							neighbors_map[kl.key.wID].push_back(kl.key.vID);
 					}
-					STOP_TIMING(agg, t2, 1, 1);
 
 					//Update out_message_buffer
-					START_TIMING(t2);
 					SIMessage out_message;
 					if (!is_branch)
 						type = MESSAGE_TYPES::OUT_MAPPING;
@@ -521,7 +471,6 @@ public:
 						else
 							send_messages(wID, neighbors_map[wID], out_message);
 					}
-					STOP_TIMING(agg, t2, 1, 2);
 
 					//Clear neighbors_map
 					for (int i = 0; i < get_num_workers(); i++)
@@ -529,10 +478,8 @@ public:
 				}
 			}
 			// end of continue mapping of curr_u
-			STOP_TIMING(agg, t1, 1, 0);
 		}
 		// end of for curr_u loop
-		STOP_TIMING(agg, t, 0, 1);
 		vote_to_halt();
 	}
 
@@ -550,7 +497,6 @@ public:
 		// Phase I: Organize branches (Receive messages)
 		// for msg in msgs: arrange msgs according to msg's u
 		// marked messages
-		START_TIMING(t);
 		for (int pi = 0; pi < messages.size(); pi++)
 		{
 			SIMessage &msg = messages[pi];
@@ -580,10 +526,8 @@ public:
 				else // marked
 					branch->marked_branches[si].push_back(make_pair(pi, ti));
 		}
-		STOP_TIMING(agg, t, 0, 2);
 
 		// Phase II: Enumerate Trees
-		START_TIMING(t);
 		int cv = query->getCAOCValue(branch->curr_u);
 
 		if (!branch->enumerateTrees(cv)) // invalid branch
@@ -594,41 +538,35 @@ public:
 #endif
 			return;
 		}
-		STOP_TIMING(agg, t, 1, 0);
 
 #ifdef DEBUG_MODE_BRANCH
 		branch->print();
 #endif
 
 		// Phase III: Send to dummy or expand
-		START_TIMING(t);
 		if (offset == 0)
 		{
-			START_TIMING(t1);
 			int k = query->getConflicts().size();
 			for (int ti : branch->tree_indices)
 			{
 				vector<int> conflict_vs = vector<int>(k, -1);
 				this->mapping_count += branch->expand(ti, conflict_vs);
+				this->tree_count ++;
 			}
 #ifdef DEBUG_MODE_RESULT_COUNT
 			cout << "this->mapping_count = " << this->mapping_count << endl;
 #endif
-			STOP_TIMING(agg, t1, 1, 2);
 			delete branch;
 		}
 		else
 		{
-			START_TIMING(t1);
 			int vID = p[offset-2];
 			int wID = p[offset-1];
 			SIMessage out_msg = SIMessage(BRANCH_RESULT, branch);
 			if (wID == get_worker_id())
 				out_msg.is_delete = false;
 			send_messages(wID, {vID}, out_msg);
-			STOP_TIMING(agg, t1, 2, 0);
 		}
-		STOP_TIMING(agg, t, 1, 1);
 	}
 
 	void enumerate(MessageContainer & messages)
@@ -645,7 +583,10 @@ public:
 		double t;
 
 		if (step_num() == 1) // initialize
+		{
 			this->mapping_count = 0;
+			this->tree_count = 0;
+		}
 
 		// might have multiple leaf u and at most one dummy u
 		for (int i = 0 ; i < this->final_us.size(); i++)
@@ -654,7 +595,6 @@ public:
 			vector<SIBranch*> final_result = this->final_results[i];
 			if (curr_u >= 0) // leaf vertex
 			{
-				START_TIMING(t);
 				int branch_num = query->getBranchNumber(curr_u);
 				if (branch_num + step_num() < query->max_branch_number + 1)
 				{
@@ -671,11 +611,9 @@ public:
 					offset = dummy_pos + 2;
 				for (int j = 0; j < final_result.size(); j++)
 					build_branch(messages, final_result[j], offset);
-				STOP_TIMING(agg, t, 2, 1);
 			}
 			else if (!messages.empty()) // dummy vertex
 			{
-				START_TIMING(t);
 				SIBranch *b = final_result[0];
 				int dummy_pos = query->getDummyPos(b->curr_u);
 				int offset;
@@ -684,12 +622,12 @@ public:
 				else
 					offset = dummy_pos + 2;
 
-				build_branch(messages, b, offset);	
-				STOP_TIMING(agg, t, 0, 1);
+				build_branch(messages, b, offset);
 			}
 		}
 
 		agg->addMappingCount(this->mapping_count);
+		agg->addTreeCount(this->tree_count);
 
 		if (to_halt)
 			vote_to_halt();
@@ -706,57 +644,30 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 		// C version
 		// input line format:
 		// vertexID labelID numOfNeighbors neighbor1 neighbor2 ...
-		virtual SIVertex* toVertex(char* line, const WorkerParams & params)
+		virtual SIVertex* toVertex(char* line)
 		{
 			char * pch;
 			SIVertex* v = new SIVertex;
-			bool default_format = params.input;
+			
+			pch = strtok(line, " \t");
+			if (*pch == '#') return NULL;
+			int id = atoi(pch);
+			v->id = SIKey(id, id % _num_workers);
 
-			if (default_format)
+			pch = strtok(NULL, " \t");
+			v->value().label = (int) *pch;
+
+			SIKey key;
+			while ((pch = strtok(NULL, " ")) != NULL)
 			{
-				pch = strtok(line, " ");
-				if (*pch == '#') return NULL;
-				int id = atoi(pch);
-				v->id = SIKey(id, id % _num_workers);
-
+				id = atoi(pch);
+				key = SIKey(id, id % _num_workers);
 				pch = strtok(NULL, " ");
-				v->value().label = atoi(pch);
-
-				pch = strtok(NULL, " ");
-				int num = atoi(pch);
-				v->value().degree = num;
-				SIKey key;
-				for (int k = 0; k < num; ++k)
-				{
-					pch = strtok(NULL, " ");
-					id = atoi(pch);
-					key = SIKey(id, id % _num_workers);
-					v->value().nbs_vector.push_back(KeyLabel(key, 0));
-					//v->value().nbs_set.insert(id);
-				}
+				v->value().nbs_vector.push_back(KeyLabel(key, (int) *pch));
+				//v->value().nbs_set.insert(id);
 			}
-			else
-			{
-				pch = strtok(line, " \t");
-				if (*pch == '#') return NULL;
-				int id = atoi(pch);
-				v->id = SIKey(id, id % _num_workers);
-
-				pch = strtok(NULL, " \t");
-				v->value().label = (int) *pch;
-
-				SIKey key;
-				while ((pch = strtok(NULL, " ")) != NULL)
-				{
-					id = atoi(pch);
-					key = SIKey(id, id % _num_workers);
-					pch = strtok(NULL, " ");
-					v->value().nbs_vector.push_back(KeyLabel(key, (int) *pch));
-					//v->value().nbs_set.insert(id);
-				}
-				size_t sz = v->value().nbs_vector.size();
-				v->value().degree = sz;
-			}
+			size_t sz = v->value().nbs_vector.size();
+			v->value().degree = sz;
 			return v;
 		}
 
@@ -848,7 +759,7 @@ void pregel_subgraph(const WorkerParams & params)
 	ResetTimer(STAGE_TIMER);
 	SIAgg agg;
 	worker.setAggregator(&agg);
-	worker.run_type(PREPROCESS, params, 2);
+	worker.run_type(PREPROCESS, params, 1);
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Preprocessing time", STAGE_TIMER)
 
@@ -860,18 +771,25 @@ void pregel_subgraph(const WorkerParams & params)
 	ResetTimer(TOTAL_TIMER);
 	InitTimer(COMMUNICATION_TIMER);
 
-	if (dirCheck(params.query_path.c_str()) == -1)
-		exit(-1);
 	vector<string> files;
-	dispatchMaster(params.query_path.c_str(), files);
+	if (params.input)
+		dispatchMaster(params.query_path.c_str(), files);
+	else
+		for (const auto & entry : filesystem::directory_iterator(params.query_path))
+        	files.push_back(entry.path());
+
 	if (get_worker_id() == MASTER_RANK)
 	{
 		cout << "# queries = " << files.size() << endl << endl;
-		cout << "Query No., |V(Q)|, |E(Q)|, depth, max_bn, conflicts, #mappings, "
-		 	 << "compute_time, match_time, enum_time, comm_time" << endl;
+		cout << "Query No., order, "
+			 << "|V(Q)|, |E(Q)|, depth, max_bn, conflicts, #mappings, #trees, "
+		 	 << "compute_time, match_time, enum_time, comm_time, filename" << endl;
 	}
 	int query_index = 1;
-	for (vector<string>::iterator it = files.begin(); it != files.end(); it++)
+	double total_comp_time = 0;
+	long total_mapping_count = 0;
+	int count = 0;
+	for (string file : files)
 	{
 		for (string order : params.orders)
 		{
@@ -880,7 +798,7 @@ void pregel_subgraph(const WorkerParams & params)
 			worker.setQuery(&query);
 			SIAgg agg;
 			worker.setAggregator(&agg);
-			worker.load_query(it->c_str());
+			worker.load_query(file, params.input);
 		
 			ResetTimer(COMPUTE_TIMER);
 			InitTimer(COMMUNICATION_TIMER);
@@ -901,28 +819,40 @@ void pregel_subgraph(const WorkerParams & params)
 			StopTimer(STAGE_TIMER);
 			double enum_time = get_timer(STAGE_TIMER);
 			long mapping_count = (*((AggMat*)global_agg))[0][0];
+			long tree_count = (*((AggMat*)global_agg))[2][2];
+			total_mapping_count += mapping_count;
 			StopTimer(COMPUTE_TIMER);
 
 			double comp_time = get_timer(COMPUTE_TIMER);
+			total_comp_time += comp_time;
+			count ++;
 			double comm_time = get_timer(COMMUNICATION_TIMER);
 
 			if (get_worker_id() == MASTER_RANK)
-				cout << query_index << "-" << order << ", "
+				cout << query_index << ", " 
+					<< order << ", "
 					<< properties[0] << ", "
 					<< properties[1] << ", "
 					<< properties[2] << ", "
 					<< properties[3] << ", "
 					<< properties[4] << ", "
 					<< mapping_count << ", "
+					<< tree_count << ", "
 					<< comp_time << ", "
 					<< match_time << ", "
 					<< enum_time << ", "
-					<< comm_time << endl;
+					<< comm_time << ", "
+					<< file << endl;
 		}
 		query_index ++;
 	}
 
 	StopTimer(TOTAL_TIMER);
 	PrintTimer("\nIn total, online time", TOTAL_TIMER)
+	if (get_worker_id() == MASTER_RANK)
+	{
+		cout << "Avg comp time: " << total_comp_time/count << endl;
+		cout << "Total mapping count: " << total_mapping_count << endl;
+	}
 
 }

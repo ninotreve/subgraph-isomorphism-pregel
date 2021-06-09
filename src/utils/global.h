@@ -235,10 +235,11 @@ bool notContainsDuplicate(vector<T> & v)
 
 int math_choose(int m, int n)
 {
-    // implement m choose n
+    // implement P(m, n), m >= n
+    if (m < n) return 0;
     int prod = 1;
     for (int i = 0; i < n; i++)
-        prod = prod * (m - i) / (i + 1);
+        prod = prod * (m - i);
     return prod;
 }
 
@@ -295,12 +296,12 @@ public:
     string getQueryPath() { return options_value[1]; }
     string getOutputPath() { return options_value[2]; }
 
-    bool getInputFormat() 
+    bool getInputMethod() 
     {
-    	return (options_value[3] != "g-thinker");
+    	return (options_value[3] == "HDFS");
     }
 
-    int getReport() 
+    int getReportMethod() 
     {
         if (options_value[4] == "short")
             return 0;
@@ -311,7 +312,8 @@ public:
     }
     
     string getOrderMethod() {
-        if (options_value[5] == "candidate" || options_value[5] == "degree")
+        if (options_value[5] == "random" || options_value[5] == "degree"
+            || options_value[5] == "ri" || options_value[5] == "anti-degree")
             return options_value[5];
         else
             return "random";
@@ -333,7 +335,7 @@ struct WorkerParams {
     string output_path;
     bool force_write;
 
-    bool input; // 1 for default, 0 for g-thinker
+    bool input; // 1 for HDFS, 0 for local
     int report; // 0 for short, 1 for long, 2 for long+step_msg
     string order;
     bool preprocess, filter, pseudo, leaf, other;   
@@ -349,8 +351,8 @@ struct WorkerParams {
         query_path = command.getQueryPath();
         output_path = command.getOutputPath();
         force_write = fw;
-        input = command.getInputFormat();
-        report = command.getReport();
+        input = command.getInputMethod();
+        report = command.getReportMethod();
         order = command.getOrderMethod();
         preprocess = command.isMethodOn(6);
         filter = command.isMethodOn(7);
@@ -358,20 +360,16 @@ struct WorkerParams {
         leaf = command.isMethodOn(9);
         other = command.isMethodOn(10);
         
-        if (!filter && order == "candidate")
-        {
-            cout << "Warning: non-filter mode cannot have candidate as order." << endl;
-            order = "random";
-        }
     }
 
     void print()
     {
         cout << "Data graph path: " << data_path << endl;
-        cout << "Query graph path: " << query_path << endl;
+        cout << "Query graph path ";
+        if (input) cout << "(HDFS): " << query_path << endl;
+        else cout << "(local): " << query_path << endl;
         cout << "Input Format (1 for default, 0 for g-thinker): " << input << endl;
         cout << "Output graph path: " << output_path << endl;
-        cout << "Order Method: " << order << endl;
         cout << "Optimization techniques: ";
         if (preprocess) cout << "Preprocessing/";
         if (filter) cout << "Filtering/";
@@ -392,6 +390,10 @@ void set_ghost_threshold(int tau)
 
 //====================================================
 #define ROUND 11 //for PageRank
+
+//====================================================
+// a useful debugging tool, used with if statement to filter
+bool printOnce = true;
 
 #endif
 
