@@ -11,7 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <filesystem>
+#include <experimental/filesystem>
 #include "global.h"
 using namespace std;
 
@@ -26,7 +26,7 @@ const char* newLine = "\n";
 hdfsFS getHdfsFS()
 {
 	hdfsBuilder * bld = hdfsNewBuilder();
-	hdfsBuilderSetNameNode(bld, "master");
+	hdfsBuilderSetNameNode(bld, "localhost");
 	hdfsBuilderSetNameNodePort(bld, 9000);
 	hdfsFS fs = hdfsBuilderConnect(bld);
 	if(!fs) {
