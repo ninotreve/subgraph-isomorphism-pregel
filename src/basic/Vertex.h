@@ -98,7 +98,7 @@ public:
         ((MessageBufT*)get_message_buffer())->add_message(id, msg);
     }
 
-    // newly added function
+    // newly added function, supports one-copy transmission
     void send_messages(const int& wID, const vector<int>& keys, const MessageT& msg)
     {
         hasMsg();

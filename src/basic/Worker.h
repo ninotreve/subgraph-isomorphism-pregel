@@ -386,10 +386,10 @@ public:
 
     //====================================================================
 
-    void build_query_tree(const string &order, bool pseudo, int &depth, int &bn)
+    void build_query_tree(const string &order, int &depth, int &bn)
 	{
     	QueryT* query = (QueryT*) global_query;
-		query->init(order, pseudo);
+		query->init(order);
 
         depth = query->max_level + 1;
         bn = query->max_branch_number;
@@ -465,11 +465,13 @@ public:
             
             StartTimer(ACTIVE_COMPUTE_TIMER);
             int compute_count = active_compute(type, params, wakeAll);
+            /*
             if (_my_rank < 5 && params.report > 0 && (type == MATCH || type == ENUMERATE)) 
             {
                 cout << "[" << _my_rank << "] Superstep " << global_step_num << ": "
                      << "#vertices computed: " << compute_count << endl;
             }
+            */
             StopTimer(ACTIVE_COMPUTE_TIMER);
             
             StartTimer(REDUCE_MESSAGE_TIMER);

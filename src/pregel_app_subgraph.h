@@ -55,10 +55,9 @@ public:
 	void preprocess(MessageContainer & messages, WorkerParams &params)
 	{		
 		//convert vector to set
-		for (int i = 0; i < value().degree; ++i)
-		{
-			value().nbs_set.insert(value().nbs_vector[i].key.vID);
-		}
+		if (value().degree >= LOCAL_INTERSECTION_DEGREE)
+			for (int i = 0; i < value().degree; ++i)
+				value().nbs_set.insert(value().nbs_vector[i].key.vID);
 		vote_to_halt();
 	}
 
@@ -165,6 +164,7 @@ public:
 			int label = query->getLabel(ps_chd);
 			if (query->hasConflict(ps_chd))
 			{   // send a message of psd_request
+#if ONE_COPY_TRANSMISSION
 				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
 				// Construct neighbors_map: 
 				// Loop through neighbors and select out ones 
@@ -186,6 +186,17 @@ public:
 						SIMessage(PSD_REQUEST, ps_chd, u_index,
 						msg_vID, msg_wID, result_index, chd_sz+i));
 				}
+#else
+				for (int j = 0; j < value().degree; ++j)
+				{
+					KeyLabel &kl = value().nbs_vector[j];
+					if ((label == kl.label) && 
+						check_feasibility(b->mapping, ps_chd, kl.key.vID))
+						send_messages(kl.key.wID, {kl.key.vID}, 
+							SIMessage(PSD_REQUEST, ps_chd, u_index,
+							msg_vID, msg_wID, result_index, chd_sz+i));
+				}
+#endif
 			}
 			else
 			{
@@ -424,7 +435,9 @@ public:
 			START_TIMING(t1);
 			if (!passed_mappings->empty() || step_num() == 1)
 			{
+#if ONE_COPY_TRANSMISSION
 				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
+#endif
 				int type = -1;
 
 				for (int next_u_index = 0; next_u_index < next_us.size(); next_u_index++)
@@ -440,29 +453,7 @@ public:
 						include_self = query->getIncludeSelf(curr_u, next_u_index);
 					}
 
-					//Construct neighbors_map: 
-				  	//Loop through neighbors and select out ones with right labels
-				    START_TIMING(t2);
-					if (params.filter)
-					{ //With filtering
-						hash_set<SIKey> &keys = candidate->candidates[curr_u][next_u];
-						auto it = keys.begin(); auto iend = keys.end();
-						for (; it != iend; ++it)
-							neighbors_map[it->wID].push_back(it->vID);
-					}
-					else
-					{ //Without filtering
-						int next_label = query->getLabel(next_u);
-						for (int i = 0; i < value().degree; ++i)
-						{
-							KeyLabel &kl = value().nbs_vector[i];
-							if (kl.label == next_label)
-								neighbors_map[kl.key.wID].push_back(kl.key.vID);
-						}
-					}
-					STOP_TIMING(agg, t2, 1, 1);
-
-					//Update out_message_buffer
+					// Construct the message
 					START_TIMING(t2);
 					SIMessage out_message;
 					if (!is_branch)
@@ -471,21 +462,23 @@ public:
 						type = MESSAGE_TYPES::BMAPPING_W_SELF;
 					else
 						type = MESSAGE_TYPES::BMAPPING_WO_SELF;
-
 					int nrow, ncol = query->getNCOL(curr_u);
 					if (LEVEL == 0)
 						nrow = 1;
 					else
 						nrow = passed_mappings->size();
-					
 					out_message = SIMessage(type, passed_mappings, 
 						dummy_vs, next_u, nrow, ncol, id.vID, id.wID, markers,
 						chd_constraint);
-#ifdef DEBUG_MODE_MSG
-					cout << "Send out message" << endl;
-					out_message.print();
-#endif
 
+					int next_label = query->getLabel(next_u);
+#if ONE_COPY_TRANSMISSION
+					for (int i = 0; i < value().degree; ++i)
+					{
+						KeyLabel &kl = value().nbs_vector[i];
+						if (kl.label == next_label)
+							neighbors_map[kl.key.wID].push_back(kl.key.vID);
+					}
 					for (int wID = 0; wID < get_num_workers(); wID++)
 					{
 						if (neighbors_map[wID].empty())
@@ -497,14 +490,29 @@ public:
 						else
 							send_messages(wID, neighbors_map[wID], out_message);
 					}
-					STOP_TIMING(agg, t2, 1, 2);
-
 					//Clear neighbors_map
 					for (int i = 0; i < get_num_workers(); i++)
 						neighbors_map[i].clear();
-				}
-			}
-			// end of continue mapping of curr_u
+#else
+					for (int i = 0; i < value().degree; ++i)
+					{
+						KeyLabel &kl = value().nbs_vector[i];
+						if (kl.label == next_label)
+							if (kl.key.wID == get_worker_id())
+								send_messages(kl.key.wID, {kl.key.vID},
+									copy_message(out_message));
+							else
+								send_messages(kl.key.wID, {kl.key.vID}, out_message);
+					}
+#endif
+					STOP_TIMING(agg, t2, 1, 1);
+
+#ifdef DEBUG_MODE_MSG
+					cout << "Send out message" << endl;
+					out_message.print();
+#endif
+				} //end of for loop of next_u	
+			} //end of continue mapping of curr_u
 			STOP_TIMING(agg, t1, 1, 0);
 		}
 		// end of for curr_u loop
@@ -829,7 +837,7 @@ void pregel_subgraph(const WorkerParams & params)
 	MPRINT("Building query tree...")
 	ResetTimer(STAGE_TIMER);
 	int depth, bn;
-	worker.build_query_tree(params.order, params.pseudo, depth, bn);
+	worker.build_query_tree(params.order, depth, bn);
 	if (_my_rank == MASTER_RANK)
 		cout << "depth = " << depth << " max branch number = " << bn << endl;
 	StopTimer(STAGE_TIMER);
@@ -860,10 +868,8 @@ void pregel_subgraph(const WorkerParams & params)
 			mat[2][2] << " s" << endl;
 		cout << "2.2. Continue mapping: " <<
 			mat[1][0] << " s" << endl;	
-		cout << "2.2.1. Construct neighbor map: " <<
+		cout << "2.2.1. Send messages " <<
 			mat[1][1] << " s" << endl;
-		cout << "2.2.2. Update out messages buffer: " <<
-			mat[1][2] << " s" << endl;
 	}
 
 	// STAGE 5: Subgraph enumeration

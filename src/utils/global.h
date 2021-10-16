@@ -1,6 +1,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include "../config.h"
+
 #include <mpi.h>
 #include <stddef.h>
 #include <limits.h>

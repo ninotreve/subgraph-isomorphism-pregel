@@ -223,7 +223,7 @@ public:
 	vector<vector<vector<int>>> bucket_size_value;
 	vector<int> bucket_number;
 
-	void init(const string &order, bool pseudo)
+	void init(const string &order)
 	{ // call after the query is sent to each worker
 		this->num = this->nodes.size();
 		this->nbancestors.resize(this->num);
@@ -268,7 +268,7 @@ public:
 			}
 
 			vector<int> sequence;
-			this->dfs(this->root, -1, true, order, sequence, pseudo);
+			this->dfs(this->root, -1, true, order, sequence);
 			this->addBNIC(this->root, 0, -1, vector<int>(), 0);
 			this->initBuckets();
 			sequence.clear();
@@ -336,7 +336,7 @@ public:
 	}
 
 	void dfs(int currID, int parentID, bool isRoot, const string &order,
-		vector<int> &sequence, bool pseudo)
+		vector<int> &sequence)
 	{
 		// recursive function to implement depth-first search.
 		// only called when current node is not visited.
@@ -405,14 +405,14 @@ public:
 		{
 			if (! this->nodes[it->first].visited)
 			{
-				this->dfs(it->first, currID, false, order, sequence, pseudo);
+				this->dfs(it->first, currID, false, order, sequence);
 
 				// when return from dfs,
 				// determine what kind of children are ps_children
 				int childID = sequence.back();
 				SINode *child = &this->nodes[childID];
-				if (pseudo &&
-					child->children.empty() && child->b_nbs.empty() &&
+#if PSEUDO_CHILDREN
+				if (child->children.empty() && child->b_nbs.empty() &&
 					child->ps_children.empty())
 				{ // it is pseudo child of its parent
 					child->is_pseudo = true;
@@ -420,7 +420,9 @@ public:
 				}
 				else
 					curr->children.push_back(childID);
-				
+#else
+				curr->children.push_back(childID);
+#endif				
 				sequence.pop_back();
 			}
 		}

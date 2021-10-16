@@ -37,7 +37,15 @@ struct SIValue
 
 	inline bool hasNeighbor(int &vID)
 	{
-		return nbs_set.find(vID) != nbs_set.end();
+		if (degree < LOCAL_INTERSECTION_DEGREE)
+		{
+			for (KeyLabel &kl : nbs_vector)
+				if (kl.key.vID == vID)
+					return true;
+			return false;
+		}
+		else
+			return nbs_set.find(vID) != nbs_set.end();
 	}
 };
 
