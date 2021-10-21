@@ -45,11 +45,10 @@ public:
         agg_mat[index_x][index_y] += time;
     }
 
-    void addMappingCount(long count)
+    void addMappingCount(int index_x, int index_y, long count)
     {
-        agg_mat[0][0] += count;
+        agg_mat[index_x][index_y] += count;
     }
-
 };
 
 #endif

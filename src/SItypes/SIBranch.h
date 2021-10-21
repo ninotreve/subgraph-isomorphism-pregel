@@ -247,6 +247,15 @@ struct SIBranch
 		return count;
 	}
 
+	long computeSize()
+	{
+		// Compute the number of int in SIBranch.
+		long count = this->ncol;
+		for (SIBranch *p : chd_pointers)
+			count += p->computeSize();
+		return count;
+	}
+
 	void printMapping()
 	{
 		cout << "(Mapping) (" << ncol+1 << ") [ ";

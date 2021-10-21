@@ -295,7 +295,7 @@ public:
 				}
 			}
 		}
-		STOP_TIMING(agg, t, 0, 0);
+		STOP_TIMING(agg, t, 1, 2);
 
 		// main computation
 		//cout << "main computation checked" << endl;
@@ -379,6 +379,7 @@ public:
 #ifdef DEBUG_MODE_BRANCH
 							b->print();
 #endif
+							agg->addMappingCount(0, 0, msg.ncol);
 						}
 					}
 				}
@@ -406,6 +407,7 @@ public:
 #ifdef DEBUG_MODE_BRANCH
 							b->print();
 #endif
+							agg->addMappingCount(0, 0, msg.ncol);
 						}
 					}
 				}
@@ -576,6 +578,8 @@ public:
 			cout << "The branch is invalid. " << endl;
 			branch->print();
 #endif
+			agg->addMappingCount(2, 2, branch->computeSize());
+			STOP_TIMING(agg, t, 1, 1);
 			return;
 		}
 		STOP_TIMING(agg, t, 1, 0);
@@ -585,7 +589,6 @@ public:
 #endif
 
 		// Phase III: Send to dummy or expand
-		START_TIMING(t);
 		if (offset == 0)
 		{
 			START_TIMING(t1);
@@ -616,7 +619,6 @@ public:
 #endif
 			STOP_TIMING(agg, t1, 2, 0);
 		}
-		STOP_TIMING(agg, t, 1, 1);
 	}
 
 	void enumerate(MessageContainer & messages)
@@ -677,7 +679,7 @@ public:
 			}
 		}
 
-		agg->addMappingCount(this->mapping_count);
+		agg->addMappingCount(0, 0, this->mapping_count);
 
 		if (to_halt)
 			vote_to_halt();
@@ -855,7 +857,7 @@ void pregel_subgraph(const WorkerParams & params)
 		cout << "[Detailed report]" << endl;
 		auto mat = *((AggMat*)global_agg);
 		cout << "1. Arrange messages: " <<
-			mat[0][0] << " s" << endl;
+			mat[1][2] << " s" << endl;
 		cout << "2. Main Computation: " <<
 			mat[0][1] << " s" << endl;
 		cout << "2.1. Loop through messages and check feasibility: " <<
@@ -870,6 +872,20 @@ void pregel_subgraph(const WorkerParams & params)
 			mat[1][0] << " s" << endl;	
 		cout << "2.2.1. Send messages " <<
 			mat[1][1] << " s" << endl;
+	}
+
+	if (_my_rank == MASTER_RANK)
+	{
+		cout << "================ Intermediate Report ===============" << endl;
+		double num = (*((AggMat*)global_agg))[0][0] / 256; //* 4 / 1024;
+		string unit = "KB";
+		if (num > 1024)
+		{
+			num /= 1024;
+			unit = "MB";
+		}
+		cout << "Intermediate result size: " << num << " " << unit << endl;
+		cout << endl;
 	}
 
 	// STAGE 5: Subgraph enumeration
@@ -892,12 +908,13 @@ void pregel_subgraph(const WorkerParams & params)
 			mat[0][2] << " s" << endl;	
 		cout << "2. Enumerate trees: " <<
 			mat[1][0] << " s" << endl;		
-		cout << "3. Send to dummies or expand: " <<
-			mat[1][1] << " s" << endl;
 		cout << "3.1. Send to dummies: " <<
 			mat[2][0] << " s" << endl;
 		cout << "3.2. Expand: " <<
 			mat[1][2] << " s" << endl;
+		cout << "==Waste Report==" << endl;
+		cout << "- Wasting time: " << mat[1][1] << " s" << endl;
+		cout << "- Wasting space: " << mat[2][2]/256 << " KB" << endl;
 	}
 
 	StopTimer(COMPUTE_TIMER);
