@@ -23,6 +23,9 @@ struct SIMessage
 	vector<int> *dummy_vs;
 	vector<int> chd_constraint;
 	SIBranch *branch;
+#if NONLOCAL_INTERSECTION
+	vector<vector<int>> neighbors; // containing neighbors of mapping vertices                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              m, ,,,mm,,
+#endif
 
 	SIMessage()
 	{
@@ -33,8 +36,13 @@ struct SIMessage
 		this->type = type;
 	}
 	
+#if NONLOCAL_INTERSECTION
+	SIMessage(int type, int *mappings, int curr_u, int nrow, int ncol,
+		bool is_delete, vector<int> *markers, vector<vector<int>> neighbors)
+#else
 	SIMessage(int type, int *mappings, int curr_u, int nrow, int ncol,
 		bool is_delete, vector<int> *markers)
+#endif
 	{ //IN_MAPPING
 		this->type = type;
 		this->curr_u = curr_u;
@@ -43,11 +51,20 @@ struct SIMessage
 		this->mappings = mappings;
 		this->is_delete = is_delete;
 		this->markers = markers;
+#if NONLOCAL_INTERSECTION
+		this->neighbors = neighbors;
+#endif
 	}
 
+#if NONLOCAL_INTERSECTION
+	SIMessage(int type, vector<int*> *passed_mappings, vector<int> *dummy_vs,
+		int curr_u, int nrow, int ncol, int vID, int wID, vector<int> *markers,
+		vector<int> chd_constraint, vector<vector<int>> neighbors)
+#else
 	SIMessage(int type, vector<int*> *passed_mappings, vector<int> *dummy_vs,
 		int curr_u, int nrow, int ncol, int vID, int wID, vector<int> *markers,
 		vector<int> chd_constraint)
+#endif
 	{ //OUT_MAPPING, B_MAPPING_W/O_SELF
 		this->type = type;
 		this->passed_mappings = passed_mappings;
@@ -59,6 +76,9 @@ struct SIMessage
 		this->wID = wID;
 		this->markers = markers;
 		this->chd_constraint = chd_constraint;
+#if NONLOCAL_INTERSECTION
+		this->neighbors = neighbors;
+#endif
 	}
 
 	SIMessage(int type, SIBranch *branch)
@@ -209,6 +229,9 @@ ibinstream & operator<<(ibinstream &m, const SIMessage &msg)
 		m << msg.curr_u << msg.u_index << msg.vID << msg.wID << msg.nrow << msg.ncol;
 		break;
 	}
+#if NONLOCAL_INTERSECTION
+		m << msg.neighbors;
+#endif
 	return m;
 }
 
@@ -268,6 +291,9 @@ obinstream & operator>>(obinstream &m, SIMessage &msg)
 		m >> msg.curr_u >> msg.u_index >> msg.vID >> msg.wID >> msg.nrow >> msg.ncol;
 		break;
 	}
+#if NONLOCAL_INTERSECTION
+		m >> msg.neighbors;
+#endif
 	return m;
 }
 

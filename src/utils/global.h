@@ -10,6 +10,7 @@
 #include <map>
 #include <ext/hash_set>
 #include <ext/hash_map>
+#include <algorithm>
 #define hash_map __gnu_cxx::hash_map
 #define hash_set __gnu_cxx::hash_set
 #include <assert.h> //for ease of debug

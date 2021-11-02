@@ -34,28 +34,32 @@ using namespace std;
 
 //===============================================================
 
-// the first int for anc_u, the second int for curr_u's branch_num.
-//typedef hash_map<int, map<int, vector<Mapping> > > mResult;
-
 class SIVertex:public Vertex<SIKey, SIValue, SIMessage, SIKeyHash>
 {
+	/* This class is designed for a single vertex in the data graph. 
+	 * It comprises of the key (vertexID and workerID), the value 
+	 * (label, neighbors) and additional information (final mappings
+	 * when the vertex is mapped to a leaf query vertex, mapped query
+	 * vertices, etc.).
+	 * */
+
 public:
-	SICandidate *candidate;
-	long mapping_count = 0;
-	
+	// number of final mappings
+	long mapping_count = 0;	
 	// the following two vectors have the same length
 	// for leaf vertex, final_u > 0; for dummy vertex, final_u < 0
 	vector<int> final_us;
 	// for different final_u, including markers, unmarked/marked branches
 	vector<vector<SIBranch*>> final_results;
-
-	// for conflicts
+	// a list of mapped query vertices, recorded for conflicts
 	vector<int> mapped_us;
 
 	void preprocess(MessageContainer & messages, WorkerParams &params)
-	{		
-		//convert vector to set
-		if (value().degree >= LOCAL_INTERSECTION_DEGREE)
+	{
+		/* This function is called prior to subgraph matching.
+		 * It basically convert large neighbor vector to set
+		 * to accelerate neighbor finding. */
+		if (value().degree > 10)
 			for (int i = 0; i < value().degree; ++i)
 				value().nbs_set.insert(value().nbs_vector[i].key.vID);
 		vote_to_halt();
@@ -63,11 +67,14 @@ public:
 
 	void filter(MessageContainer & messages)
 	{
+		/* Not implemented yet. */
 		return;
 	}
 
 	bool check_feasibility(int *mapping, int query_u, int vID)
-	{ // check vertex uniqueness and backward neighbors 
+	{ 
+		/* This function checks vertex uniqueness and backward neighbors,
+		 * used when local intersection is enabled. */
 		SIQuery* query = (SIQuery*)getQuery();
 		// check vertex uniqueness
 		for (int &b_level : query->getBSameLabPos(query_u))
@@ -83,11 +90,10 @@ public:
 
 	int build_dummy_vertex(SIBranch* b)
 	{
-		//Implementation 0313: 
-		//  The full mapping is put into the dummy vertex.
-		//  Mapping and dummies are separated in the enumerate phase.
+		/* This function builds a dummy vertex whenever branch query
+		 * vertex is encountered, the dummy vertex comprises of the
+		 * newly built branch(RCT). */
 		int dummyID = create_dummy_vertex_id();
-
 		SIVertex* v = new SIVertex;
 		v->id = SIKey(dummyID, id.wID);
 		v->final_us.push_back(-1); // curr_u = b->curr_u
@@ -99,6 +105,9 @@ public:
 
 	SIMessage copy_message(SIMessage msg)
 	{
+		/* This function is used when message is not transferred to
+		 * another machine, i.e. the dest vertex and the src vertex
+		 * reside in the same machine. */
 		int new_ncol;
 		switch (msg.type)
 		{
@@ -137,7 +146,8 @@ public:
 			}
 		}
 
-		/* Print out the copied message
+		// DEBUG: Print out the copied message
+		/*
 		cout << "[Message]" << endl;
 		cout << "nrow: " << msg.nrow << " ncol: " << new_ncol << endl;
 		for (int i = 0; i < msg.nrow*new_ncol; i++)
@@ -145,16 +155,27 @@ public:
 		cout << endl;
 		*/
 
+#if NONLOCAL_INTERSECTION
+		return SIMessage(MESSAGE_TYPES::IN_MAPPING, mappings,
+			msg.curr_u, msg.nrow, new_ncol, msg.is_delete, msg.markers,
+			msg.neighbors);
+#else
 		return SIMessage(MESSAGE_TYPES::IN_MAPPING, mappings,
 			msg.curr_u, msg.nrow, new_ncol, msg.is_delete, msg.markers);
+#endif
 	}
 
 	void addPsdChildren(SIBranch *b, int u_index, int msg_vID, int msg_wID, 
 		int result_index)
 	{
-		// u_index: the index in final_us
-		// result_index: the index in final_results[u_index]
-		// msg_vID, msg_wID: where the response messages are sent to
+		/* This function adds pseudo children into branch.
+		 * If there exists a conflict then it sends a psd request
+		 * to neighbors. 
+		 * Some input arguments are listed below:
+		 * - u_index: the index in final_us
+		 * - result_index: the index in final_results[u_index]
+		 * - msg_vID, msg_wID: where the response messages are sent to
+		 * */
 		SIQuery* query = (SIQuery*)getQuery();
 		vector<int> &ps_chds = query->getPseudoChildren(b->curr_u);
 		int chd_sz = query->getChildren(b->curr_u).size();
@@ -221,6 +242,15 @@ public:
 
 	virtual void compute(MessageContainer &messages, WorkerParams &params)
 	{
+		/* The main function in the path sketch exploration stage.
+		 * According to the property of the query vertex, this function 
+		 * does the following work:
+		 * - If the query vertex is a branch vertex, it builds an RCT, builds
+		 *   a dummy vertex to store the RCT, and sends message to neighbors.
+		 * - If the query vertex is a leaf vertex, it stores all the path 
+		 *   mappings and stop matching.
+		 * - Otherwise, it sends message to neighbors to continue matching.
+		 * */
 		SIQuery* query = (SIQuery*)getQuery();
 		SIAgg* agg = (SIAgg*)get_aggregator();
 		double t, t1, t2;
@@ -232,7 +262,9 @@ public:
 			 << endl;
 #endif
 
-		if (id.vID < 0) //that newly built dummy vertex
+		// This if clause is only intended for newly built dummy vertices.
+		// After receiving psd_response they can halt.
+		if (id.vID < 0) 
 		{
 			for (int i = 0; i < messages.size(); i++)
 			{
@@ -255,7 +287,10 @@ public:
 			return;
 		}
 
-		// arrange messages
+		/* For ordinary data vertices, the path sketch exploration stage
+		 * starts here. */
+		/* The first step is to arrange messages to put them into different
+		 * bins of query u's. */
 		START_TIMING(t);
 		vector<int> vector_u = query->getBucket(LEVEL, value().label);
 		int n_u = vector_u.size();
@@ -297,8 +332,9 @@ public:
 		}
 		STOP_TIMING(agg, t, 1, 2);
 
-		// main computation
-		//cout << "main computation checked" << endl;
+		/* The second step is to respond according to the messages received,
+		 * by different query vertices. This is the main computation in this
+		 * function. */
 		START_TIMING(t);
 		for (int bucket_num = 0; bucket_num < n_u; bucket_num ++)
 		{
@@ -306,6 +342,7 @@ public:
 				continue;
 
 			curr_u = vector_u[bucket_num];
+			int ncol = query->getNCOL(curr_u);
 			int conflict_number = 0;
 			for (int mapped_u : mapped_us)
 				conflict_number += query->getConflictNumber(curr_u, mapped_u);
@@ -319,12 +356,11 @@ public:
 			if (LEVEL == 0) markers->push_back(0);
 			vector<int>* dummy_vs = new vector<int>();
 
+			// The property of current query vertex
 			bool is_branch = query->isBranch(curr_u);
 			bool is_pseudo = query->isPseudo(curr_u);
 			bool is_leaf = next_us.empty();
-			//cout << "is_branch : " << is_branch << " is_leaf : " << is_leaf << endl;
 
-			// loop through messages and check feasibilities
 			START_TIMING(t1);
 			if (is_pseudo)
 			{
@@ -338,6 +374,172 @@ public:
 				continue;
 			}
 
+#if NONLOCAL_INTERSECTION
+// In this case, message only has 1 nrow, and we don't need to check_feasibility
+			if (LEVEL == 0)
+			{
+				SIMessage start_msg = SIMessage(MESSAGE_TYPES::IN_MAPPING, nullptr,
+					curr_u, 1, 0, true, markers, vector<vector<int>>());
+				messages.push_back(start_msg);
+				messages_classifier[bucket_num].push_back(0);
+			}
+			if (is_branch)
+			{
+				markers->push_back(0); // zero out at dummy
+
+				for (int msgi : messages_classifier[bucket_num])
+				{
+					SIMessage &msg = messages[msgi];
+					int *new_mapping = msg.mappings;
+					passed_mappings->push_back(new_mapping);
+					
+					SIBranch* b = new SIBranch(new_mapping, id.vID,
+						msg.ncol, curr_u, conflict_number);
+					int dummyID = build_dummy_vertex(b);
+					dummy_vs->push_back(dummyID);
+					addPsdChildren(b, 0, dummyID, id.wID, 0);
+					agg->addMappingCount(0, 0, msg.ncol);
+	
+					int type = -1;
+					
+					for (int next_u_index = 0; next_u_index < next_us.size(); 
+						next_u_index++)
+					{
+						int next_u = next_us[next_u_index];
+						SIMessage out_message;
+						vector<int> chd_constraint = vector<int>();
+						bool include_self = true;
+						chd_constraint = query->getChdConstraint(curr_u, next_u_index);
+						include_self = query->getIncludeSelf(curr_u, next_u_index);
+						if (include_self)
+							type = MESSAGE_TYPES::BMAPPING_W_SELF;
+						else
+							type = MESSAGE_TYPES::BMAPPING_WO_SELF;
+						
+						msg.neighbors.push_back(vector<int>());
+						vector<int> &pv = msg.neighbors.back();
+						for (KeyLabel &kl: value().nbs_vector)
+							pv.push_back(kl.key.vID);
+						out_message = SIMessage(type, passed_mappings, 
+							dummy_vs, next_u, 1, ncol, id.vID, id.wID, markers,
+							chd_constraint, msg.neighbors);
+
+						// Need to satisfy all the below conditions to send:
+						// 1. the next v has the correct label
+						// 2. the next v has not been used.
+						// 3. the next v lies in the all the neighbors							
+						for (int i = 0; i < value().degree; ++i)
+						{
+							KeyLabel &kl = value().nbs_vector[i];
+							bool flag = true;
+							// Condition 1
+							if (kl.label != query->getLabel(next_u))
+								flag = false;
+							// Condition 2
+							for (int i = 0; i < msg.ncol; i++)
+								if (kl.key.vID == msg.mappings[i])
+									flag = false;
+							// Condition 3
+							for (int b_level : query->getBNeighborsPos(next_u))
+							{
+								vector<int> &v = msg.neighbors[b_level];
+								if (find(v.begin(), v.end(), kl.key.vID) == v.end())
+									flag = false;
+							}
+							
+							// Only send the messages when conditions are met	
+							if (flag)
+								if (kl.key.wID == get_worker_id())
+									send_messages(kl.key.wID, {kl.key.vID},
+										copy_message(out_message));
+								else
+									send_messages(kl.key.wID, {kl.key.vID}, out_message);
+						}
+						dummy_vs->clear();
+						passed_mappings->clear();
+					}//end of next_u loop		
+				}//end of message loop
+			}
+			else if (is_leaf)
+			{
+				START_TIMING(t2);
+				int final_index = this->final_us.size();
+				this->final_us.push_back(curr_u);
+				this->final_results.push_back(vector<SIBranch*>());
+				for (int msgi : messages_classifier[bucket_num])
+				{
+					SIMessage &msg = messages[msgi];
+					int *new_mapping = msg.mappings;
+					SIBranch* b = new SIBranch(new_mapping, id.vID,
+						msg.ncol, curr_u, (*msg.markers)[0] + conflict_number);
+					addPsdChildren(b, final_index, id.vID, id.wID,
+						this->final_results[final_index].size());
+					this->final_results[final_index].push_back(b);
+					agg->addMappingCount(0, 0, msg.ncol);
+					for (vector<int> &nbr : msg.neighbors)
+						agg->addMappingCount(0, 0, nbr.size());
+				}
+				STOP_TIMING(agg, t2, 2, 1);
+
+			}
+			else // not branch nor leaf
+			{
+				START_TIMING(t2);
+				for (int msgi : messages_classifier[bucket_num])
+				{
+					SIMessage &msg = messages[msgi];
+					int *new_mapping = msg.mappings;
+					passed_mappings->push_back(new_mapping);
+					markers->push_back((*msg.markers)[0] + conflict_number);
+
+					int next_u = next_us[0];
+					vector<int> chd_constraint = vector<int>();
+					bool include_self = true;
+					int type = MESSAGE_TYPES::OUT_MAPPING;
+					msg.neighbors.push_back(vector<int>());
+					vector<int> &pv = msg.neighbors.back();
+					for (KeyLabel &kl: value().nbs_vector)
+						pv.push_back(kl.key.vID);
+					SIMessage out_message = SIMessage(type, passed_mappings, 
+						dummy_vs, next_u, 1, ncol, id.vID, id.wID, markers,
+						chd_constraint, msg.neighbors);
+
+					// Need to satisfy all the below conditions to send:
+					// 1. the next v has the correct label
+					// 2. the next v has not been used.
+					// 3. the next v lies in the all the neighbors							
+					for (int i = 0; i < value().degree; ++i)
+					{
+						KeyLabel &kl = value().nbs_vector[i];
+						bool flag = true;
+						// Condition 1
+						if (kl.label != query->getLabel(next_u))
+							flag = false;
+						// Condition 2
+						for (int i = 0; i < msg.ncol; i++)
+							if (kl.key.vID == msg.mappings[i])
+								flag = false;
+						// Condition 3
+						for (int b_level : query->getBNeighborsPos(next_u))
+						{
+							vector<int> &v = msg.neighbors[b_level];
+							if (find(v.begin(), v.end(), kl.key.vID) == v.end())
+								flag = false;
+						}
+	
+						if (flag)
+							if (kl.key.wID == get_worker_id())
+								send_messages(kl.key.wID, {kl.key.vID},
+									copy_message(out_message));
+							else
+								send_messages(kl.key.wID, {kl.key.vID}, out_message);
+					}
+					dummy_vs->clear();
+					passed_mappings->clear();					
+				}//end of message loop
+			}//end of if is_branch/is_leaf loop
+#else
+			// if LOCAL_INTERSECTION ENABLED
 			if (is_branch)
 			{
 				START_TIMING(t2);
@@ -348,9 +550,9 @@ public:
 					dummy_vs->push_back(id.vID);
 					SIBranch* b = new SIBranch(NULL, id.vID, 0, curr_u, 0);
 					addPsdChildren(b, 0, id.vID, id.wID, 0);
-#ifdef DEBUG_MODE_BRANCH
+# ifdef DEBUG_MODE_BRANCH
 					b->print();
-#endif
+# endif
 					if (query->isLeaf(curr_u))
 						this->final_us.push_back(curr_u);
 					else
@@ -365,7 +567,6 @@ public:
 					for (int i = 0; i < msg.nrow; i++)
 					{
 						int *new_mapping = msg.mappings + i*msg.ncol;
-						//cout << "new_mapping[0]: " << new_mapping[0] << endl;
 						if (check_feasibility(new_mapping, curr_u, id.vID))
 						{
 							passed_mappings->push_back(new_mapping);
@@ -376,9 +577,9 @@ public:
 							int dummyID = build_dummy_vertex(b);
 							dummy_vs->push_back(dummyID);
 							addPsdChildren(b, 0, dummyID, id.wID, 0);
-#ifdef DEBUG_MODE_BRANCH
+# ifdef DEBUG_MODE_BRANCH
 							b->print();
-#endif
+# endif
 							agg->addMappingCount(0, 0, msg.ncol);
 						}
 					}
@@ -404,9 +605,9 @@ public:
 							addPsdChildren(b, final_index, id.vID, id.wID,
 								this->final_results[final_index].size());
 							this->final_results[final_index].push_back(b);
-#ifdef DEBUG_MODE_BRANCH
+# ifdef DEBUG_MODE_BRANCH
 							b->print();
-#endif
+# endif
 							agg->addMappingCount(0, 0, msg.ncol);
 						}
 					}
@@ -433,13 +634,13 @@ public:
 			}
 			STOP_TIMING(agg, t1, 0, 2);
 
-			//Continue mapping: send mappings to children
+			// Continue mapping: send mappings to children
 			START_TIMING(t1);
 			if (!passed_mappings->empty() || step_num() == 1)
 			{
-#if ONE_COPY_TRANSMISSION
+# if ONE_COPY_TRANSMISSION
 				vector<vector<int>> neighbors_map = vector<vector<int>>(get_num_workers());
-#endif
+# endif
 				int type = -1;
 
 				for (int next_u_index = 0; next_u_index < next_us.size(); next_u_index++)
@@ -464,7 +665,7 @@ public:
 						type = MESSAGE_TYPES::BMAPPING_W_SELF;
 					else
 						type = MESSAGE_TYPES::BMAPPING_WO_SELF;
-					int nrow, ncol = query->getNCOL(curr_u);
+					int nrow;
 					if (LEVEL == 0)
 						nrow = 1;
 					else
@@ -474,7 +675,7 @@ public:
 						chd_constraint);
 
 					int next_label = query->getLabel(next_u);
-#if ONE_COPY_TRANSMISSION
+# if ONE_COPY_TRANSMISSION
 					for (int i = 0; i < value().degree; ++i)
 					{
 						KeyLabel &kl = value().nbs_vector[i];
@@ -495,7 +696,7 @@ public:
 					//Clear neighbors_map
 					for (int i = 0; i < get_num_workers(); i++)
 						neighbors_map[i].clear();
-#else
+# else
 					for (int i = 0; i < value().degree; ++i)
 					{
 						KeyLabel &kl = value().nbs_vector[i];
@@ -506,18 +707,18 @@ public:
 							else
 								send_messages(kl.key.wID, {kl.key.vID}, out_message);
 					}
-#endif
+# endif
 					STOP_TIMING(agg, t2, 1, 1);
 
-#ifdef DEBUG_MODE_MSG
+# ifdef DEBUG_MODE_MSG
 					cout << "Send out message" << endl;
 					out_message.print();
-#endif
+# endif
 				} //end of for loop of next_u	
 			} //end of continue mapping of curr_u
 			STOP_TIMING(agg, t1, 1, 0);
-		}
-		// end of for curr_u loop
+#endif
+		}//end of for curr_u loop
 		STOP_TIMING(agg, t, 0, 1);
 		vote_to_halt();
 	}
