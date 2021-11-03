@@ -908,7 +908,9 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 			v->id = SIKey(id, id % _num_workers);
 
 			pch = strtok(NULL, " \t");
-			v->value().label = atoi(pch); //(int) *pch;
+			int label = atoi(pch);
+			v->value().label = label;
+			//v->value().label = (int) *pch;
 
 			SIKey key;
 			while ((pch = strtok(NULL, " ")) != NULL)
@@ -916,7 +918,8 @@ class SIWorker:public Worker<SIVertex, SIQuery, SIAgg>
 				id = atoi(pch);
 				key = SIKey(id, id % _num_workers);
 				pch = strtok(NULL, " ");
-				v->value().nbs_vector.push_back(KeyLabel(key, atoi(pch))); //(int) *pch));
+				label = atoi(pch);
+				v->value().nbs_vector.push_back(KeyLabel(key, label));
 				//v->value().nbs_set.insert(id);
 			}
 			size_t sz = v->value().nbs_vector.size();
