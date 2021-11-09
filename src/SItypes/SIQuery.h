@@ -145,7 +145,7 @@ ostream & operator << (ostream & os, const vector<bool> & v)
 // Overloading << operator of SINode for debug purpose.
 ostream & operator << (ostream & os, const SINode & node)
 {
-	os << "[Label: " << (char) node.label 
+	os << "[Label: " << node.label 
 	   << " Neighbors: " << node.nbs
 	   << " Level: " << node.level
 	   << " Branch number: " << node.branch_number
@@ -211,6 +211,7 @@ public:
 
 	size_t num;
 	int root;
+	int edgenum;
 	int max_branch_number = 0;
 	int max_level = 0;
 	vector<int> dfs_order;
@@ -224,13 +225,16 @@ public:
 	vector<int> bucket_number;
 
 	void init(const string &order)
-	{ // call after the query is sent to each worker
+	{   
+		// call after the query is sent to each worker
+		// order = random/degree/ri
 		this->num = this->nodes.size();
+		this->edgenum = 0;
+		for (int i = 0; i < this->num; i++)
+			this->edgenum += this->nodes[i].nbs.size();
+		this->edgenum /= 2;
 		this->nbancestors.resize(this->num);
 
-		// order = "degree", value = degree
-		// order = "candidate", value = candidate size
-		// order = "random"
 		if (! this->nodes.empty())
 		{
 			if (order == "random")
@@ -252,16 +256,13 @@ public:
 			}
 			else
 			{
-				size_t value, min_value;
-				for (size_t i = 0; i < this->nodes.size(); ++i)
+				int value, max_value;
+				for (int i = 0; i < this->nodes.size(); ++i)
 				{
-					if (order == "degree")
-						value = - this->nodes[i].nbs.size(); // default asc
-					else
-						value = (*((AggMat*)global_agg))[i][i];
-					if (i == 0 || value < min_value)
+					value = this->nodes[i].nbs.size();
+					if (i == 0 || value > max_value)
 					{
-						min_value = value;
+						max_value = value;
 						this->root = i;
 					}
 				}
@@ -277,6 +278,7 @@ public:
 		}
 	}
 
+
 	virtual void addNode(char* line)
 	{
 		char * pch;
@@ -284,7 +286,7 @@ public:
 		int id = atoi(pch);
 
 		pch = strtok(NULL, " \t");
-		int label = (int) *pch;
+		int label = atoi(pch);
 
 		int i1 = this->nodes.size();
 		this->nodes.push_back(SINode(id, label));
@@ -323,7 +325,7 @@ public:
 		{
 			cout << "level " << i << endl;
 			for (int j = 0; j < this->bucket_size_value[i].size(); j++)
-				cout << "[key] " << (char) this->bucket_size_key[i][j]
+				cout << "[key] " << this->bucket_size_key[i][j]
 				     << " [value] " << this->bucket_size_value[i][j] << endl;
 		}
 		cout << this->bucket_number << endl;
@@ -385,15 +387,15 @@ public:
 				if (order == "random")
 					value = 0;
 				else if (order == "degree")
-					value = - next->nbs.size(); // default asc
-				else if (order == "anti-degree")
 					value = next->nbs.size();
-				else if (order == "candidate")
+				else if (order == "anti-degree")
+					value = -next->nbs.size();
+				else // |nbs ^ phi|
 				{
-					if (currID > nextID)
-						value = (*((AggMat*)global_agg))[currID][nextID];
-					else
-					    value = (*((AggMat*)global_agg))[nextID][currID];
+					value = 0;
+					for (int nbr = 0; nbr < next->nbs.size(); nbr++)
+						if (this->nodes[nbr].visited)
+							value ++;
 				}
 				unv_nbs_value.push_back(make_pair(nextID, value));
 			}
