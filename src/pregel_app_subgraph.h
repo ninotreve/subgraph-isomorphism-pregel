@@ -842,6 +842,7 @@ void pregel_subgraph(const WorkerParams & params)
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Subgraph matching time", STAGE_TIMER)
 
+/* Timer
 	if (_my_rank == MASTER_RANK)
 	{
 		cout << "[Detailed report]" << endl;
@@ -865,6 +866,7 @@ void pregel_subgraph(const WorkerParams & params)
 		cout << "2.2.2. Update out messages buffer: " <<
 			mat[1][2] << " s" << endl;
 	}
+*/
 
 	// STAGE 5: Subgraph enumeration
 	MPRINT("**Subgraph enumeration**")
@@ -873,6 +875,7 @@ void pregel_subgraph(const WorkerParams & params)
 	StopTimer(STAGE_TIMER);
 	PrintTimer("Subgraph enumeration time", STAGE_TIMER)
 
+/* Timer
 	if (_my_rank == MASTER_RANK)
 	{
 		cout << "[Detailed report]" << endl;
@@ -893,6 +896,7 @@ void pregel_subgraph(const WorkerParams & params)
 		cout << "3.2. Expand: " <<
 			mat[1][2] << " s" << endl;
 	}
+*/
 
 	StopTimer(COMPUTE_TIMER);
 	//=============== The most important timer stops here!!! =================

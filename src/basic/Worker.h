@@ -120,7 +120,7 @@ public:
             {
                 compute_count ++;
                 //if (type == ENUMERATE && global_step_num == 4)
-                    //cout << vertexes[i]->id.vID << " ";
+                //cout << vertexes[i]->id.vID << " ";
                 switch (type)
 				{
 				case PREPROCESS:
@@ -397,8 +397,8 @@ public:
 		//debug
 		//cout << "------------Debug Worker " << _my_rank << "-------------" << endl;
         //((QueryT*) global_query)->printOrder();
-		if (_my_rank == MASTER_RANK)
-			((QueryT*) global_query)->printOrder();
+		//if (_my_rank == MASTER_RANK)
+			//((QueryT*) global_query)->printOrder();
 
 		//barrier for query tree build
 		worker_barrier(); 
@@ -465,11 +465,13 @@ public:
             
             StartTimer(ACTIVE_COMPUTE_TIMER);
             int compute_count = active_compute(type, params, wakeAll);
+/* DEBUG
             if (_my_rank < 5 && params.report > 0 && (type == MATCH || type == ENUMERATE)) 
             {
                 cout << "[" << _my_rank << "] Superstep " << global_step_num << ": "
                      << "#vertices computed: " << compute_count << endl;
             }
+*/
             StopTimer(ACTIVE_COMPUTE_TIMER);
             
             StartTimer(REDUCE_MESSAGE_TIMER);
@@ -523,6 +525,7 @@ public:
             worker_barrier();
             StopTimer(SYNC_TIMER);
             StopTimer(SUPERSTEP_TIMER);
+            /* DEBUG Timer
             if (_my_rank == MASTER_RANK && params.report > 0 && (type == MATCH || type == ENUMERATE)) {
                 cout << "Superstep " << global_step_num << " done."
                 	 << "Time elapsed: " << get_timer(SUPERSTEP_TIMER)
@@ -531,6 +534,7 @@ public:
                     cout << "#msgs: " << step_msg_num << ", #vadd: " 
                          << step_vadd_num << endl;
             }
+            */
         } // end of while loop
         StartTimer(AGG_TIMER);
         agg_sync();
@@ -541,6 +545,7 @@ public:
         StopTimer(SYNC_TIMER);
 
         StopTimer(WORKER_TIMER);
+        /* DEBUG Timer
         if (_my_rank == MASTER_RANK && params.report > 0 && (type == MATCH || type == ENUMERATE))
     	{
             cout << "Subgraph matching/enumeration done. " << endl;
@@ -560,6 +565,7 @@ public:
             cout << "Total #msgs=" << global_msg_num << ", "
                 "Total #vadd=" << global_vadd_num << endl;
     	}
+        */
     }
 
     void dump_graph(const string& output_path, bool force_write)
