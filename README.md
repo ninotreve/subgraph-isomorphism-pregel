@@ -1,5 +1,8 @@
 # Hybrid Subgraph Matching for Distributed Systems 
 
+## Citation
+Y. Zhang, W. Zheng, Z. Zhang, P. Peng, and X. Zhang, [Hybrid Subgraph Matching Framework Powered by Sketch Tree for Distributed Systems](https://doi.org/10.1109/icde53745.2022.00082), 2022 IEEE 38th International Conference on Data Engineering (ICDE), May 2022, doi: 10.1109/icde53745.2022.00082.
+
 ## Installation (Dependency)
 This system is built on [Pregel+](http://www.cse.cuhk.edu.hk/pregelplus/index.html). Please follow the [installation instructions](http://www.cse.cuhk.edu.hk/pregelplus/deploy-hadoop2.html) to install Pregel+, most importantly, please install HDFS and MPICH.
 
